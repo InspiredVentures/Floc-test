@@ -1,0 +1,7 @@
+{
+  "name": "Copy of Floc",
+  "description": "A collaborative group travel platform by Inspired Ventures for conscious explorers to plan, book, and track sustainability impact together.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
