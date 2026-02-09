@@ -20,6 +20,13 @@ const INTERESTS = [
   { id: 'hidden', label: 'Hidden Gems', icon: 'map' },
 ];
 
+const FlocLogo = ({ className = "size-8" }: { className?: string }) => (
+  <div className={`flex items-baseline font-black leading-none text-primary ${className}`}>
+    <span className="text-[1.1em] tracking-tighter">F</span>
+    <div className="size-[0.25em] bg-primary rounded-full ml-[0.05em] mb-[0.1em]"></div>
+  </div>
+);
+
 const Onboarding: React.FC<Props> = ({ onComplete }) => {
   const [step, setStep] = useState(1);
   const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
@@ -35,18 +42,15 @@ const Onboarding: React.FC<Props> = ({ onComplete }) => {
   if (step === 1) {
     return (
       <div className="relative h-screen w-full flex flex-col overflow-hidden bg-background-dark">
-        {/* Immersive Background */}
         <div className="absolute inset-0 z-0">
           <div className="w-full h-full bg-cover bg-center transition-transform duration-[10s] hover:scale-110" style={{ backgroundImage: `url("https://images.unsplash.com/photo-1533105079780-92b9be482077?auto=format&fit=crop&w=1200&q=80")` }}></div>
           <div className="absolute inset-0 bg-gradient-to-b from-background-dark/90 via-background-dark/40 to-background-dark"></div>
         </div>
         
         <header className="relative z-10 flex items-center justify-between px-6 pt-12">
-          <div className="flex items-center gap-2">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary shadow-2xl shadow-primary/40 rotate-6">
-              <span className="text-white font-black text-2xl font-display leading-none">F</span>
-            </div>
-            <div className="flex flex-col">
+          <div className="flex items-center gap-3">
+            <FlocLogo className="text-6xl drop-shadow-2xl" />
+            <div className="flex flex-col ml-1 pt-4">
               <span className="text-white font-black text-xl tracking-tighter leading-none italic">Floc</span>
               <span className="text-primary text-[7px] uppercase tracking-[0.3em] font-black mt-0.5">Inspired Ventures</span>
             </div>

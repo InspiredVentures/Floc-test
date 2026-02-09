@@ -100,6 +100,13 @@ const CATEGORIES = [
   { id: 'social', label: 'Social', icon: 'groups' }
 ];
 
+const FlocLogo = ({ className = "size-8" }: { className?: string }) => (
+  <div className={`flex items-baseline font-black leading-none text-primary ${className}`}>
+    <span className="text-[1.1em] tracking-tighter">F</span>
+    <div className="size-[0.25em] bg-primary rounded-full ml-[0.05em] mb-[0.1em]"></div>
+  </div>
+);
+
 const Discovery: React.FC<Props> = ({ onSelectTrip, onSelectCommunity, onOpenNotifications, onSeeAll, onCreateCommunity }) => {
   const [activeFilter, setActiveFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -117,7 +124,6 @@ const Discovery: React.FC<Props> = ({ onSelectTrip, onSelectCommunity, onOpenNot
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Update interests when a community is selected
   const handleCommunityClick = (community: Community) => {
     const newInterests = { ...categoryInterests };
     newInterests[community.category] = (newInterests[community.category] || 0) + 1;
@@ -188,15 +194,12 @@ const Discovery: React.FC<Props> = ({ onSelectTrip, onSelectCommunity, onOpenNot
 
   return (
     <div className="flex flex-col min-h-full bg-background-dark pb-32">
-      {/* Navigation Header */}
-      <header className={`fixed top-0 left-0 right-0 z-[60] px-6 transition-all duration-300 ${scrolled ? 'py-4 bg-background-dark/95 backdrop-blur-xl border-b border-white/5 shadow-2xl' : 'py-8 bg-transparent'}`}>
+      <header className={`fixed top-0 left-0 right-0 z-[60] px-6 transition-all duration-500 ${scrolled ? 'py-4 bg-background-dark/95 backdrop-blur-xl border-b border-white/5 shadow-2xl' : 'py-8 bg-transparent'}`}>
         <div className="max-w-md mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className={`flex items-center justify-center rounded-xl bg-primary shadow-lg shadow-primary/20 transition-all duration-500 ${scrolled ? 'size-8' : 'size-10 rotate-3'}`}>
-              <span className="text-white font-black text-xl leading-none">F</span>
-            </div>
+          <div className="flex items-center gap-2">
+            <FlocLogo className={`transition-all duration-500 transform ${scrolled ? 'text-2xl' : 'text-5xl'}`} />
             {!scrolled && (
-              <div className="animate-in fade-in slide-in-from-left-2 duration-500">
+              <div className="animate-in fade-in slide-in-from-left-2 duration-500 ml-2">
                 <h1 className="text-white font-black text-xl tracking-tighter leading-none italic">Discover</h1>
                 <span className="text-primary text-[8px] uppercase tracking-[0.2em] font-black">Inspired Ventures</span>
               </div>
@@ -209,7 +212,6 @@ const Discovery: React.FC<Props> = ({ onSelectTrip, onSelectCommunity, onOpenNot
         </div>
       </header>
 
-      {/* Hero Spotlight: Community-First */}
       {!searchQuery && (
         <section className="relative h-[550px] w-full shrink-0 group">
           <div className="absolute inset-0 bg-cover bg-center transition-transform duration-[20s] ease-linear group-hover:scale-110" style={{ backgroundImage: `url('${featuredCommunity.image}')` }}></div>
@@ -240,7 +242,6 @@ const Discovery: React.FC<Props> = ({ onSelectTrip, onSelectCommunity, onOpenNot
         </section>
       )}
 
-      {/* Global Search Interface */}
       <section className={`px-6 z-50 sticky top-[80px] transition-all duration-300 ${searchQuery ? 'mt-24' : '-mt-8'}`}>
         <div className="relative group max-w-md mx-auto">
           <div className="absolute inset-0 bg-primary/20 blur-2xl opacity-0 group-focus-within:opacity-100 transition-opacity"></div>
@@ -262,7 +263,6 @@ const Discovery: React.FC<Props> = ({ onSelectTrip, onSelectCommunity, onOpenNot
         </div>
       </section>
 
-      {/* Feed Content */}
       <main className="mt-8">
         {searchQuery ? (
           <section className="px-6 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -290,8 +290,6 @@ const Discovery: React.FC<Props> = ({ onSelectTrip, onSelectCommunity, onOpenNot
           </section>
         ) : (
           <div className="space-y-12">
-            
-            {/* RECOMMENDED FOR YOU - Prioritized by Category Interaction */}
             <section className="space-y-6">
               <div className="px-6 flex items-center justify-between">
                 <div className="flex flex-col">
@@ -335,7 +333,6 @@ const Discovery: React.FC<Props> = ({ onSelectTrip, onSelectCommunity, onOpenNot
               </div>
             </section>
 
-            {/* EXPLORE GLOBAL COLLECTIVES */}
             <section className="space-y-6">
               <div className="px-6 flex items-center justify-between">
                 <div className="flex flex-col">
@@ -370,7 +367,6 @@ const Discovery: React.FC<Props> = ({ onSelectTrip, onSelectCommunity, onOpenNot
               </div>
             </section>
 
-            {/* Launch Community CTA */}
             <section className="px-6 pt-4 pb-12">
                <div className="flex overflow-x-auto hide-scrollbar gap-3 mb-12">
                   {CATEGORIES.map(cat => (

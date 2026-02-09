@@ -286,10 +286,18 @@ const TripDetails: React.FC<Props> = ({ trip, onBack, onBook, onOpenChat }) => {
           
           <button 
             onClick={openSocialShare}
-            className="bg-white/10 backdrop-blur-md text-white p-2 rounded-full flex items-center justify-center hover:bg-white/20 transition-colors border border-primary/20"
+            className="bg-white/10 backdrop-blur-md text-white p-2 rounded-full flex items-center justify-center hover:bg-white/20 transition-all border border-primary/20 group active:scale-90"
+            title="Share to Social Media"
+          >
+            <span className="material-symbols-outlined text-primary group-hover:rotate-12 transition-transform">public</span>
+          </button>
+
+          <button 
+            onClick={openSocialShare}
+            className="bg-white/10 backdrop-blur-md text-white p-2 rounded-full flex items-center justify-center hover:bg-white/20 transition-colors border border-white/5"
             title="Share"
           >
-            <span className="material-symbols-outlined text-primary">hub</span>
+            <span className="material-symbols-outlined text-white text-[20px]">hub</span>
           </button>
 
           <button 
@@ -297,11 +305,11 @@ const TripDetails: React.FC<Props> = ({ trip, onBack, onBook, onOpenChat }) => {
             className="bg-white/10 backdrop-blur-md text-white p-2 rounded-full flex items-center justify-center hover:bg-white/20 transition-colors"
             title="Native Share"
           >
-            <span className="material-symbols-outlined">share</span>
+            <span className="material-symbols-outlined text-[20px]">share</span>
           </button>
           
           <button className="bg-white/10 backdrop-blur-md text-white p-2 rounded-full flex items-center justify-center hover:bg-white/20 transition-colors">
-            <span className="material-symbols-outlined">favorite</span>
+            <span className="material-symbols-outlined text-[20px]">favorite</span>
           </button>
         </div>
       </header>
@@ -336,7 +344,6 @@ const TripDetails: React.FC<Props> = ({ trip, onBack, onBook, onOpenChat }) => {
           <StatBox icon="group" label="Group" value={`${trip.membersCount}`} />
         </div>
 
-        {/* PROMINENT SUGGEST ACTIVITY BUTTON */}
         <button 
           onClick={() => setShowAddModal(true)}
           className="w-full bg-primary/10 border border-primary/30 text-primary py-5 rounded-2xl text-xs font-black uppercase tracking-[0.2em] flex items-center justify-center gap-3 hover:bg-primary/20 active:scale-[0.98] transition-all shadow-xl shadow-primary/5"
@@ -345,7 +352,6 @@ const TripDetails: React.FC<Props> = ({ trip, onBack, onBook, onOpenChat }) => {
           Suggest Activity
         </button>
 
-        {/* View Switcher */}
         <div className="flex bg-white/5 p-1 rounded-2xl ring-1 ring-white/10">
           <button 
             onClick={() => setActiveView('feed')}

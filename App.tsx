@@ -25,6 +25,13 @@ import BillingCenter from './pages/resources/BillingCenter';
 import AnalyticsAPI from './pages/resources/AnalyticsAPI';
 import { MOCK_TRIPS } from './constants';
 
+const FlocLogo = ({ className = "size-8" }: { className?: string }) => (
+  <div className={`flex items-baseline font-black leading-none text-primary ${className}`}>
+    <span className="text-[1.1em] tracking-tighter">F</span>
+    <div className="size-[0.25em] bg-primary rounded-full ml-[0.05em] mb-[0.1em]"></div>
+  </div>
+);
+
 const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<AppView>(AppView.ONBOARDING);
   const [activeTrip, setActiveTrip] = useState<Trip | null>(MOCK_TRIPS[0]);
@@ -202,6 +209,9 @@ const App: React.FC = () => {
           onClick={() => setIsPowerMenuOpen(false)}
         >
           <div className="absolute bottom-32 left-0 right-0 px-8 space-y-4 animate-in slide-in-from-bottom-8 duration-500">
+            <div className="mb-4">
+               <FlocLogo className="text-6xl drop-shadow-[0_0_30px_rgba(255,107,53,0.3)]" />
+            </div>
             <h3 className="text-white text-3xl font-black italic tracking-tighter mb-8">What are we <br/><span className="text-primary not-italic tracking-normal">launching?</span></h3>
             
             <PowerMenuItem 
@@ -231,7 +241,6 @@ const App: React.FC = () => {
 
       {showNav && (
         <nav className="sticky bottom-0 z-50 bg-white/90 dark:bg-background-dark/95 backdrop-blur-xl border-t border-slate-200 dark:border-white/10 px-6 pt-3 pb-8 flex justify-between items-center">
-          {/* PRIORITY 1: GROUPS */}
           <button 
             onClick={() => { setCurrentView(AppView.MY_COMMUNITIES); setIsPowerMenuOpen(false); }}
             className={`flex flex-col items-center gap-1 transition-colors relative ${currentView === AppView.MY_COMMUNITIES ? 'text-primary' : 'text-slate-400 hover:text-white'}`}
@@ -241,7 +250,6 @@ const App: React.FC = () => {
             <div className="absolute top-0 right-0 size-2 bg-primary rounded-full border-2 border-background-dark"></div>
           </button>
 
-          {/* PRIORITY 2: EXPLORE */}
           <button 
             onClick={() => { setCurrentView(AppView.DISCOVERY); setIsPowerMenuOpen(false); }}
             className={`flex flex-col items-center gap-1 transition-colors ${currentView === AppView.DISCOVERY ? 'text-primary' : 'text-slate-400 hover:text-white'}`}
@@ -250,7 +258,6 @@ const App: React.FC = () => {
             <span className="text-[10px] font-bold uppercase tracking-tighter">Explore</span>
           </button>
           
-          {/* POWER BUTTON */}
           <div className="relative -top-6">
             <button 
               onClick={() => setIsPowerMenuOpen(!isPowerMenuOpen)}
@@ -260,7 +267,6 @@ const App: React.FC = () => {
             </button>
           </div>
 
-          {/* PRIORITY 3: PULSE */}
           <button 
             onClick={() => { setCurrentView(AppView.GLOBAL_FEED); setIsPowerMenuOpen(false); }}
             className={`flex flex-col items-center gap-1 transition-colors ${currentView === AppView.GLOBAL_FEED ? 'text-primary' : 'text-slate-400 hover:text-white'}`}
@@ -269,7 +275,6 @@ const App: React.FC = () => {
             <span className="text-[10px] font-bold uppercase tracking-tighter">Pulse</span>
           </button>
 
-          {/* PRIORITY 4: ME */}
           <button 
             onClick={() => { setCurrentView(AppView.PROFILE); setIsPowerMenuOpen(false); }}
             className={`flex flex-col items-center gap-1 transition-colors ${currentView === AppView.PROFILE ? 'text-primary' : 'text-slate-400 hover:text-white'}`}
