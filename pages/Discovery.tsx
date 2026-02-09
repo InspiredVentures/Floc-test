@@ -25,17 +25,6 @@ const MOCK_COMMUNITIES: Community[] = [
     accessType: 'free'
   },
   {
-    id: 'c2',
-    title: "Aurora Chasers",
-    meta: "Expedition • 8.9k members",
-    description: "A collective dedicated to the pursuit of the Northern Lights through low-impact, remote expeditions.",
-    image: "https://images.unsplash.com/photo-1531366930499-41f6693d1599?auto=format&fit=crop&w=1200&q=80",
-    memberCount: "8.9k",
-    category: "Expedition",
-    upcomingTrips: [MOCK_TRIPS[0]],
-    accessType: 'request'
-  },
-  {
     id: 'c3',
     title: "Summit Seekers",
     meta: "Adventure • 4.5k members",
@@ -100,17 +89,6 @@ const MOCK_COMMUNITIES: Community[] = [
     category: "Wellness",
     upcomingTrips: [],
     accessType: 'free'
-  },
-  {
-    id: 'c9',
-    title: "Lost City Explorers",
-    meta: "Adventure • 2.7k members",
-    description: "Trekking to the Ciudad Perdida in Colombia while engaging with the Kogi and Wiwa indigenous communities.",
-    image: "https://images.unsplash.com/photo-1583531352515-88841314dd95?auto=format&fit=crop&w=800&q=80",
-    memberCount: "2.7k",
-    category: "Adventure",
-    upcomingTrips: [MOCK_TRIPS[3]],
-    accessType: 'request'
   }
 ];
 
@@ -185,7 +163,7 @@ const Discovery: React.FC<Props> = ({ onSelectTrip, onSelectCommunity, onOpenNot
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  const featuredCommunity = MOCK_COMMUNITIES[8]; // Lost City Explorers as featured
+  const featuredCommunity = MOCK_COMMUNITIES[0]; // Set to Parisian Flâneurs as featured
 
   return (
     <div className="flex flex-col min-h-full bg-background-dark pb-32">

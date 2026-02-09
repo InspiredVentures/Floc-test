@@ -25,7 +25,7 @@ const JOINED_COMMUNITIES: Community[] = [
     isManaged: true
   },
   {
-    id: 'c2',
+    id: 'c4',
     title: "Eco-Warriors Bali",
     meta: "Sustainability • 3.5k members",
     description: "Our community is dedicated to preserving Bali's natural beauty.",

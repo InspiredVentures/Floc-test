@@ -33,19 +33,6 @@ const MOCK_GLOBAL_POSTS: TribePost[] = [
     hasLiked: false,
     comments: [],
     time: '1h ago'
-  },
-  {
-    id: 'gp3',
-    author: 'Mike Ross',
-    authorAvatar: 'https://picsum.photos/seed/mike/100/100',
-    tribeName: 'Aurora Chasers',
-    role: 'Member',
-    content: "The lights were incredible last night in Tromsø. Worth every freezing minute! 🌌",
-    image: 'https://images.unsplash.com/photo-1531366930499-41f6693d1599?auto=format&fit=crop&w=800&q=80',
-    likes: 234,
-    hasLiked: true,
-    comments: [],
-    time: '3h ago'
   }
 ];
 
