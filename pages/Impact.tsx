@@ -2,15 +2,25 @@
 import React from 'react';
 import { MOCK_IMPACT } from '../constants';
 
-const Impact: React.FC = () => {
+interface Props {
+  onBack: () => void;
+}
+
+const Impact: React.FC<Props> = ({ onBack }) => {
   return (
-    <div className="flex flex-col gap-6 p-4 pt-12">
-      <header className="flex flex-col items-center gap-2 mb-4">
+    <div className="flex flex-col gap-6 p-4 pt-12 bg-background-dark min-h-full">
+      <header className="flex flex-col items-center gap-2 mb-4 relative">
+        <button 
+          onClick={onBack}
+          className="absolute left-0 top-0 text-white p-2 hover:bg-white/10 rounded-full"
+        >
+          <span className="material-symbols-outlined">arrow_back</span>
+        </button>
         <h2 className="text-2xl font-bold text-white">Sustainability Impact</h2>
         <p className="text-primary text-xs font-semibold tracking-wider uppercase">Floc, by Inspired</p>
         <div className="mt-2 bg-primary/10 border border-primary/20 rounded-lg px-3 py-1.5 flex items-center gap-2">
           <span className="material-symbols-outlined text-primary text-sm">group</span>
-          <span className="text-primary text-xs font-bold">Eco-Warriors in Bali</span>
+          <span className="text-primary text-xs font-bold">Alex Sterling Collective</span>
         </div>
       </header>
 
@@ -49,7 +59,7 @@ const Impact: React.FC = () => {
           How we calculate impact
           <span className="material-symbols-outlined text-sm">open_in_new</span>
         </button>
-        <div className="flex items-center gap-2 opacity-50">
+        <div className="flex items-center gap-2 opacity-50 pb-10">
           <span className="text-[10px] font-bold tracking-widest uppercase text-white">Verified by Inspired Ventures</span>
           <span className="material-symbols-outlined text-[16px] text-white">verified</span>
         </div>

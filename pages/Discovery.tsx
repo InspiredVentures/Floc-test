@@ -45,50 +45,6 @@ const MOCK_COMMUNITIES: Community[] = [
     category: "Eco-Travel",
     upcomingTrips: [],
     accessType: 'free'
-  },
-  {
-    id: 'c5',
-    title: "Jordanian Pathfinders",
-    meta: "Cultural • 1.8k members",
-    description: "Exploring the ancient trails of Jordan, from the rose-red city of Petra to the Martian landscapes of Wadi Rum.",
-    image: "https://images.unsplash.com/photo-1547234935-80c7145ec969?auto=format&fit=crop&w=800&q=80",
-    memberCount: "1.8k",
-    category: "Cultural",
-    upcomingTrips: [MOCK_TRIPS[4]],
-    accessType: 'free'
-  },
-  {
-    id: 'c6',
-    title: "Amazonian Guardians",
-    meta: "Sustainability • 2.4k members",
-    description: "Supporting the biodiversity of the Amazon through scientific exploration and indigenous partnership.",
-    image: "https://images.unsplash.com/photo-1516026672322-bc52d61a55d5?auto=format&fit=crop&w=800&q=80",
-    memberCount: "2.4k",
-    category: "Eco-Travel",
-    upcomingTrips: [],
-    accessType: 'request'
-  },
-  {
-    id: 'c7',
-    title: "Atlas Adventurers",
-    meta: "Expedition • 1.1k members",
-    description: "Hiking through the High Atlas Mountains of Morocco, staying in Berber villages and supporting local education.",
-    image: "https://images.unsplash.com/photo-1489749798305-4fea3ae63d43?auto=format&fit=crop&w=800&q=80",
-    memberCount: "1.1k",
-    category: "Expedition",
-    upcomingTrips: [],
-    accessType: 'free'
-  },
-  {
-    id: 'c8',
-    title: "Costa Rica Connoisseurs",
-    meta: "Wellness • 3.2k members",
-    description: "Pura Vida experiences blending rainforest wellness retreats with wildlife conservation volunteering.",
-    image: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=800&q=80",
-    memberCount: "3.2k",
-    category: "Wellness",
-    upcomingTrips: [],
-    accessType: 'free'
   }
 ];
 
@@ -104,7 +60,7 @@ const CATEGORIES = [
 
 const FlocLogo = ({ className = "size-8" }: { className?: string }) => (
   <div className={`flex items-baseline font-black leading-none text-primary ${className}`}>
-    <span className="text-[1.1em] tracking-tighter">F</span>
+    <span className="text-[1.1em] tracking-tighter italic">F</span>
     <div className="size-[0.25em] bg-primary rounded-full ml-[0.05em] mb-[0.1em]"></div>
   </div>
 );
@@ -115,38 +71,20 @@ const Discovery: React.FC<Props> = ({ onSelectTrip, onSelectCommunity, onOpenNot
   const [isExpandingSearch, setIsExpandingSearch] = useState(false);
   const [aiRelatedConcepts, setAiRelatedConcepts] = useState<string[]>([]);
   const [scrolled, setScrolled] = useState(false);
-  const [categoryInterests, setCategoryInterests] = useState<Record<string, number>>(() => {
-    const saved = localStorage.getItem('floc_category_interests');
-    return saved ? JSON.parse(saved) : {};
-  });
+  const [impactTicker, setImpactTicker] = useState(42812);
+  const [isArchitecting, setIsArchitecting] = useState(false);
+  const [architectResult, setArchitectResult] = useState<{name: string, desc: string} | null>(null);
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 50);
     window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    const ticker = setInterval(() => setImpactTicker(prev => prev + Math.floor(Math.random() * 5)), 3000);
+    return () => { window.removeEventListener('scroll', handleScroll); clearInterval(ticker); };
   }, []);
 
-  const handleCommunityClick = (community: Community) => {
-    const newInterests = { ...categoryInterests };
-    newInterests[community.category] = (newInterests[community.category] || 0) + 1;
-    setCategoryInterests(newInterests);
-    localStorage.setItem('floc_category_interests', JSON.stringify(newInterests));
-    onSelectCommunity(community);
-  };
-
-  const prioritizedCommunities = useMemo(() => {
-    return [...MOCK_COMMUNITIES].sort((a, b) => {
-      const scoreA = categoryInterests[a.category] || 0;
-      const scoreB = categoryInterests[b.category] || 0;
-      return scoreB - scoreA;
-    });
-  }, [categoryInterests]);
-
   const filteredCommunities = useMemo(() => {
-    let result = prioritizedCommunities;
-    if (activeFilter !== 'all') {
-      result = result.filter(c => c.category === activeFilter);
-    }
+    let result = MOCK_COMMUNITIES;
+    if (activeFilter !== 'all') result = result.filter(c => c.category === activeFilter);
     if (searchQuery) {
       result = result.filter(comm => 
         comm.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -154,52 +92,53 @@ const Discovery: React.FC<Props> = ({ onSelectTrip, onSelectCommunity, onOpenNot
       );
     }
     return result;
-  }, [prioritizedCommunities, activeFilter, searchQuery]);
+  }, [activeFilter, searchQuery]);
 
-  const semanticMatches = useMemo(() => {
-    if (!searchQuery || aiRelatedConcepts.length === 0) return [];
-    return prioritizedCommunities.filter(comm => {
-      const isExactMatch = filteredCommunities.some(e => e.id === comm.id);
-      if (isExactMatch) return false;
-      return aiRelatedConcepts.some(concept => 
-        comm.category.toLowerCase().includes(concept.toLowerCase()) ||
-        comm.title.toLowerCase().includes(concept.toLowerCase())
-      );
-    });
-  }, [prioritizedCommunities, aiRelatedConcepts, filteredCommunities, searchQuery]);
-
-  useEffect(() => {
-    const timer = setTimeout(async () => {
-      if (searchQuery.length > 2) {
-        setIsExpandingSearch(true);
-        try {
-          const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-          const response = await ai.models.generateContent({
-            model: 'gemini-3-flash-preview',
-            contents: `Search intent analysis for travel communities: "${searchQuery}". Return 3 keywords representing related travel interests. CSV format only.`,
-          });
-          const concepts = response.text?.split(',').map(s => s.trim().toLowerCase()) || [];
-          setAiRelatedConcepts(concepts);
-        } catch (e) { console.error(e); } finally { setIsExpandingSearch(false); }
-      } else { setAiRelatedConcepts([]); }
-    }, 1000);
-    return () => clearTimeout(timer);
-  }, [searchQuery]);
-
-  const featuredCommunity = prioritizedCommunities[0];
+  const handleTribeArchitect = async () => {
+    if (!searchQuery) return;
+    setIsArchitecting(true);
+    setArchitectResult(null);
+    try {
+      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      const response = await ai.models.generateContent({
+        model: 'gemini-3-flash-preview',
+        contents: `Architect a conceptual travel community based on this search query: "${searchQuery}". 
+        Return a JSON object with "name" (a catchy tribe name) and "desc" (a 150-char description of its core mission). 
+        Make it sound exclusive and adventurous.`,
+        config: { responseMimeType: "application/json" }
+      });
+      const data = JSON.parse(response.text || '{}');
+      setArchitectResult(data);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsArchitecting(false);
+    }
+  };
 
   const showResults = searchQuery !== '' || activeFilter !== 'all';
 
   return (
     <div className="flex flex-col min-h-full bg-background-dark pb-32">
-      <header className={`fixed top-0 left-0 right-0 z-[60] px-6 transition-all duration-500 ${scrolled ? 'py-4 bg-background-dark/95 backdrop-blur-xl border-b border-white/5 shadow-2xl' : 'py-8 bg-transparent'}`}>
+      {/* Global Impact Ticker */}
+      <div className="bg-primary/10 border-b border-primary/20 py-2 px-6 flex items-center justify-center gap-4 overflow-hidden whitespace-nowrap">
+         <div className="flex items-center gap-2 animate-in fade-in slide-in-from-left-4">
+            <span className="material-symbols-outlined text-[10px] text-primary">public</span>
+            <span className="text-[7px] font-black uppercase tracking-[0.2em] text-white/60">Global Protocol Pulse:</span>
+            <span className="text-[7px] font-black uppercase text-primary italic">{impactTicker.toLocaleString()}KG CO2 OFFSET</span>
+            <span className="size-1 bg-white/20 rounded-full"></span>
+            <span className="text-[7px] font-black uppercase text-emerald-400">82 VENTURES LIVE</span>
+         </div>
+      </div>
+
+      <header className={`fixed top-0 left-0 right-0 z-[60] px-6 transition-all duration-500 ${scrolled ? 'py-4 bg-background-dark/95 backdrop-blur-xl border-b border-white/5 shadow-2xl mt-0' : 'py-8 bg-transparent mt-8'}`}>
         <div className="max-w-md mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2">
             <FlocLogo className={`transition-all duration-500 transform ${scrolled ? 'text-2xl' : 'text-5xl'}`} />
             {!scrolled && (
-              <div className="animate-in fade-in slide-in-from-left-2 duration-500 ml-2">
-                <h1 className="text-white font-black text-xl tracking-tighter leading-none italic">Discover</h1>
-                <span className="text-primary text-[8px] uppercase tracking-[0.2em] font-black">Inspired Ventures</span>
+              <div className="animate-in fade-in slide-in-from-left-2 duration-500 ml-2 pt-1">
+                <h1 className="text-white font-black text-xl tracking-tighter leading-none italic">Discovery</h1>
+                <span className="text-primary text-[8px] uppercase tracking-[0.2em] font-black leading-none">Inspired Ventures</span>
               </div>
             )}
           </div>
@@ -210,65 +149,25 @@ const Discovery: React.FC<Props> = ({ onSelectTrip, onSelectCommunity, onOpenNot
         </div>
       </header>
 
-      {!showResults && !searchQuery && (
-        <section className="relative h-[550px] w-full shrink-0 group">
-          <div className="absolute inset-0 bg-cover bg-center transition-transform duration-[20s] ease-linear group-hover:scale-110" style={{ backgroundImage: `url('${featuredCommunity.image}')` }}></div>
-          <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-background-dark/20 to-background-dark"></div>
-          
-          <div className="absolute bottom-12 left-6 right-6 space-y-4">
-            <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md border border-white/10 px-3 py-1 rounded-full">
-              <span className="material-symbols-outlined text-primary text-sm">stars</span>
-              <p className="text-white text-[9px] font-black uppercase tracking-widest">Top Vibe Match</p>
-            </div>
-            <h2 className="text-white text-5xl font-black tracking-tighter leading-[0.9] italic">
-              {featuredCommunity.title.split(' ').slice(0, -1).join(' ')} <br/>
-              <span className="text-primary not-italic">{featuredCommunity.title.split(' ').slice(-1)}</span>
-            </h2>
-            <div className="flex items-center gap-6">
-              <div className="flex flex-col">
-                <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1">Active Ventures</p>
-                <p className="text-white text-xs font-bold">{featuredCommunity.upcomingTrips.length} Upcoming Trips</p>
-              </div>
-              <button 
-                onClick={() => handleCommunityClick(featuredCommunity)}
-                className="bg-white text-background-dark px-6 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-2xl active:scale-95 transition-all"
-              >
-                Explore Group
-              </button>
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* Sticky Search and Filter Bar */}
-      <section className={`px-6 z-50 sticky top-[80px] transition-all duration-300 ${showResults ? 'mt-24' : '-mt-8'}`}>
+      <section className={`px-6 z-50 sticky top-[95px] transition-all duration-300 ${showResults ? 'mt-28' : 'mt-40'}`}>
         <div className="max-w-md mx-auto space-y-4">
           <div className="relative group">
-            <div className="absolute inset-0 bg-primary/20 blur-2xl opacity-0 group-focus-within:opacity-100 transition-opacity"></div>
-            <div className="relative flex items-center">
-              <span className="material-symbols-outlined absolute left-5 text-slate-500 text-[20px] group-focus-within:text-primary transition-colors">search</span>
-              <input 
-                className="w-full h-16 pl-14 pr-12 rounded-3xl bg-surface-dark border border-white/10 ios-blur focus:bg-background-dark focus:border-primary outline-none text-sm font-bold text-white placeholder:text-slate-600 transition-all shadow-2xl" 
-                placeholder="Find your community or interest..." 
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-              {isExpandingSearch && (
-                <div className="absolute right-5">
-                  <div className="size-5 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
-                </div>
-              )}
-            </div>
+            <span className="material-symbols-outlined absolute left-5 top-1/2 -translate-y-1/2 text-slate-500 text-[20px] group-focus-within:text-primary transition-colors">search</span>
+            <input 
+              className="w-full h-16 pl-14 pr-12 rounded-3xl bg-surface-dark border border-white/10 ios-blur focus:bg-background-dark focus:border-primary outline-none text-sm font-bold text-white placeholder:text-slate-600 transition-all shadow-2xl" 
+              placeholder="Search niche or tribe..." 
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
           </div>
 
-          {/* Category Chips - Now prominently placed under search */}
           <div className="flex overflow-x-auto hide-scrollbar gap-2 py-2">
             {CATEGORIES.map(cat => (
               <button 
                 key={cat.id}
                 onClick={() => setActiveFilter(cat.id)}
-                className={`flex items-center gap-2 px-5 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap border shrink-0 ${activeFilter === cat.id ? 'bg-primary border-primary text-background-dark shadow-xl shadow-primary/20 scale-105' : 'bg-surface-dark border-white/10 text-slate-500 hover:text-white hover:border-white/20'}`}
+                className={`flex items-center gap-2 px-5 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap border shrink-0 ${activeFilter === cat.id ? 'bg-primary border-primary text-background-dark shadow-lg shadow-primary/20 scale-105' : 'bg-surface-dark border-white/10 text-slate-500 hover:text-white hover:border-white/20'}`}
               >
                 <span className="material-symbols-outlined text-base">{cat.icon}</span>
                 {cat.label}
@@ -278,177 +177,74 @@ const Discovery: React.FC<Props> = ({ onSelectTrip, onSelectCommunity, onOpenNot
         </div>
       </section>
 
-      <main className="mt-8">
-        {showResults ? (
-          <section className="px-6 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-md mx-auto">
-             <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-white font-black text-xl italic tracking-tighter">
-                    {activeFilter === 'all' ? 'Discovery' : activeFilter}
-                  </h3>
-                  {activeFilter !== 'all' && <p className="text-[10px] font-black text-primary uppercase tracking-widest mt-1">Filtering by niche</p>}
-                </div>
-                <span className="text-slate-500 text-[10px] font-black uppercase tracking-widest">{filteredCommunities.length} Tribes Found</span>
-             </div>
-             <div className="space-y-4">
-                {filteredCommunities.length > 0 ? (
-                  filteredCommunities.map(comm => (
-                    <CommunityResultCard key={comm.id} community={comm} onClick={() => handleCommunityClick(comm)} />
-                  ))
-                ) : (
-                  <div className="py-20 text-center">
-                    <span className="material-symbols-outlined text-6xl text-slate-800 mb-4">folder_off</span>
-                    <h4 className="text-white font-black">No matches found</h4>
-                    <p className="text-slate-500 text-xs mt-2">Try adjusting your filters or search terms</p>
-                    <button 
-                      onClick={() => { setActiveFilter('all'); setSearchQuery(''); }}
-                      className="mt-6 text-primary text-[10px] font-black uppercase tracking-widest underline"
-                    >
-                      Reset Discovery
-                    </button>
+      <main className="mt-8 px-6">
+        <div className="max-w-md mx-auto space-y-8">
+          {filteredCommunities.length > 0 ? (
+            filteredCommunities.map(comm => (
+              <CommunityResultCard key={comm.id} community={comm} onClick={() => onSelectCommunity(comm)} />
+            ))
+          ) : (
+            <div className="py-12 space-y-8 animate-in fade-in zoom-in-95 duration-500">
+               <div className="text-center">
+                  <div className="size-20 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4 border border-white/5">
+                     <span className="material-symbols-outlined text-4xl text-slate-700">search_off</span>
                   </div>
-                )}
-                
-                {searchQuery && aiRelatedConcepts.length > 0 && (
-                  <div className="mt-12 space-y-4">
-                    <div className="flex items-center gap-2 px-2">
-                       <span className="material-symbols-outlined text-primary text-base">auto_awesome</span>
-                       <h4 className="text-primary text-[10px] font-black uppercase tracking-[0.2em]">AI Suggestions</h4>
-                    </div>
-                    {semanticMatches.map(comm => (
-                       <CommunityResultCard key={comm.id} community={comm} onClick={() => handleCommunityClick(comm)} related />
-                    ))}
-                  </div>
-                )}
-             </div>
-          </section>
-        ) : (
-          <div className="space-y-12">
-            <section className="space-y-6">
-              <div className="px-6 flex items-center justify-between max-w-md mx-auto">
-                <div className="flex flex-col">
-                  <h3 className="text-white text-2xl font-black tracking-tighter italic leading-none">Recommended <span className="text-primary not-italic">for You</span></h3>
-                  <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mt-1">Based on your recent journey history</p>
-                </div>
-                <button onClick={onSeeAll} className="bg-white/5 border border-white/10 text-white p-2 rounded-xl">
-                  <span className="material-symbols-outlined text-sm">tune</span>
-                </button>
-              </div>
-              
-              <div className="flex overflow-x-auto hide-scrollbar gap-5 px-6 pb-4">
-                <div className="flex gap-5 max-w-md mx-auto min-w-full lg:min-w-0">
-                  {prioritizedCommunities.slice(0, 5).map(comm => (
-                    <div 
-                      key={comm.id}
-                      onClick={() => handleCommunityClick(comm)}
-                      className="flex-none w-[320px] group cursor-pointer relative"
-                    >
-                      <div className="bg-surface-dark border border-white/10 rounded-[2.5rem] overflow-hidden shadow-2xl transition-all group-hover:border-primary/40 duration-500">
-                        <div className="relative h-44">
-                          <img src={comm.image} className="size-full object-cover transition-transform group-hover:scale-105 duration-700" alt="" />
-                          <div className="absolute inset-0 bg-gradient-to-t from-surface-dark to-transparent"></div>
-                          <div className="absolute top-4 left-4">
-                            <div className="bg-primary/90 backdrop-blur-md text-background-dark text-[9px] font-black px-2.5 py-1 rounded-lg shadow-lg flex items-center gap-1.5">
-                                <span className="material-symbols-outlined text-xs">auto_awesome</span>
-                                Top Match
-                            </div>
-                          </div>
-                        </div>
-                        <div className="p-6">
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="text-primary text-[9px] font-black uppercase tracking-widest">{comm.category}</span>
-                            <span className="text-slate-500 text-[9px] font-bold uppercase tracking-widest">{comm.memberCount} Members</span>
-                          </div>
-                          <h4 className="text-white text-xl font-black italic tracking-tight truncate mb-3">{comm.title}</h4>
-                          <p className="text-slate-400 text-xs line-clamp-2 leading-relaxed font-medium">{comm.description}</p>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </section>
-
-            <section className="space-y-6">
-              <div className="px-6 flex items-center justify-between max-w-md mx-auto">
-                <div className="flex flex-col">
-                  <h3 className="text-white text-2xl font-black tracking-tighter italic leading-none">Global <span className="text-primary not-italic">Collectives</span></h3>
-                  <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mt-1">Explore all Inspired Ventures Communities</p>
-                </div>
-                <button onClick={onSeeAll} className="text-slate-500 text-[10px] font-black uppercase tracking-widest hover:text-white transition-colors">View All</button>
-              </div>
-              <div className="flex overflow-x-auto hide-scrollbar gap-5 px-6 pb-4">
-                <div className="flex gap-5 max-w-md mx-auto min-w-full lg:min-w-0">
-                  {prioritizedCommunities.map(comm => (
-                    <div 
-                      key={comm.id}
-                      onClick={() => handleCommunityClick(comm)}
-                      className="flex-none w-64 group cursor-pointer"
-                    >
-                      <div className="relative aspect-[3/4] rounded-[2.5rem] overflow-hidden mb-4 shadow-2xl border border-white/5 group-hover:border-primary/40 transition-all duration-500">
-                        <img src={comm.image} className="size-full object-cover transition-transform group-hover:scale-110 duration-[2s]" alt="" />
-                        <div className="absolute inset-0 bg-gradient-to-t from-background-dark via-background-dark/20 to-transparent"></div>
-                        <div className="absolute bottom-6 left-6 right-6">
-                          <div className="flex items-center gap-1.5 mb-2">
-                            <span className="text-white text-[9px] font-black uppercase tracking-widest bg-black/40 px-2 py-0.5 rounded-full border border-white/10 backdrop-blur-sm">Join Group</span>
-                          </div>
-                          <h4 className="text-white text-lg font-black italic tracking-tight truncate leading-none">{comm.title}</h4>
-                        </div>
-                      </div>
-                      <div className="px-2 flex items-center justify-between">
-                        <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{comm.category}</span>
-                        <span className="text-primary text-[10px] font-black">{comm.memberCount}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </section>
-
-            <section className="px-6 pt-4 pb-12 max-w-md mx-auto">
-               <div className="bg-gradient-to-br from-primary/10 to-primary/5 border-2 border-dashed border-primary/20 rounded-[4rem] p-12 flex flex-col items-center text-center group hover:border-primary/40 transition-all duration-700">
-                  <div className="size-24 bg-primary/20 rounded-[2.5rem] flex items-center justify-center text-primary mb-6 group-hover:rotate-12 group-hover:scale-110 transition-all shadow-inner border border-primary/20">
-                      <span className="material-symbols-outlined text-4xl font-black">add_circle</span>
-                  </div>
-                  <h4 className="text-white text-3xl font-black italic tracking-tighter">Lead the Pack</h4>
-                  <p className="text-slate-400 text-sm font-medium max-w-[260px] leading-relaxed mt-4">
-                    Architect a community around your passion and co-create unique global ventures.
-                  </p>
-                  <button 
-                    onClick={onCreateCommunity}
-                    className="mt-8 px-10 py-5 bg-primary text-background-dark text-[11px] font-black uppercase tracking-widest rounded-2xl shadow-2xl shadow-primary/30 active:scale-95 transition-all hover:bg-white"
-                  >
-                    Launch Community
-                  </button>
+                  <h4 className="text-white font-black text-xl italic tracking-tight">Tribe not found</h4>
+                  <p className="text-slate-500 text-xs mt-2 font-medium">No results for "{searchQuery}"</p>
                </div>
-            </section>
-          </div>
-        )}
+
+               {searchQuery && (
+                 <div className="bg-gradient-to-br from-primary/10 to-primary/5 border-2 border-dashed border-primary/20 rounded-[3rem] p-8 text-center group">
+                    <div className="size-16 bg-primary/10 rounded-2xl flex items-center justify-center text-primary mx-auto mb-6 group-hover:rotate-12 transition-transform">
+                       <span className="material-symbols-outlined text-3xl font-black">architecture</span>
+                    </div>
+                    
+                    {architectResult ? (
+                      <div className="animate-in fade-in slide-in-from-bottom-2 duration-700">
+                         <h3 className="text-white font-black text-2xl italic tracking-tighter mb-2">{architectResult.name}</h3>
+                         <p className="text-slate-400 text-xs leading-relaxed mb-6 italic">"{architectResult.desc}"</p>
+                         <button onClick={onCreateCommunity} className="bg-primary text-background-dark px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all">Launch this Tribe</button>
+                      </div>
+                    ) : (
+                      <>
+                        <h3 className="text-white font-black text-lg italic tracking-tight mb-2">Architect with AI</h3>
+                        <p className="text-slate-500 text-xs leading-relaxed mb-6">Build the blueprint for a new tribe based on your search query.</p>
+                        <button 
+                          onClick={handleTribeArchitect}
+                          disabled={isArchitecting}
+                          className="bg-white/5 border border-white/10 text-primary px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center gap-3 mx-auto hover:bg-white/10 transition-all disabled:opacity-50"
+                        >
+                           {isArchitecting ? (
+                             <div className="size-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                           ) : (
+                             <span className="material-symbols-outlined text-sm font-black">auto_awesome</span>
+                           )}
+                           {isArchitecting ? 'Architecting...' : 'Dream up this Tribe'}
+                        </button>
+                      </>
+                    )}
+                 </div>
+               )}
+            </div>
+          )}
+        </div>
       </main>
     </div>
   );
 };
 
-const CommunityResultCard: React.FC<{ community: Community, onClick: () => void, related?: boolean }> = ({ community, onClick, related }) => (
+const CommunityResultCard: React.FC<{ community: Community, onClick: () => void }> = ({ community, onClick }) => (
   <div 
     onClick={onClick}
-    className={`flex items-center gap-5 p-5 rounded-[2.5rem] border transition-all cursor-pointer shadow-xl group relative overflow-hidden active:scale-[0.98] ${related ? 'bg-primary/5 border-primary/20' : 'bg-surface-dark border-white/10 hover:border-primary/40'}`}
+    className="flex items-center gap-5 p-5 rounded-[2.5rem] bg-surface-dark border border-white/10 hover:border-primary/40 transition-all cursor-pointer shadow-xl group active:scale-[0.98]"
   >
     <div className="size-24 rounded-[2rem] bg-cover bg-center shrink-0 shadow-2xl transition-all group-hover:scale-105" style={{ backgroundImage: `url(${community.image})` }}></div>
     <div className="flex-1 min-w-0">
-      <div className="flex items-center gap-2 mb-1.5">
-        <span className={`text-[9px] font-black uppercase tracking-[0.2em] ${related ? 'text-primary' : 'text-primary/60'}`}>{community.category}</span>
-        {related && (
-          <div className="bg-primary/10 px-2 py-0.5 rounded flex items-center gap-1">
-             <span className="material-symbols-outlined text-[10px] text-primary">auto_awesome</span>
-             <span className="text-[7px] font-black text-primary uppercase">Interest Match</span>
-          </div>
-        )}
-      </div>
+      <span className="text-primary text-[9px] font-black uppercase tracking-[0.2em] mb-1.5 inline-block">{community.category}</span>
       <h4 className="text-white font-black text-xl italic tracking-tight leading-none mb-2 truncate">{community.title}</h4>
-      <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">{community.memberCount} Members • {community.accessType === 'request' ? 'Vetted' : 'Open'}</p>
+      <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">{community.memberCount} Members</p>
     </div>
-    <span className="material-symbols-outlined text-slate-700 text-2xl font-black group-hover:text-primary transition-all group-hover:translate-x-1">arrow_forward_ios</span>
+    <span className="material-symbols-outlined text-slate-700 text-2xl font-black group-hover:text-primary transition-all">chevron_right</span>
   </div>
 );
 

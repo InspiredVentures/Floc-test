@@ -94,6 +94,8 @@ const FlocLogo = ({ className = "size-8" }: { className?: string }) => (
 const GlobalFeed: React.FC<Props> = ({ onSelectCommunity, onOpenNotifications }) => {
   const [activeTab, setActiveTab] = useState<'pulse' | 'vibes'>('pulse');
   const [isComposerOpen, setIsComposerOpen] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const [posts, setPosts] = useState<TribePost[]>(MOCK_GLOBAL_POSTS);
 
   // Composer State
@@ -102,9 +104,20 @@ const GlobalFeed: React.FC<Props> = ({ onSelectCommunity, onOpenNotifications })
   const [mediaType, setMediaType] = useState<'image' | 'video' | null>(null);
   const [isPolishing, setIsPolishing] = useState(false);
 
-  // Sorting Algorithm
+  // Sorting and Filtering Algorithm
   const sortedPosts = useMemo(() => {
-    const list = [...posts];
+    let list = [...posts];
+    
+    // Filter by search query
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      list = list.filter(p => 
+        p.content.toLowerCase().includes(q) || 
+        p.author.toLowerCase().includes(q) || 
+        p.tribeName?.toLowerCase().includes(q)
+      );
+    }
+
     if (activeTab === 'pulse') {
       return list.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
     } else {
@@ -115,7 +128,7 @@ const GlobalFeed: React.FC<Props> = ({ onSelectCommunity, onOpenNotifications })
         return scoreB - scoreA;
       });
     }
-  }, [posts, activeTab]);
+  }, [posts, activeTab, searchQuery]);
 
   const handleAiPolish = async () => {
     if (!caption.trim()) return;
@@ -181,52 +194,83 @@ const GlobalFeed: React.FC<Props> = ({ onSelectCommunity, onOpenNotifications })
 
   return (
     <div className="flex flex-col min-h-full bg-background-dark">
-      <header className="sticky top-0 z-50 bg-background-dark/95 backdrop-blur-md px-6 pt-10 pb-4 flex items-center justify-between border-b border-white/5">
-        <div className="flex items-center gap-3">
-          <FlocLogo className="text-3xl" />
-          <div className="flex flex-col">
-            <h1 className="text-2xl font-black text-white tracking-tighter italic leading-none">Pulse</h1>
-            <p className="text-primary text-[8px] uppercase tracking-[0.2em] font-black mt-0.5">Community Network</p>
+      <header className="sticky top-0 z-50 bg-background-dark/95 backdrop-blur-md px-6 pt-10 pb-4 border-b border-white/5 transition-all duration-300">
+        <div className="flex items-center justify-between mb-2">
+          {!isSearchOpen ? (
+            <div className="flex items-center gap-3 animate-in fade-in slide-in-from-left-2">
+              <FlocLogo className="text-3xl" />
+              <div className="flex flex-col">
+                <h1 className="text-2xl font-black text-white tracking-tighter italic leading-none">Pulse</h1>
+                <p className="text-primary text-[8px] uppercase tracking-[0.2em] font-black mt-0.5">Community Network</p>
+              </div>
+            </div>
+          ) : (
+            <div className="flex-1 mr-4 animate-in fade-in slide-in-from-right-2">
+               <div className="relative group">
+                  <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-primary text-lg">search</span>
+                  <input 
+                    autoFocus
+                    type="text" 
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search the Pulse..." 
+                    className="w-full h-10 bg-white/5 border border-primary/20 rounded-xl pl-10 pr-4 text-xs text-white placeholder:text-slate-600 focus:border-primary outline-none transition-all"
+                  />
+                  {searchQuery && (
+                    <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white">
+                       <span className="material-symbols-outlined text-sm">close</span>
+                    </button>
+                  )}
+               </div>
+            </div>
+          )}
+
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={() => setIsSearchOpen(!isSearchOpen)}
+              className={`size-10 flex items-center justify-center rounded-2xl border transition-all ${isSearchOpen ? 'bg-primary border-primary text-background-dark shadow-lg shadow-primary/20' : 'bg-white/5 border-white/10 text-white hover:bg-white/10'}`}
+            >
+              <span className="material-symbols-outlined text-[20px]">{isSearchOpen ? 'close' : 'search'}</span>
+            </button>
+            {!isSearchOpen && (
+              <button 
+                onClick={onOpenNotifications}
+                className="size-10 flex items-center justify-center rounded-2xl bg-white/5 border border-white/10 relative transition-all active:scale-95 animate-in fade-in"
+              >
+                <span className="material-symbols-outlined text-white text-[20px]">notifications</span>
+                <span className="absolute top-2.5 right-2.5 size-2 bg-primary rounded-full border-2 border-background-dark animate-notification-pulse"></span>
+              </button>
+            )}
           </div>
-        </div>
-        <div className="flex items-center gap-3">
-          <button className="size-10 flex items-center justify-center rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all">
-            <span className="material-symbols-outlined text-white text-[20px]">search</span>
-          </button>
-          <button 
-            onClick={onOpenNotifications}
-            className="size-10 flex items-center justify-center rounded-2xl bg-white/5 border border-white/10 relative transition-all active:scale-95"
-          >
-            <span className="material-symbols-outlined text-white text-[20px]">notifications</span>
-            <span className="absolute top-2.5 right-2.5 size-2 bg-primary rounded-full border-2 border-background-dark animate-notification-pulse"></span>
-          </button>
         </div>
       </header>
 
       <main className="pb-32">
         {/* Tribe Stories */}
-        <section className="py-6 px-6 overflow-x-auto hide-scrollbar flex gap-4">
-          <div 
-            onClick={() => setIsComposerOpen(true)}
-            className="flex flex-col items-center gap-2 shrink-0 group cursor-pointer"
-          >
-            <div className="size-16 rounded-[1.5rem] p-0.5 border-2 border-dashed border-slate-700 flex items-center justify-center group-hover:border-primary transition-all">
-               <span className="material-symbols-outlined text-slate-500 group-hover:text-primary transition-colors">add</span>
-            </div>
-            <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest text-center w-16">Add Pulse</span>
-          </div>
-          {['Eco-Warriors', 'Paris Flâneurs', 'Aurora', 'Nomads', 'Culinary'].map((tribe, i) => (
-            <div key={i} className="flex flex-col items-center gap-2 shrink-0 cursor-pointer group" onClick={() => onSelectCommunity({ id: tribe.toLowerCase(), title: tribe, meta: "Community", description: "", image: "", memberCount: "800", category: "Trending", upcomingTrips: [], accessType: 'free' })}>
-              <div className="size-16 rounded-[1.5rem] p-1 bg-gradient-to-tr from-primary to-orange-400 group-hover:scale-105 transition-transform">
-                <div className="size-full rounded-[1.2rem] border-2 border-background-dark bg-cover bg-center" style={{ backgroundImage: `url(https://picsum.photos/seed/${tribe}/100/100)` }}></div>
+        {!isSearchOpen && (
+          <section className="py-6 px-6 overflow-x-auto hide-scrollbar flex gap-4 animate-in fade-in duration-500">
+            <div 
+              onClick={() => setIsComposerOpen(true)}
+              className="flex flex-col items-center gap-2 shrink-0 group cursor-pointer"
+            >
+              <div className="size-16 rounded-[1.5rem] p-0.5 border-2 border-dashed border-slate-700 flex items-center justify-center group-hover:border-primary transition-all">
+                 <span className="material-symbols-outlined text-slate-500 group-hover:text-primary transition-colors">add</span>
               </div>
-              <span className="text-[8px] font-black text-slate-300 uppercase tracking-widest text-center w-16 truncate group-hover:text-primary transition-colors">{tribe}</span>
+              <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest text-center w-16">Add Pulse</span>
             </div>
-          ))}
-        </section>
+            {['Eco-Warriors', 'Paris Flâneurs', 'Aurora', 'Nomads', 'Culinary'].map((tribe, i) => (
+              <div key={i} className="flex flex-col items-center gap-2 shrink-0 cursor-pointer group" onClick={() => onSelectCommunity({ id: tribe.toLowerCase(), title: tribe, meta: "Community", description: "", image: "", memberCount: "800", category: "Trending", upcomingTrips: [], accessType: 'free' })}>
+                <div className="size-16 rounded-[1.5rem] p-1 bg-gradient-to-tr from-primary to-orange-400 group-hover:scale-105 transition-transform">
+                  <div className="size-full rounded-[1.2rem] border-2 border-background-dark bg-cover bg-center" style={{ backgroundImage: `url(https://picsum.photos/seed/${tribe}/100/100)` }}></div>
+                </div>
+                <span className="text-[8px] font-black text-slate-300 uppercase tracking-widest text-center w-16 truncate group-hover:text-primary transition-colors">{tribe}</span>
+              </div>
+            ))}
+          </section>
+        )}
 
         {/* Tab Selection */}
-        <div className="px-6 mb-8">
+        <div className="px-6 mb-8 mt-4">
           <div className="flex bg-white/5 p-1 rounded-2xl ring-1 ring-white/10">
             <button 
               onClick={() => setActiveTab('pulse')}
@@ -247,101 +291,114 @@ const GlobalFeed: React.FC<Props> = ({ onSelectCommunity, onOpenNotifications })
 
         {/* Feed Content */}
         <div className="px-4 space-y-10">
-          {sortedPosts.map((post, idx) => {
-            const isHero = activeTab === 'vibes' && idx === 0;
-            return (
-              <div 
-                key={`${post.id}-${activeTab}`}
-                className={`group animate-in fade-in slide-in-from-bottom-4 duration-700 ${isHero ? 'bg-primary/5 border-2 border-primary/20 p-1 rounded-[3rem]' : ''}`}
-                style={{ animationDelay: `${idx * 100}ms` }}
-              >
-                <div className={`bg-surface-dark/40 border border-white/5 rounded-[2.5rem] overflow-hidden shadow-2xl transition-all group-hover:border-primary/20 ${isHero ? 'border-primary/30' : ''}`}>
-                  <div className="p-6">
-                    <div className="flex items-center justify-between mb-5">
-                      <div className="flex items-center gap-3">
-                        <div className="relative">
-                          <img src={post.authorAvatar} className="size-11 rounded-2xl border-2 border-white/10 group-hover:border-primary/30 transition-all shadow-lg" alt="" />
-                          <div className="absolute -bottom-1 -right-1 size-4 bg-primary rounded-lg flex items-center justify-center border border-background-dark">
-                             <span className="material-symbols-outlined text-[8px] font-black text-background-dark">check</span>
+          {sortedPosts.length > 0 ? (
+            sortedPosts.map((post, idx) => {
+              const isHero = activeTab === 'vibes' && idx === 0 && !searchQuery;
+              return (
+                <div 
+                  key={`${post.id}-${activeTab}`}
+                  className={`group animate-in fade-in slide-in-from-bottom-4 duration-700 ${isHero ? 'bg-primary/5 border-2 border-primary/20 p-1 rounded-[3rem]' : ''}`}
+                  style={{ animationDelay: `${idx * 100}ms` }}
+                >
+                  <div className={`bg-surface-dark/40 border border-white/5 rounded-[2.5rem] overflow-hidden shadow-2xl transition-all group-hover:border-primary/20 ${isHero ? 'border-primary/30' : ''}`}>
+                    <div className="p-6">
+                      <div className="flex items-center justify-between mb-5">
+                        <div className="flex items-center gap-3">
+                          <div className="relative">
+                            <img src={post.authorAvatar} className="size-11 rounded-2xl border-2 border-white/10 group-hover:border-primary/30 transition-all shadow-lg" alt="" />
+                            <div className="absolute -bottom-1 -right-1 size-4 bg-primary rounded-lg flex items-center justify-center border border-background-dark">
+                               <span className="material-symbols-outlined text-[8px] font-black text-background-dark">check</span>
+                            </div>
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-1.5">
+                              <h4 className="text-white font-black text-sm">{post.author}</h4>
+                              <button onClick={() => onSelectCommunity(getPostCommunity(post))} className="bg-primary/10 border border-primary/20 rounded px-1.5 py-0.5">
+                                <p className="text-primary text-[7px] font-black uppercase tracking-widest">{post.tribeName}</p>
+                              </button>
+                            </div>
+                            <p className="text-slate-500 text-[9px] font-bold uppercase tracking-widest mt-0.5">
+                              {activeTab === 'pulse' ? <span className="inline-block size-1.5 bg-primary rounded-full mr-1 animate-pulse"></span> : null}
+                              {post.time} • {activeTab === 'pulse' ? 'Recent' : 'Trending'}
+                            </p>
                           </div>
                         </div>
-                        <div>
-                          <div className="flex items-center gap-1.5">
-                            <h4 className="text-white font-black text-sm">{post.author}</h4>
-                            <button onClick={() => onSelectCommunity(getPostCommunity(post))} className="bg-primary/10 border border-primary/20 rounded px-1.5 py-0.5">
-                              <p className="text-primary text-[7px] font-black uppercase tracking-widest">{post.tribeName}</p>
-                            </button>
+                        
+                        {(activeTab === 'vibes' || post.likes > 200) && (
+                          <div className="bg-primary text-background-dark px-3 py-1 rounded-full flex items-center gap-1 shadow-lg shadow-primary/20">
+                            <span className="material-symbols-outlined text-[10px] font-black">local_fire_department</span>
+                            <span className="text-[7px] font-black uppercase tracking-widest">High Vibe</span>
                           </div>
-                          <p className="text-slate-500 text-[9px] font-bold uppercase tracking-widest mt-0.5">
-                            {activeTab === 'pulse' ? <span className="inline-block size-1.5 bg-primary rounded-full mr-1 animate-pulse"></span> : null}
-                            {post.time} • {activeTab === 'pulse' ? 'Recent' : 'Trending'}
-                          </p>
-                        </div>
+                        )}
                       </div>
-                      
-                      {activeTab === 'vibes' && post.likes > 200 && (
-                        <div className="bg-primary text-background-dark px-3 py-1 rounded-full flex items-center gap-1 shadow-lg shadow-primary/20">
-                          <span className="material-symbols-outlined text-[10px] font-black">local_fire_department</span>
-                          <span className="text-[7px] font-black uppercase tracking-widest">High Vibe</span>
+
+                      <p className={`text-slate-200 leading-relaxed mb-5 font-medium ${isHero ? 'text-lg italic tracking-tight text-white' : 'text-[13px]'}`}>
+                        {post.content}
+                      </p>
+
+                      {(post.image || post.video) && (
+                        <div className={`rounded-[2rem] overflow-hidden mb-5 relative group shadow-2xl bg-black ${isHero ? 'aspect-video' : 'aspect-[4/3]'}`}>
+                          {post.video ? (
+                            <video src={post.video} className="w-full h-full object-cover" autoPlay muted loop playsInline />
+                          ) : (
+                            <img src={post.image} className="w-full h-full object-cover transition-transform group-hover:scale-110 duration-[5s]" alt="" />
+                          )}
+                          <div className="absolute inset-0 bg-gradient-to-t from-background-dark/80 via-transparent to-transparent"></div>
+                          <div className="absolute bottom-5 left-5">
+                            <div className="bg-black/40 backdrop-blur-md border border-white/10 text-white text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full flex items-center gap-1.5">
+                               <span className="material-symbols-outlined text-xs">{post.video ? 'videocam' : 'location_on'}</span>
+                               {post.video ? 'Inspired Motion' : (post.tribeName?.split(' ')[0] || 'Venture')}
+                            </div>
+                          </div>
                         </div>
                       )}
-                    </div>
 
-                    <p className={`text-slate-200 leading-relaxed mb-5 font-medium ${isHero ? 'text-lg italic tracking-tight text-white' : 'text-[13px]'}`}>
-                      {post.content}
-                    </p>
-
-                    {(post.image || post.video) && (
-                      <div className={`rounded-[2rem] overflow-hidden mb-5 relative group shadow-2xl bg-black ${isHero ? 'aspect-video' : 'aspect-[4/3]'}`}>
-                        {post.video ? (
-                          <video src={post.video} className="w-full h-full object-cover" autoPlay muted loop playsInline />
-                        ) : (
-                          <img src={post.image} className="w-full h-full object-cover transition-transform group-hover:scale-110 duration-[5s]" alt="" />
-                        )}
-                        <div className="absolute inset-0 bg-gradient-to-t from-background-dark/80 via-transparent to-transparent"></div>
-                        <div className="absolute bottom-5 left-5">
-                          <div className="bg-black/40 backdrop-blur-md border border-white/10 text-white text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full flex items-center gap-1.5">
-                             <span className="material-symbols-outlined text-xs">{post.video ? 'videocam' : 'location_on'}</span>
-                             {post.video ? 'Inspired Motion' : (post.tribeName?.split(' ')[0] || 'Venture')}
-                          </div>
-                        </div>
+                      <div className="flex items-center gap-6 pt-2">
+                        <button 
+                          onClick={() => handleLike(post.id)}
+                          className={`flex items-center gap-2 transition-all active:scale-90 ${post.hasLiked ? 'text-primary' : 'text-slate-500 hover:text-white'}`}
+                        >
+                          <span className={`material-symbols-outlined text-2xl ${post.hasLiked ? 'fill-1 font-black' : ''}`}>favorite</span>
+                          <span className="text-xs font-black tracking-tight">{post.likes}</span>
+                        </button>
+                        <button className="flex items-center gap-2 text-slate-500 hover:text-white transition-all">
+                          <span className="material-symbols-outlined text-2xl">forum</span>
+                          <span className="text-xs font-black tracking-tight">{post.comments.length}</span>
+                        </button>
+                        <button className="flex items-center gap-2 text-slate-500 hover:text-white transition-all ml-auto">
+                          <span className="material-symbols-outlined text-2xl">share</span>
+                        </button>
                       </div>
-                    )}
-
-                    <div className="flex items-center gap-6 pt-2">
-                      <button 
-                        onClick={() => handleLike(post.id)}
-                        className={`flex items-center gap-2 transition-all active:scale-90 ${post.hasLiked ? 'text-primary' : 'text-slate-500 hover:text-white'}`}
-                      >
-                        <span className={`material-symbols-outlined text-2xl ${post.hasLiked ? 'fill-1 font-black' : ''}`}>favorite</span>
-                        <span className="text-xs font-black tracking-tight">{post.likes}</span>
-                      </button>
-                      <button className="flex items-center gap-2 text-slate-500 hover:text-white transition-all">
-                        <span className="material-symbols-outlined text-2xl">forum</span>
-                        <span className="text-xs font-black tracking-tight">{post.comments.length}</span>
-                      </button>
-                      <button className="flex items-center gap-2 text-slate-500 hover:text-white transition-all ml-auto">
-                        <span className="material-symbols-outlined text-2xl">share</span>
-                      </button>
                     </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })
+          ) : (
+            <div className="py-20 text-center animate-in fade-in zoom-in duration-500">
+               <div className="size-20 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4 border border-white/10 opacity-30">
+                  <span className="material-symbols-outlined text-4xl">search_off</span>
+               </div>
+               <h3 className="text-white font-black text-xl italic tracking-tight">No Pulse Found</h3>
+               <p className="text-slate-500 text-xs mt-2 font-medium">Try a different search or clear your query.</p>
+               <button onClick={() => setSearchQuery('')} className="mt-6 text-primary text-[10px] font-black uppercase tracking-widest underline underline-offset-4">Clear Search</button>
+            </div>
+          )}
         </div>
 
         {/* Catch up message */}
-        <div className="py-24 flex flex-col items-center gap-6 text-center opacity-50">
-           <div className="size-16 rounded-[2rem] bg-white/5 border border-white/10 flex items-center justify-center text-slate-600">
-              <span className="material-symbols-outlined text-3xl">auto_awesome</span>
-           </div>
-           <div>
-              <p className="text-white font-black text-sm tracking-tight italic">That's the current Pulse.</p>
-              <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mt-1">Refreshed for you just now</p>
-           </div>
-           <button onClick={() => window.scrollTo({top: 0, behavior: 'smooth'})} className="text-primary text-[10px] font-black uppercase tracking-widest underline underline-offset-4">Back to top</button>
-        </div>
+        {!searchQuery && (
+          <div className="py-24 flex flex-col items-center gap-6 text-center opacity-50">
+             <div className="size-16 rounded-[2rem] bg-white/5 border border-white/10 flex items-center justify-center text-slate-600">
+                <span className="material-symbols-outlined text-3xl">auto_awesome</span>
+             </div>
+             <div>
+                <p className="text-white font-black text-sm tracking-tight italic">That's the current Pulse.</p>
+                <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mt-1">Refreshed for you just now</p>
+             </div>
+             <button onClick={() => window.scrollTo({top: 0, behavior: 'smooth'})} className="text-primary text-[10px] font-black uppercase tracking-widest underline underline-offset-4">Back to top</button>
+          </div>
+        )}
       </main>
 
       {/* Media Composer Modal (Pulse Studio) */}

@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
 import { AppView, Trip, Community } from './types';
+import Login from './pages/Login';
 import Discovery from './pages/Discovery';
 import AllCommunities from './pages/AllCommunities';
 import TripDetails from './pages/TripDetails';
@@ -23,6 +24,7 @@ import ImpactGuide from './pages/resources/ImpactGuide';
 import ProtocolViewer from './pages/resources/ProtocolViewer';
 import BillingCenter from './pages/resources/BillingCenter';
 import AnalyticsAPI from './pages/resources/AnalyticsAPI';
+import Impact from './pages/Impact';
 import { MOCK_TRIPS } from './constants';
 
 const FlocLogo = ({ className = "size-8" }: { className?: string }) => (
@@ -33,7 +35,7 @@ const FlocLogo = ({ className = "size-8" }: { className?: string }) => (
 );
 
 const App: React.FC = () => {
-  const [currentView, setCurrentView] = useState<AppView>(AppView.ONBOARDING);
+  const [currentView, setCurrentView] = useState<AppView>(AppView.LOGIN);
   const [activeTrip, setActiveTrip] = useState<Trip | null>(MOCK_TRIPS[0]);
   const [activeCommunity, setActiveCommunity] = useState<Community | null>(null);
   const [isPowerMenuOpen, setIsPowerMenuOpen] = useState(false);
@@ -69,6 +71,8 @@ const App: React.FC = () => {
 
   const renderView = () => {
     switch (currentView) {
+      case AppView.LOGIN:
+        return <Login onLogin={() => setCurrentView(AppView.ONBOARDING)} />;
       case AppView.ONBOARDING:
         return <Onboarding onComplete={() => setCurrentView(AppView.DISCOVERY)} />;
       case AppView.DISCOVERY:
@@ -155,12 +159,26 @@ const App: React.FC = () => {
             onOpenSettings={() => setCurrentView(AppView.SETTINGS)} 
             onBack={() => setCurrentView(AppView.DISCOVERY)}
             onSelectCommunity={navigateToCommunity}
+            onOpenImpact={() => setCurrentView(AppView.IMPACT)}
+            onSelectTrip={navigateToDetails}
           />
         );
       case AppView.CHAT:
         return activeTrip ? <ChatRoom trip={activeTrip} onBack={() => setCurrentView(AppView.MY_COMMUNITIES)} /> : null;
       case AppView.NOTIFICATIONS:
-        return <Notifications onBack={() => setCurrentView(AppView.DISCOVERY)} />;
+        return (
+          <Notifications 
+            onBack={() => setCurrentView(AppView.DISCOVERY)} 
+            onNavigateToTrip={(id) => {
+              const trip = MOCK_TRIPS.find(t => t.id === id);
+              if (trip) navigateToDetails(trip);
+            }}
+            onNavigateToChat={(id) => {
+              const trip = MOCK_TRIPS.find(t => t.id === id);
+              if (trip) navigateToChat(trip);
+            }}
+          />
+        );
       case AppView.SETTINGS:
         return <Settings onBack={() => setCurrentView(AppView.PROFILE)} />;
       case AppView.BOOKING_SUCCESS:
@@ -175,12 +193,15 @@ const App: React.FC = () => {
         return <BillingCenter onBack={() => setCurrentView(AppView.LEADER_SUPPORT)} />;
       case AppView.ANALYTICS_API:
         return <AnalyticsAPI onBack={() => setCurrentView(AppView.LEADER_SUPPORT)} />;
+      case AppView.IMPACT:
+        return <Impact onBack={() => setCurrentView(AppView.PROFILE)} />;
       default:
         return <Discovery onSelectTrip={navigateToDetails} onSelectCommunity={navigateToCommunity} onOpenNotifications={() => setCurrentView(AppView.NOTIFICATIONS)} onSeeAll={() => setCurrentView(AppView.ALL_COMMUNITIES)} />;
     }
   };
 
   const hideNavViews = [
+    AppView.LOGIN,
     AppView.ONBOARDING, 
     AppView.CHAT, 
     AppView.NOTIFICATIONS, 
@@ -196,7 +217,8 @@ const App: React.FC = () => {
     AppView.IMPACT_GUIDE,
     AppView.PROTOCOL_VIEWER,
     AppView.BILLING_CENTER,
-    AppView.ANALYTICS_API
+    AppView.ANALYTICS_API,
+    AppView.IMPACT
   ];
   const showNav = !hideNavViews.includes(currentView);
 

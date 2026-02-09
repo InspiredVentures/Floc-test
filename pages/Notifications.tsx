@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { AppNotification } from '../types';
 
 interface Props {
@@ -35,22 +35,6 @@ const INITIAL_NOTIFICATIONS: AppNotification[] = [
     timestamp: 'Yesterday',
     isRead: true,
     relatedId: '1'
-  },
-  {
-    id: '4',
-    type: 'TRIP',
-    title: 'Impact Milestone!',
-    message: 'Your Tribe has successfully offset 5 tons of CO2 this month. Legend status approaching!',
-    timestamp: 'Yesterday',
-    isRead: true
-  },
-  {
-    id: '5',
-    type: 'SUGGESTION',
-    title: 'Tribe Discovery',
-    message: 'Based on your interest in "Eco-Travel", you might like the Amazonian Guardians tribe.',
-    timestamp: '2 days ago',
-    isRead: true
   }
 ];
 
@@ -59,6 +43,7 @@ type FilterType = 'ALL' | 'TRIP' | 'CHAT' | 'SUGGESTION';
 const Notifications: React.FC<Props> = ({ onBack, onNavigateToTrip, onNavigateToChat }) => {
   const [notifications, setNotifications] = useState<AppNotification[]>(INITIAL_NOTIFICATIONS);
   const [activeFilter, setActiveFilter] = useState<FilterType>('ALL');
+  const [showSuccessCheck, setShowSuccessCheck] = useState(false);
 
   const filteredNotifications = useMemo(() => {
     if (activeFilter === 'ALL') return notifications;
@@ -67,10 +52,8 @@ const Notifications: React.FC<Props> = ({ onBack, onNavigateToTrip, onNavigateTo
 
   const markAllRead = () => {
     setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
-  };
-
-  const clearAll = () => {
-    setNotifications([]);
+    setShowSuccessCheck(true);
+    setTimeout(() => setShowSuccessCheck(false), 2000);
   };
 
   const deleteNotification = (id: string) => {
@@ -89,8 +72,9 @@ const Notifications: React.FC<Props> = ({ onBack, onNavigateToTrip, onNavigateTo
     } else if (notification.type === 'CHAT' && notification.relatedId) {
       onNavigateToChat?.(notification.relatedId);
     }
-    // Mark as read when acting
-    toggleRead(notification.id);
+    setNotifications(prev => prev.map(n => 
+      n.id === notification.id ? { ...n, isRead: true } : n
+    ));
   };
 
   const unreadCount = notifications.filter(n => !n.isRead).length;
@@ -110,19 +94,31 @@ const Notifications: React.FC<Props> = ({ onBack, onNavigateToTrip, onNavigateTo
           </div>
         </div>
         
-        {notifications.length > 0 && (
+        {unreadCount > 0 && (
           <button 
             onClick={markAllRead}
-            className="size-10 flex items-center justify-center rounded-2xl bg-white/5 border border-white/10 text-slate-500 hover:text-primary transition-all active:scale-90"
+            className={`size-10 flex items-center justify-center rounded-2xl border transition-all active:scale-95 animate-in zoom-in ${
+                showSuccessCheck ? 'bg-emerald-500 border-emerald-400 text-background-dark' : 'bg-primary border-primary/20 text-background-dark shadow-lg shadow-primary/20'
+            }`}
             title="Mark all as read"
           >
-            <span className="material-symbols-outlined text-[20px]">done_all</span>
+            <span className="material-symbols-outlined text-[20px] font-black">
+              {showSuccessCheck ? 'check' : 'done_all'}
+            </span>
           </button>
         )}
       </header>
 
-      <main className="p-6">
-        {/* Filter Chips */}
+      <main className="p-6 relative">
+        {/* Decorative background sparkles when success triggers */}
+        {showSuccessCheck && (
+           <div className="absolute inset-x-0 top-0 pointer-events-none flex justify-center -translate-y-full">
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className={`size-2 bg-primary rounded-full animate-sparkle-${(i%4)+1}`}></div>
+              ))}
+           </div>
+        )}
+
         <div className="flex overflow-x-auto hide-scrollbar gap-2 mb-8">
           {(['ALL', 'TRIP', 'CHAT', 'SUGGESTION'] as FilterType[]).map(type => (
             <button
@@ -146,8 +142,8 @@ const Notifications: React.FC<Props> = ({ onBack, onNavigateToTrip, onNavigateTo
                 key={notification.id}
                 className={`relative group p-5 rounded-[2rem] border transition-all duration-300 overflow-hidden ${
                   notification.isRead 
-                    ? 'bg-white/[0.02] border-white/5' 
-                    : 'bg-white/[0.05] border-primary/20 shadow-xl shadow-primary/5'
+                    ? 'bg-white/[0.02] border-white/5 opacity-70' 
+                    : 'bg-white/[0.05] border-primary/20 shadow-xl shadow-primary/5 opacity-100'
                 }`}
               >
                 {!notification.isRead && (
@@ -172,9 +168,20 @@ const Notifications: React.FC<Props> = ({ onBack, onNavigateToTrip, onNavigateTo
                       <h3 className={`text-sm font-black tracking-tight truncate ${notification.isRead ? 'text-slate-400' : 'text-white'}`}>
                         {notification.title}
                       </h3>
-                      <span className="text-[9px] text-slate-600 font-black uppercase tracking-tighter whitespace-nowrap ml-2">
-                        {notification.timestamp}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[9px] text-slate-600 font-black uppercase tracking-tighter whitespace-nowrap">
+                          {notification.timestamp}
+                        </span>
+                        {!notification.isRead && (
+                           <button 
+                             onClick={() => toggleRead(notification.id)}
+                             className="text-primary hover:scale-110 transition-transform"
+                             title="Mark as read"
+                           >
+                             <span className="material-symbols-outlined text-sm font-black">done</span>
+                           </button>
+                        )}
+                      </div>
                     </div>
                     
                     <p className={`text-xs leading-relaxed line-clamp-2 ${notification.isRead ? 'text-slate-600 font-medium' : 'text-slate-400 font-semibold'}`}>
@@ -184,13 +191,15 @@ const Notifications: React.FC<Props> = ({ onBack, onNavigateToTrip, onNavigateTo
                     <div className="mt-4 flex items-center gap-3">
                       <button 
                         onClick={() => handleAction(notification)}
-                        className="px-5 py-2 bg-white text-background-dark text-[10px] font-black uppercase tracking-widest rounded-xl shadow-lg active:scale-95 transition-all"
+                        className={`px-5 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl shadow-lg active:scale-95 transition-all ${
+                          notification.isRead ? 'bg-white/10 text-white/40' : 'bg-white text-background-dark'
+                        }`}
                       >
                         {notification.type === 'CHAT' ? 'Open Chat' : 'View Details'}
                       </button>
                       <button 
                         onClick={() => deleteNotification(notification.id)}
-                        className="size-8 flex items-center justify-center rounded-xl bg-white/5 text-slate-700 hover:text-red-400 transition-all border border-white/5"
+                        className="size-8 flex items-center justify-center rounded-xl bg-white/5 text-slate-700 hover:text-red-400 transition-all border border-white/5 ml-auto"
                       >
                         <span className="material-symbols-outlined text-sm">delete</span>
                       </button>
@@ -199,47 +208,21 @@ const Notifications: React.FC<Props> = ({ onBack, onNavigateToTrip, onNavigateTo
                 </div>
               </div>
             ))}
-
-            <div className="pt-8 text-center">
-               <button 
-                 onClick={clearAll}
-                 className="text-[10px] font-black text-slate-700 uppercase tracking-[0.2em] hover:text-white transition-colors"
-               >
-                 Clear all notifications
-               </button>
-            </div>
           </div>
         ) : (
           <div className="py-32 flex flex-col items-center text-center animate-in fade-in zoom-in-95 duration-700">
              <div className="relative size-32 mb-8">
-                <div className="absolute inset-0 bg-primary/5 rounded-full blur-3xl scale-150 animate-pulse"></div>
-                <div className="relative size-full bg-white/5 rounded-[2.5rem] border border-white/10 flex items-center justify-center rotate-3 shadow-2xl">
+                <div className="relative size-full bg-white/5 rounded-[2.5rem] border border-white/10 flex items-center justify-center shadow-2xl">
                    <span className="material-symbols-outlined text-slate-700 text-5xl">notifications_off</span>
-                </div>
-                <div className="absolute -bottom-2 -right-2 size-10 bg-primary rounded-2xl flex items-center justify-center border-4 border-background-dark shadow-lg -rotate-12">
-                   <span className="material-symbols-outlined text-background-dark text-xl font-black">check</span>
                 </div>
              </div>
              <h3 className="text-white text-2xl font-black italic tracking-tighter mb-2">Zero Distractions</h3>
              <p className="text-slate-500 text-sm font-medium max-w-[240px] leading-relaxed">
                 You're completely caught up. New venture updates and tribe messages will appear here.
              </p>
-             <button 
-               onClick={onBack}
-               className="mt-10 px-8 py-4 bg-white/5 border border-white/10 text-white text-[11px] font-black uppercase tracking-widest rounded-2xl hover:bg-white/10 transition-all active:scale-95"
-             >
-               Go back to Discover
-             </button>
           </div>
         )}
       </main>
-
-      {/* Inspired Footer Signature */}
-      <footer className="mt-auto p-10 text-center">
-         <div className="flex items-center justify-center gap-2 opacity-20">
-            <span className="text-[8px] font-black uppercase tracking-[0.3em] text-white">Inspired Ventures Secure Protocol</span>
-         </div>
-      </footer>
     </div>
   );
 };
