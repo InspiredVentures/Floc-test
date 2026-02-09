@@ -6,9 +6,10 @@ interface Props {
   onOpenNotifications: () => void;
   onCreate: () => void;
   onManage: () => void;
+  onContactSupport: () => void;
 }
 
-const Dashboard: React.FC<Props> = ({ onOpenNotifications, onCreate, onManage }) => {
+const Dashboard: React.FC<Props> = ({ onOpenNotifications, onCreate, onManage, onContactSupport }) => {
   const data = [
     { name: 'Mon', active: 40 },
     { name: 'Tue', active: 30 },
@@ -94,6 +95,8 @@ const Dashboard: React.FC<Props> = ({ onOpenNotifications, onCreate, onManage })
       <section className="grid grid-cols-2 gap-4 pb-12">
         <ActionCard icon="add_location_alt" label="Start Venture" onClick={onCreate} />
         <ActionCard icon="group" label="Tribe Roster" onClick={onManage} />
+        <ActionCard icon="support_agent" label="Leader Concierge" onClick={onContactSupport} />
+        <ActionCard icon="auto_awesome" label="Platform Insights" onClick={() => {}} />
       </section>
     </div>
   );

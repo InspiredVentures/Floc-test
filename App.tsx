@@ -10,7 +10,7 @@ import Dashboard from './pages/Dashboard';
 import CreateVenture from './pages/CreateVenture';
 import CreateCommunity from './pages/CreateCommunity';
 import ManageMembers from './pages/ManageMembers';
-import MyCommunities from './pages/MyTribes'; // Keeping file name for compatibility, updating logic inside
+import MyCommunities from './pages/MyTribes';
 import GlobalFeed from './pages/GlobalFeed';
 import Profile from './pages/Profile';
 import Onboarding from './pages/Onboarding';
@@ -18,6 +18,11 @@ import ChatRoom from './pages/ChatRoom';
 import Notifications from './pages/Notifications';
 import Settings from './pages/Settings';
 import BookingSuccess from './pages/BookingSuccess';
+import LeaderSupport from './pages/LeaderSupport';
+import ImpactGuide from './pages/resources/ImpactGuide';
+import ProtocolViewer from './pages/resources/ProtocolViewer';
+import BillingCenter from './pages/resources/BillingCenter';
+import AnalyticsAPI from './pages/resources/AnalyticsAPI';
 import { MOCK_TRIPS } from './constants';
 
 const App: React.FC = () => {
@@ -75,7 +80,7 @@ const App: React.FC = () => {
         return activeTrip ? (
           <TripDetails 
             trip={activeTrip}
-            onBack={() => setCurrentView(AppView.DISCOVERY)} 
+            onBack={() => setCurrentView(AppView.MY_COMMUNITIES)} 
             onBook={() => setCurrentView(AppView.BOOKING_SUCCESS)}
             onOpenChat={() => navigateToChat(activeTrip)}
           />
@@ -110,6 +115,7 @@ const App: React.FC = () => {
             onOpenNotifications={() => setCurrentView(AppView.NOTIFICATIONS)} 
             onCreate={() => setCurrentView(AppView.CREATE_VENTURE)}
             onManage={() => setCurrentView(AppView.MANAGE_MEMBERS)}
+            onContactSupport={() => setCurrentView(AppView.LEADER_SUPPORT)}
           />
         );
       case AppView.CREATE_VENTURE:
@@ -149,6 +155,16 @@ const App: React.FC = () => {
         return <Settings onBack={() => setCurrentView(AppView.PROFILE)} />;
       case AppView.BOOKING_SUCCESS:
         return <BookingSuccess onDone={() => setCurrentView(AppView.MY_COMMUNITIES)} />;
+      case AppView.LEADER_SUPPORT:
+        return <LeaderSupport onBack={() => setCurrentView(AppView.DASHBOARD)} onOpenResource={(view) => setCurrentView(view)} />;
+      case AppView.IMPACT_GUIDE:
+        return <ImpactGuide onBack={() => setCurrentView(AppView.LEADER_SUPPORT)} />;
+      case AppView.PROTOCOL_VIEWER:
+        return <ProtocolViewer onBack={() => setCurrentView(AppView.LEADER_SUPPORT)} />;
+      case AppView.BILLING_CENTER:
+        return <BillingCenter onBack={() => setCurrentView(AppView.LEADER_SUPPORT)} />;
+      case AppView.ANALYTICS_API:
+        return <AnalyticsAPI onBack={() => setCurrentView(AppView.LEADER_SUPPORT)} />;
       default:
         return <Discovery onSelectTrip={navigateToDetails} onSelectCommunity={navigateToCommunity} onOpenNotifications={() => setCurrentView(AppView.NOTIFICATIONS)} onSeeAll={() => setCurrentView(AppView.ALL_COMMUNITIES)} />;
     }
@@ -165,7 +181,12 @@ const App: React.FC = () => {
     AppView.BOOKING_SUCCESS,
     AppView.CREATE_VENTURE,
     AppView.CREATE_COMMUNITY,
-    AppView.MANAGE_MEMBERS
+    AppView.MANAGE_MEMBERS,
+    AppView.LEADER_SUPPORT,
+    AppView.IMPACT_GUIDE,
+    AppView.PROTOCOL_VIEWER,
+    AppView.BILLING_CENTER,
+    AppView.ANALYTICS_API
   ];
   const showNav = !hideNavViews.includes(currentView);
 
@@ -175,7 +196,6 @@ const App: React.FC = () => {
         {renderView()}
       </div>
 
-      {/* Power Menu Overlay */}
       {isPowerMenuOpen && (
         <div 
           className="absolute inset-0 z-[60] bg-background-dark/90 backdrop-blur-xl animate-in fade-in duration-300"
@@ -211,6 +231,17 @@ const App: React.FC = () => {
 
       {showNav && (
         <nav className="sticky bottom-0 z-50 bg-white/90 dark:bg-background-dark/95 backdrop-blur-xl border-t border-slate-200 dark:border-white/10 px-6 pt-3 pb-8 flex justify-between items-center">
+          {/* PRIORITY 1: GROUPS */}
+          <button 
+            onClick={() => { setCurrentView(AppView.MY_COMMUNITIES); setIsPowerMenuOpen(false); }}
+            className={`flex flex-col items-center gap-1 transition-colors relative ${currentView === AppView.MY_COMMUNITIES ? 'text-primary' : 'text-slate-400 hover:text-white'}`}
+          >
+            <span className={`material-symbols-outlined text-[24px] ${currentView === AppView.MY_COMMUNITIES ? 'fill-1 font-black' : ''}`}>groups</span>
+            <span className="text-[10px] font-bold uppercase tracking-tighter">Groups</span>
+            <div className="absolute top-0 right-0 size-2 bg-primary rounded-full border-2 border-background-dark"></div>
+          </button>
+
+          {/* PRIORITY 2: EXPLORE */}
           <button 
             onClick={() => { setCurrentView(AppView.DISCOVERY); setIsPowerMenuOpen(false); }}
             className={`flex flex-col items-center gap-1 transition-colors ${currentView === AppView.DISCOVERY ? 'text-primary' : 'text-slate-400 hover:text-white'}`}
@@ -219,15 +250,7 @@ const App: React.FC = () => {
             <span className="text-[10px] font-bold uppercase tracking-tighter">Explore</span>
           </button>
           
-          <button 
-            onClick={() => { setCurrentView(AppView.MY_COMMUNITIES); setIsPowerMenuOpen(false); }}
-            className={`flex flex-col items-center gap-1 transition-colors relative ${currentView === AppView.MY_COMMUNITIES ? 'text-primary' : 'text-slate-400 hover:text-white'}`}
-          >
-            <span className={`material-symbols-outlined text-[24px] ${currentView === AppView.MY_COMMUNITIES ? 'fill-1 font-black' : ''}`}>groups</span>
-            <span className="text-[10px] font-bold uppercase tracking-tighter">My Circles</span>
-            <div className="absolute top-0 right-0 size-2 bg-primary rounded-full border-2 border-background-dark"></div>
-          </button>
-
+          {/* POWER BUTTON */}
           <div className="relative -top-6">
             <button 
               onClick={() => setIsPowerMenuOpen(!isPowerMenuOpen)}
@@ -237,6 +260,7 @@ const App: React.FC = () => {
             </button>
           </div>
 
+          {/* PRIORITY 3: PULSE */}
           <button 
             onClick={() => { setCurrentView(AppView.GLOBAL_FEED); setIsPowerMenuOpen(false); }}
             className={`flex flex-col items-center gap-1 transition-colors ${currentView === AppView.GLOBAL_FEED ? 'text-primary' : 'text-slate-400 hover:text-white'}`}
@@ -245,6 +269,7 @@ const App: React.FC = () => {
             <span className="text-[10px] font-bold uppercase tracking-tighter">Pulse</span>
           </button>
 
+          {/* PRIORITY 4: ME */}
           <button 
             onClick={() => { setCurrentView(AppView.PROFILE); setIsPowerMenuOpen(false); }}
             className={`flex flex-col items-center gap-1 transition-colors ${currentView === AppView.PROFILE ? 'text-primary' : 'text-slate-400 hover:text-white'}`}
