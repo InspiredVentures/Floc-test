@@ -1,5 +1,6 @@
 
 import React, { useState } from 'react';
+import { GoogleGenAI } from "@google/genai";
 
 interface Props {
   onBack: () => void;
@@ -22,6 +23,7 @@ const CreateCommunity: React.FC<Props> = ({ onBack, onComplete }) => {
   const [category, setCategory] = useState('');
   const [coverUrl, setCoverUrl] = useState(THEMES[0].url);
   const [accessType, setAccessType] = useState<'free' | 'request'>('free');
+  const [isGenerating, setIsGenerating] = useState(false);
   
   // Feature Toggles
   const [features, setFeatures] = useState({
@@ -36,6 +38,37 @@ const CreateCommunity: React.FC<Props> = ({ onBack, onComplete }) => {
 
   const toggleFeature = (key: keyof typeof features) => {
     setFeatures(prev => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  const handleGenerateImage = async () => {
+    if (!title || !category) return;
+    setIsGenerating(true);
+    try {
+      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      const prompt = `A cinematic and high-quality travel community cover image for a group called "${title}" focused on "${category}". The style should be professional, inspiring, and travel-oriented. No text in the image.`;
+      
+      const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash-image',
+        contents: [{ parts: [{ text: prompt }] }],
+        config: {
+          imageConfig: {
+            aspectRatio: "16:9"
+          }
+        }
+      });
+
+      for (const part of response.candidates[0].content.parts) {
+        if (part.inlineData) {
+          const base64EncodeString = part.inlineData.data;
+          setCoverUrl(`data:image/png;base64,${base64EncodeString}`);
+          break;
+        }
+      }
+    } catch (error) {
+      console.error("Image generation failed:", error);
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   return (
@@ -120,39 +153,48 @@ const CreateCommunity: React.FC<Props> = ({ onBack, onComplete }) => {
           <div className="animate-in fade-in slide-in-from-right-4 duration-500 space-y-8">
             <div>
               <h2 className="text-3xl font-black text-white leading-tight">Visual <span className="text-primary italic">Signature.</span></h2>
-              <p className="text-slate-500 text-xs mt-2 font-medium">Choose a theme that represents the visual spirit of your community.</p>
+              <p className="text-slate-500 text-xs mt-2 font-medium">Choose a theme or generate a unique cover with AI.</p>
             </div>
             
             <div className="relative aspect-video rounded-[2.5rem] overflow-hidden border-2 border-white/10 shadow-2xl group">
+               {isGenerating && (
+                 <div className="absolute inset-0 z-20 bg-background-dark/80 backdrop-blur-sm flex flex-col items-center justify-center gap-4">
+                    <div className="size-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                    <p className="text-primary text-[10px] font-black uppercase tracking-[0.2em]">Dreaming up your cover...</p>
+                 </div>
+               )}
                <img src={coverUrl} className="w-full h-full object-cover" alt="Preview" />
                <div className="absolute inset-0 bg-gradient-to-t from-background-dark via-transparent to-transparent"></div>
                <div className="absolute bottom-6 left-6">
                   <h3 className="text-white font-black text-2xl italic tracking-tight">{title || 'Your Tribe Name'}</h3>
                   <p className="text-primary text-[10px] font-black uppercase tracking-[0.2em]">{category || 'Category'}</p>
                </div>
-               <div className="absolute top-4 right-4 bg-background-dark/80 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10 flex items-center gap-2">
-                  <span className="material-symbols-outlined text-xs text-primary">visibility</span>
-                  <span className="text-white text-[9px] font-black uppercase tracking-widest">Live Preview</span>
-               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              {THEMES.map(theme => (
-                <button 
-                  key={theme.id}
-                  onClick={() => setCoverUrl(theme.url)}
-                  className={`relative h-20 rounded-2xl overflow-hidden border-2 transition-all ${coverUrl === theme.url ? 'border-primary' : 'border-white/5'}`}
-                >
-                   <img src={theme.url} className="w-full h-full object-cover" alt="" />
-                   <div className={`absolute inset-0 flex items-center justify-center transition-all ${coverUrl === theme.url ? 'bg-primary/20' : 'bg-black/40'}`}>
-                      <span className={`text-[10px] font-black uppercase tracking-widest ${coverUrl === theme.url ? 'text-white' : 'text-white/60'}`}>{theme.label}</span>
-                   </div>
-                </button>
-              ))}
-              <button className="h-20 rounded-2xl border-2 border-dashed border-white/10 bg-white/5 flex flex-col items-center justify-center gap-1 group hover:border-primary/40 transition-all">
-                 <span className="material-symbols-outlined text-slate-500 group-hover:text-primary transition-colors">upload_file</span>
-                 <span className="text-[8px] font-black uppercase tracking-widest text-slate-500">Custom Upload</span>
+            <div className="flex flex-col gap-4">
+              <button 
+                onClick={handleGenerateImage}
+                disabled={isGenerating || !title || !category}
+                className="w-full bg-primary/10 border border-primary/40 hover:bg-primary/20 text-primary py-4 rounded-2xl flex items-center justify-center gap-3 transition-all active:scale-[0.98] disabled:opacity-50 group"
+              >
+                <span className="material-symbols-outlined font-black group-hover:rotate-12 transition-transform">auto_awesome</span>
+                <span className="text-[10px] font-black uppercase tracking-widest">Generate Custom AI Cover</span>
               </button>
+
+              <div className="grid grid-cols-2 gap-4">
+                {THEMES.map(theme => (
+                  <button 
+                    key={theme.id}
+                    onClick={() => setCoverUrl(theme.url)}
+                    className={`relative h-20 rounded-2xl overflow-hidden border-2 transition-all ${coverUrl === theme.url ? 'border-primary' : 'border-white/5'}`}
+                  >
+                    <img src={theme.url} className="w-full h-full object-cover" alt="" />
+                    <div className={`absolute inset-0 flex items-center justify-center transition-all ${coverUrl === theme.url ? 'bg-primary/20' : 'bg-black/40'}`}>
+                        <span className={`text-[10px] font-black uppercase tracking-widest ${coverUrl === theme.url ? 'text-white' : 'text-white/60'}`}>{theme.label}</span>
+                    </div>
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         )}

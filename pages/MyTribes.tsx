@@ -28,7 +28,7 @@ const JOINED_COMMUNITIES: Community[] = [
     id: 'c4',
     title: "Eco-Warriors Bali",
     meta: "Sustainability • 3.5k members",
-    description: "Our community is dedicated to preserving Bali's natural beauty.",
+    description: "Our community is dedicated to preserving Bali's natural beauty through direct action and eco-tourism.",
     image: "https://images.unsplash.com/photo-1537996194471-e657df975ab4?auto=format&fit=crop&w=800&q=80",
     memberCount: "3.5k",
     category: "Eco-Travel",
@@ -41,7 +41,7 @@ const JOINED_COMMUNITIES: Community[] = [
     id: 'c1',
     title: "Parisian Flâneurs",
     meta: "Photography • 1.2k members",
-    description: "Capturing the magic of Paris, one street at a time.",
+    description: "Capturing the magic of Paris, one street at a time, through the lens of local urban explorers.",
     image: "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?auto=format&fit=crop&w=800&q=80",
     memberCount: "1.2k",
     category: "Photography",
@@ -165,8 +165,13 @@ const MyCommunities: React.FC<Props> = ({ onSelectCommunity, onOpenNotifications
                        <span className="material-symbols-outlined text-sm">more_horiz</span>
                     </div>
                   )}
+
+                  {/* Community Mission Snippet */}
+                  <p className="mt-4 text-xs text-slate-400 font-medium leading-relaxed line-clamp-2 px-1">
+                    {community.description}
+                  </p>
                   
-                  <div className="mt-6 flex items-center justify-between">
+                  <div className="mt-6 pt-6 border-t border-white/5 flex items-center justify-between">
                     <div className="flex items-center gap-4">
                        <button 
                          onClick={() => onSelectCommunity(community)}

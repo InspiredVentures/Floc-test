@@ -106,6 +106,10 @@ const Discovery: React.FC<Props> = ({ onSelectTrip, onSelectCommunity, onOpenNot
   const [isExpandingSearch, setIsExpandingSearch] = useState(false);
   const [aiRelatedConcepts, setAiRelatedConcepts] = useState<string[]>([]);
   const [scrolled, setScrolled] = useState(false);
+  const [categoryInterests, setCategoryInterests] = useState<Record<string, number>>(() => {
+    const saved = localStorage.getItem('floc_category_interests');
+    return saved ? JSON.parse(saved) : {};
+  });
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 50);
@@ -113,8 +117,25 @@ const Discovery: React.FC<Props> = ({ onSelectTrip, onSelectCommunity, onOpenNot
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // Update interests when a community is selected
+  const handleCommunityClick = (community: Community) => {
+    const newInterests = { ...categoryInterests };
+    newInterests[community.category] = (newInterests[community.category] || 0) + 1;
+    setCategoryInterests(newInterests);
+    localStorage.setItem('floc_category_interests', JSON.stringify(newInterests));
+    onSelectCommunity(community);
+  };
+
+  const prioritizedCommunities = useMemo(() => {
+    return [...MOCK_COMMUNITIES].sort((a, b) => {
+      const scoreA = categoryInterests[a.category] || 0;
+      const scoreB = categoryInterests[b.category] || 0;
+      return scoreB - scoreA;
+    });
+  }, [categoryInterests]);
+
   const filteredCommunities = useMemo(() => {
-    let result = MOCK_COMMUNITIES;
+    let result = prioritizedCommunities;
     if (activeFilter !== 'all') {
       const catMap: Record<string, string> = {
         'eco': 'Eco-Travel',
@@ -131,11 +152,11 @@ const Discovery: React.FC<Props> = ({ onSelectTrip, onSelectCommunity, onOpenNot
       );
     }
     return result;
-  }, [activeFilter, searchQuery]);
+  }, [prioritizedCommunities, activeFilter, searchQuery]);
 
   const semanticMatches = useMemo(() => {
     if (!searchQuery || aiRelatedConcepts.length === 0) return [];
-    return MOCK_COMMUNITIES.filter(comm => {
+    return prioritizedCommunities.filter(comm => {
       const isExactMatch = filteredCommunities.some(e => e.id === comm.id);
       if (isExactMatch) return false;
       return aiRelatedConcepts.some(concept => 
@@ -143,7 +164,7 @@ const Discovery: React.FC<Props> = ({ onSelectTrip, onSelectCommunity, onOpenNot
         comm.title.toLowerCase().includes(concept.toLowerCase())
       );
     });
-  }, [aiRelatedConcepts, filteredCommunities, searchQuery]);
+  }, [prioritizedCommunities, aiRelatedConcepts, filteredCommunities, searchQuery]);
 
   useEffect(() => {
     const timer = setTimeout(async () => {
@@ -163,7 +184,7 @@ const Discovery: React.FC<Props> = ({ onSelectTrip, onSelectCommunity, onOpenNot
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  const featuredCommunity = MOCK_COMMUNITIES[0]; // Set to Parisian Flâneurs as featured
+  const featuredCommunity = prioritizedCommunities[0];
 
   return (
     <div className="flex flex-col min-h-full bg-background-dark pb-32">
@@ -197,7 +218,7 @@ const Discovery: React.FC<Props> = ({ onSelectTrip, onSelectCommunity, onOpenNot
           <div className="absolute bottom-12 left-6 right-6 space-y-4">
             <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md border border-white/10 px-3 py-1 rounded-full">
               <span className="material-symbols-outlined text-primary text-sm">stars</span>
-              <p className="text-white text-[9px] font-black uppercase tracking-widest">Featured Community</p>
+              <p className="text-white text-[9px] font-black uppercase tracking-widest">Top Vibe Match</p>
             </div>
             <h2 className="text-white text-5xl font-black tracking-tighter leading-[0.9] italic">
               {featuredCommunity.title.split(' ').slice(0, -1).join(' ')} <br/>
@@ -209,7 +230,7 @@ const Discovery: React.FC<Props> = ({ onSelectTrip, onSelectCommunity, onOpenNot
                 <p className="text-white text-xs font-bold">{featuredCommunity.upcomingTrips.length} Upcoming Trips</p>
               </div>
               <button 
-                onClick={() => onSelectCommunity(featuredCommunity)}
+                onClick={() => handleCommunityClick(featuredCommunity)}
                 className="bg-white text-background-dark px-6 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-2xl active:scale-95 transition-all"
               >
                 Explore Group
@@ -251,7 +272,7 @@ const Discovery: React.FC<Props> = ({ onSelectTrip, onSelectCommunity, onOpenNot
              </div>
              <div className="space-y-4">
                 {filteredCommunities.map(comm => (
-                  <CommunityResultCard key={comm.id} community={comm} onClick={() => onSelectCommunity(comm)} />
+                  <CommunityResultCard key={comm.id} community={comm} onClick={() => handleCommunityClick(comm)} />
                 ))}
                 
                 {aiRelatedConcepts.length > 0 && (
@@ -261,7 +282,7 @@ const Discovery: React.FC<Props> = ({ onSelectTrip, onSelectCommunity, onOpenNot
                        <h4 className="text-primary text-[10px] font-black uppercase tracking-[0.2em]">Related Interests</h4>
                     </div>
                     {semanticMatches.map(comm => (
-                       <CommunityResultCard key={comm.id} community={comm} onClick={() => onSelectCommunity(comm)} related />
+                       <CommunityResultCard key={comm.id} community={comm} onClick={() => handleCommunityClick(comm)} related />
                     ))}
                   </div>
                 )}
@@ -270,12 +291,12 @@ const Discovery: React.FC<Props> = ({ onSelectTrip, onSelectCommunity, onOpenNot
         ) : (
           <div className="space-y-12">
             
-            {/* RECOMMENDED FOR YOU */}
+            {/* RECOMMENDED FOR YOU - Prioritized by Category Interaction */}
             <section className="space-y-6">
               <div className="px-6 flex items-center justify-between">
                 <div className="flex flex-col">
                   <h3 className="text-white text-2xl font-black tracking-tighter italic leading-none">Recommended <span className="text-primary not-italic">for You</span></h3>
-                  <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mt-1">Groups curated from the Inspired profile</p>
+                  <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mt-1">Based on your recent journey history</p>
                 </div>
                 <button onClick={onSeeAll} className="bg-white/5 border border-white/10 text-white p-2 rounded-xl">
                   <span className="material-symbols-outlined text-sm">tune</span>
@@ -283,10 +304,10 @@ const Discovery: React.FC<Props> = ({ onSelectTrip, onSelectCommunity, onOpenNot
               </div>
               
               <div className="flex overflow-x-auto hide-scrollbar gap-5 px-6 pb-4">
-                {MOCK_COMMUNITIES.slice(0, 5).map(comm => (
+                {prioritizedCommunities.slice(0, 5).map(comm => (
                   <div 
                     key={comm.id}
-                    onClick={() => onSelectCommunity(comm)}
+                    onClick={() => handleCommunityClick(comm)}
                     className="flex-none w-[320px] group cursor-pointer relative"
                   >
                     <div className="bg-surface-dark border border-white/10 rounded-[2.5rem] overflow-hidden shadow-2xl transition-all group-hover:border-primary/40 duration-500">
@@ -294,9 +315,9 @@ const Discovery: React.FC<Props> = ({ onSelectTrip, onSelectCommunity, onOpenNot
                         <img src={comm.image} className="size-full object-cover transition-transform group-hover:scale-105 duration-700" alt="" />
                         <div className="absolute inset-0 bg-gradient-to-t from-surface-dark to-transparent"></div>
                         <div className="absolute top-4 left-4">
-                           <div className="bg-emerald-500/90 backdrop-blur-md text-background-dark text-[9px] font-black px-2.5 py-1 rounded-lg shadow-lg flex items-center gap-1.5">
-                              <span className="material-symbols-outlined text-xs">trending_up</span>
-                              Trending
+                           <div className="bg-primary/90 backdrop-blur-md text-background-dark text-[9px] font-black px-2.5 py-1 rounded-lg shadow-lg flex items-center gap-1.5">
+                              <span className="material-symbols-outlined text-xs">auto_awesome</span>
+                              Top Match
                            </div>
                         </div>
                       </div>
@@ -314,20 +335,20 @@ const Discovery: React.FC<Props> = ({ onSelectTrip, onSelectCommunity, onOpenNot
               </div>
             </section>
 
-            {/* EXPLORE ALL COMMUNITIES */}
+            {/* EXPLORE GLOBAL COLLECTIVES */}
             <section className="space-y-6">
               <div className="px-6 flex items-center justify-between">
                 <div className="flex flex-col">
                   <h3 className="text-white text-2xl font-black tracking-tighter italic leading-none">Global <span className="text-primary not-italic">Collectives</span></h3>
-                  <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mt-1">Explore Inspired Ventures Communities</p>
+                  <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mt-1">Explore all Inspired Ventures Communities</p>
                 </div>
                 <button onClick={onSeeAll} className="text-slate-500 text-[10px] font-black uppercase tracking-widest hover:text-white transition-colors">View All</button>
               </div>
               <div className="flex overflow-x-auto hide-scrollbar gap-5 px-6 pb-4">
-                {MOCK_COMMUNITIES.map(comm => (
+                {prioritizedCommunities.map(comm => (
                   <div 
                     key={comm.id}
-                    onClick={() => onSelectCommunity(comm)}
+                    onClick={() => handleCommunityClick(comm)}
                     className="flex-none w-64 group cursor-pointer"
                   >
                     <div className="relative aspect-[3/4] rounded-[2.5rem] overflow-hidden mb-4 shadow-2xl border border-white/5 group-hover:border-primary/40 transition-all duration-500">

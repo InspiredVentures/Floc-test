@@ -34,6 +34,7 @@ interface ActivitySuggestion {
   votes: number;
   myVote: 'up' | 'down' | null;
   comments: SuggestionComment[];
+  tags: string[];
 }
 
 const DEFAULT_ITINERARY: ItineraryDay[] = [
@@ -143,7 +144,8 @@ const TripDetails: React.FC<Props> = ({ trip, onBack, onBook, onOpenChat }) => {
       comments: [
         { id: 'c1', user: 'Mike R.', avatar: 'https://picsum.photos/seed/mike/100/100', text: 'Sounds intense but worth it!', time: '2h ago' },
         { id: 'c2', user: 'Elena V.', avatar: 'https://picsum.photos/seed/elena/100/100', text: 'I have a portable kit I can bring.', time: '1h ago' }
-      ]
+      ],
+      tags: ['Active', 'Photography']
     },
     {
       id: 's2',
@@ -153,13 +155,15 @@ const TripDetails: React.FC<Props> = ({ trip, onBack, onBook, onOpenChat }) => {
       avatar: 'https://picsum.photos/seed/alex/100/100',
       votes: 4,
       myVote: 'up',
-      comments: []
+      comments: [],
+      tags: ['Culture', 'Craft']
     }
   ]);
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [newTitle, setNewTitle] = useState('');
   const [newDesc, setNewDesc] = useState('');
+  const [newTags, setNewTags] = useState('');
 
   const toggleComplete = (dayNum: number) => {
     setItinerary(prev => prev.map(item => 
@@ -249,11 +253,13 @@ const TripDetails: React.FC<Props> = ({ trip, onBack, onBook, onOpenChat }) => {
       avatar: 'https://picsum.photos/seed/alex/100/100',
       votes: 1,
       myVote: 'up',
-      comments: []
+      comments: [],
+      tags: newTags.split(',').map(t => t.trim()).filter(t => t !== '')
     };
     setSuggestions([newSug, ...suggestions]);
     setNewTitle('');
     setNewDesc('');
+    setNewTags('');
     setShowAddModal(false);
   };
 
@@ -585,7 +591,7 @@ const TripDetails: React.FC<Props> = ({ trip, onBack, onBook, onOpenChat }) => {
 
       {showAddModal && (
         <div className="fixed inset-0 z-[100] flex items-end justify-center bg-black/80 backdrop-blur-sm animate-in fade-in duration-300">
-          <div className="bg-background-dark w-full max-w-md rounded-t-[2.5rem] p-8 border-t border-white/10 animate-in slide-in-from-bottom duration-500">
+          <div className="bg-background-dark w-full max-w-md rounded-t-[2.5rem] p-8 border-t border-white/10 animate-in slide-in-from-bottom duration-500 max-h-[90vh] overflow-y-auto hide-scrollbar">
             <div className="flex items-center justify-between mb-8">
               <h2 className="text-2xl font-black text-white tracking-tight">New Suggestion</h2>
               <button onClick={() => setShowAddModal(false)} className="text-slate-500 hover:text-white p-2">
@@ -611,6 +617,16 @@ const TripDetails: React.FC<Props> = ({ trip, onBack, onBook, onOpenChat }) => {
                   onChange={(e) => setNewDesc(e.target.value)}
                   placeholder="Tell the group why this is essential..."
                   className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all resize-none"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 px-1">Tags (comma separated)</label>
+                <input 
+                  type="text" 
+                  value={newTags}
+                  onChange={(e) => setNewTags(e.target.value)}
+                  placeholder="e.g. Active, Culture, Free"
+                  className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
                 />
               </div>
               <button 
@@ -645,7 +661,7 @@ const TribePostCard: React.FC<{ post: TribePost; onLike: () => void }> = ({ post
   const handleLikeClick = () => {
     setIsLiking(true);
     onLike();
-    setTimeout(() => setIsLiking(false), 400);
+    setTimeout(() => setIsLiking(false), 0.4);
   };
 
   const handleAddComment = (e?: React.FormEvent) => {
@@ -804,6 +820,16 @@ const SuggestionCard: React.FC<{ suggestion: ActivitySuggestion; onVote: (dir: '
           <h4 className="text-white font-black text-sm leading-tight mb-1">{suggestion.title}</h4>
           <p className="text-xs text-slate-400 mt-1 line-clamp-2 leading-relaxed">{suggestion.description}</p>
           
+          {suggestion.tags && suggestion.tags.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 mt-3">
+              {suggestion.tags.map(tag => (
+                <span key={tag} className="bg-white/5 border border-white/10 px-2 py-0.5 rounded-md text-[8px] uppercase font-black tracking-widest text-primary/60">
+                  {tag}
+                </span>
+              ))}
+            </div>
+          )}
+
           <div className="flex items-center gap-4 mt-4">
             <button onClick={() => setShowComments(!showComments)} className="flex items-center gap-1.5 text-slate-500 hover:text-white transition-all">
               <span className="material-symbols-outlined text-base">forum</span>
