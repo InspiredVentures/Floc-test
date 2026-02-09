@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Community, Trip, TribePost } from '../types';
+import { Community, Trip, TribePost, TribeComment } from '../types';
 
 interface Props {
   community: Community;
@@ -47,6 +47,12 @@ const CommunityDetails: React.FC<Props> = ({ community, onBack, onSelectTrip, on
       setIsJoined(true);
     }
     onJoin(community);
+  };
+
+  const tabLabels: Record<string, string> = {
+    feed: 'feed',
+    ventures: 'Travel with us',
+    about: 'about'
   };
 
   return (
@@ -107,7 +113,7 @@ const CommunityDetails: React.FC<Props> = ({ community, onBack, onSelectTrip, on
               activeTab === tab ? 'text-primary' : 'text-slate-500'
             }`}
           >
-            {tab}
+            {tabLabels[tab]}
             {activeTab === tab && (
               <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary animate-in fade-in zoom-in duration-300"></div>
             )}
@@ -171,7 +177,7 @@ const CommunityDetails: React.FC<Props> = ({ community, onBack, onSelectTrip, on
                 <div className="size-16 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4 border border-white/10">
                   <span className="material-symbols-outlined text-slate-500 text-3xl">event_busy</span>
                 </div>
-                <p className="text-slate-500 text-xs font-bold uppercase tracking-widest">No Active Ventures</p>
+                <p className="text-slate-500 text-xs font-bold uppercase tracking-widest">No active trips yet</p>
               </div>
             )}
           </div>
