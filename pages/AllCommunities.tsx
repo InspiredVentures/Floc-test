@@ -47,7 +47,7 @@ const AllCommunities: React.FC<Props> = ({ onBack, onSelectTrip, onSelectCommuni
               className="group cursor-pointer animate-in fade-in zoom-in duration-500"
               onClick={() => onSelectCommunity({
                 id: `comm-${i}`,
-                title: `Tribe ${i+1}`,
+                title: `Community ${i+1}`,
                 meta: `${activeCategory} • ${Math.floor(Math.random()*5000)} Members`,
                 description: `A passionate community of ${activeCategory.toLowerCase()} explorers focused on conscious travel and positive impact.`,
                 image: `https://picsum.photos/seed/${i + 100}/400/500`,
@@ -61,7 +61,7 @@ const AllCommunities: React.FC<Props> = ({ onBack, onSelectTrip, onSelectCommuni
                 <img src={`https://picsum.photos/seed/${i + 100}/400/500`} className="absolute inset-0 w-full h-full object-cover transition-transform group-hover:scale-110 duration-700" alt="" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/20 to-transparent"></div>
                 <div className="absolute bottom-4 left-4 right-4">
-                  <h3 className="text-white font-black text-xs leading-tight mb-1 uppercase tracking-tight">New Tribe {i + 1}</h3>
+                  <h3 className="text-white font-black text-xs leading-tight mb-1 uppercase tracking-tight">New Community {i + 1}</h3>
                   <div className="flex items-center gap-1.5">
                     <div className="size-1 bg-primary rounded-full animate-pulse"></div>
                     <span className="text-white/60 text-[8px] font-bold uppercase tracking-widest">{Math.floor(Math.random() * 500) + 10} Members</span>

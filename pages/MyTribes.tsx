@@ -172,7 +172,7 @@ const MyCommunities: React.FC<Props> = ({ onSelectCommunity, onOpenNotifications
                       onClick={() => onSelectCommunity(community)}
                       className="bg-white/5 border border-white/5 rounded-2xl p-4 flex items-center justify-between text-slate-500 cursor-pointer hover:bg-white/10 hover:border-white/20 transition-all group"
                     >
-                       <p className="text-[10px] font-black uppercase tracking-widest group-hover:text-white transition-colors">Explore Tribe Activity</p>
+                       <p className="text-[10px] font-black uppercase tracking-widest group-hover:text-white transition-colors">Explore Community Activity</p>
                        <span className="material-symbols-outlined text-sm group-hover:translate-x-1 transition-transform">chevron_right</span>
                     </div>
                   )}

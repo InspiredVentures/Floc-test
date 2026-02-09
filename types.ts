@@ -49,6 +49,21 @@ export interface Trip {
   membersCount: number;
 }
 
+export interface TripSuggestion {
+  id: string;
+  destination: string;
+  budget: 'Eco' | 'Mid' | 'Luxury';
+  style: string;
+  duration: string;
+  ingredients: string[];
+  travelFrom: string;
+  suggestedBy: string;
+  avatar: string;
+  votes: number;
+  myVote: 'up' | 'down' | null;
+  timestamp: string;
+}
+
 export interface Message {
   id: string;
   senderId: string;
@@ -59,6 +74,7 @@ export interface Message {
   isMe: boolean;
   status?: 'sent' | 'delivered' | 'read';
   sources?: { title: string; uri: string }[];
+  suggestion?: TripSuggestion;
 }
 
 export interface TribeComment {
@@ -76,11 +92,14 @@ export interface TribePost {
   role: 'Manager' | 'Guide' | 'Member';
   content: string;
   image?: string;
+  video?: string;
   likes: number;
   hasLiked: boolean;
   comments: TribeComment[];
   time: string;
+  timestamp?: number;
   tribeName?: string;
+  suggestion?: TripSuggestion;
 }
 
 export interface AppNotification {
