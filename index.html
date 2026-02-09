@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html class="dark" lang="en">
 <head>
@@ -14,13 +13,13 @@
             theme: {
                 extend: {
                     colors: {
-                        "primary": "#13ec5b",
+                        "primary": "#FF6B35",
                         "primary-teal": "#008080",
-                        "primary-orange": "#FF6B35",
-                        "background-light": "#f6f8f6",
-                        "background-dark": "#102216",
-                        "card-dark": "#1a3021",
-                        "surface-dark": "#193322",
+                        "primary-green": "#13ec5b",
+                        "background-light": "#FFF9F6",
+                        "background-dark": "#160D08",
+                        "card-dark": "#25150C",
+                        "surface-dark": "#2A1910",
                     },
                     fontFamily: {
                         "display": ["Plus Jakarta Sans", "sans-serif"],
@@ -48,6 +47,19 @@
                             '0%': { transform: 'translate(0, 0) scale(0)', opacity: 0 },
                             '50%': { opacity: 1 },
                             '100%': { transform: 'translate(20px, 20px) scale(1)', opacity: 0 },
+                        },
+                        'heart-pop': {
+                            '0%': { transform: 'scale(1)' },
+                            '15%': { transform: 'scale(1.4)' },
+                            '30%': { transform: 'scale(0.9)' },
+                            '45%': { transform: 'scale(1.15)' },
+                            '60%': { transform: 'scale(0.95)' },
+                            '100%': { transform: 'scale(1)' },
+                        },
+                        'notification-pulse': {
+                            '0%': { transform: 'scale(1)', boxShadow: '0 0 0 0 rgba(255, 107, 53, 0.7)' },
+                            '70%': { transform: 'scale(1.1)', boxShadow: '0 0 0 6px rgba(255, 107, 53, 0)' },
+                            '100%': { transform: 'scale(1)', boxShadow: '0 0 0 0 rgba(255, 107, 53, 0)' }
                         }
                     },
                     animation: {
@@ -55,6 +67,7 @@
                         'sparkle-2': 'sparkle-2 0.6s ease-out forwards',
                         'sparkle-3': 'sparkle-3 0.6s ease-out forwards',
                         'sparkle-4': 'sparkle-4 0.6s ease-out forwards',
+                        'notification-pulse': 'notification-pulse 2s infinite'
                     }
                 },
             },

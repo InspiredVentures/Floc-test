@@ -2,15 +2,35 @@
 export enum AppView {
   ONBOARDING = 'ONBOARDING',
   DISCOVERY = 'DISCOVERY',
+  ALL_COMMUNITIES = 'ALL_COMMUNITIES',
   TRIP_DETAILS = 'TRIP_DETAILS',
+  COMMUNITY_DETAILS = 'COMMUNITY_DETAILS',
+  JOIN_REQUEST = 'JOIN_REQUEST',
   DASHBOARD = 'DASHBOARD',
-  MY_TRIPS = 'MY_TRIPS',
-  IMPACT = 'IMPACT',
+  CREATE_VENTURE = 'CREATE_VENTURE',
+  CREATE_COMMUNITY = 'CREATE_COMMUNITY',
+  MANAGE_MEMBERS = 'MANAGE_MEMBERS',
+  MY_COMMUNITIES = 'MY_COMMUNITIES',
+  GLOBAL_FEED = 'GLOBAL_FEED',
   PROFILE = 'PROFILE',
   CHAT = 'CHAT',
   NOTIFICATIONS = 'NOTIFICATIONS',
   SETTINGS = 'SETTINGS',
   BOOKING_SUCCESS = 'BOOKING_SUCCESS'
+}
+
+export interface Community {
+  id: string;
+  title: string;
+  meta: string;
+  description: string;
+  image: string;
+  memberCount: string;
+  category: string;
+  upcomingTrips: Trip[];
+  accessType: 'free' | 'request';
+  unreadCount?: number;
+  isManaged?: boolean;
 }
 
 export interface Trip {
@@ -24,14 +44,6 @@ export interface Trip {
   membersCount: number;
 }
 
-export interface ImpactStats {
-  co2Offset: string;
-  trees: string;
-  localSupport: number;
-  plasticFree: string;
-  wildlifeFunding: number;
-}
-
 export interface Message {
   id: string;
   senderId: string;
@@ -40,6 +52,30 @@ export interface Message {
   text: string;
   timestamp: string;
   isMe: boolean;
+  status?: 'sent' | 'delivered' | 'read';
+  sources?: { title: string; uri: string }[];
+}
+
+export interface TribeComment {
+  id: string;
+  user: string;
+  avatar: string;
+  text: string;
+  time: string;
+}
+
+export interface TribePost {
+  id: string;
+  author: string;
+  authorAvatar: string;
+  role: 'Manager' | 'Guide' | 'Member';
+  content: string;
+  image?: string;
+  likes: number;
+  hasLiked: boolean;
+  comments: TribeComment[];
+  time: string;
+  tribeName?: string;
 }
 
 export interface AppNotification {

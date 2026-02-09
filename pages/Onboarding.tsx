@@ -34,46 +34,60 @@ const Onboarding: React.FC<Props> = ({ onComplete }) => {
 
   if (step === 1) {
     return (
-      <div className="relative h-screen w-full flex flex-col group overflow-hidden">
+      <div className="relative h-screen w-full flex flex-col overflow-hidden bg-background-dark">
+        {/* Immersive Background */}
         <div className="absolute inset-0 z-0">
-          <div className="w-full h-full bg-cover bg-center" style={{ backgroundImage: `url("https://lh3.googleusercontent.com/aida-public/AB6AXuCekcHitMOI6ZCeeci4asnbh4kuNeNQktU0h3eEQ1nmtnlv7DgDfdq-4OESjFGRi0vXjSF_RjbvvG_irE7hqoFbmTINBRq3UUNJfEJCEwGI8XSpIj0rN8uDplqCjTyYYBMHHfMUmnS25N2SX_sgPUlA2ZVK1TomnVuszxoAVh7Aj4Xl-iOYZAGbeDp-97cpC9mIfc2ldXf1pT5P3VUvmBwKlC6vJSluniFVxi2WKLC3bnDpb4Jw0lt51iW7DoIzcniH6trMD1TeVzbw")` }}></div>
-          <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/95"></div>
+          <div className="w-full h-full bg-cover bg-center transition-transform duration-[10s] hover:scale-110" style={{ backgroundImage: `url("https://images.unsplash.com/photo-1533105079780-92b9be482077?auto=format&fit=crop&w=1200&q=80")` }}></div>
+          <div className="absolute inset-0 bg-gradient-to-b from-background-dark/90 via-background-dark/40 to-background-dark"></div>
         </div>
         
         <header className="relative z-10 flex items-center justify-between px-6 pt-12">
           <div className="flex items-center gap-2">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
-              <span className="material-symbols-outlined text-white font-bold">flight</span>
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary shadow-2xl shadow-primary/40 rotate-6">
+              <span className="text-white font-black text-2xl font-display leading-none">F</span>
             </div>
             <div className="flex flex-col">
-              <span className="text-white font-extrabold text-xl tracking-tight leading-none italic">Floc</span>
-              <span className="text-white/80 text-[10px] uppercase tracking-widest leading-none font-semibold">by Inspired</span>
+              <span className="text-white font-black text-xl tracking-tighter leading-none italic">Floc</span>
+              <span className="text-primary text-[7px] uppercase tracking-[0.3em] font-black mt-0.5">Inspired Ventures</span>
             </div>
           </div>
-          <button onClick={onComplete} className="text-white/80 text-sm font-semibold py-1 px-3 rounded-full bg-white/10 backdrop-blur-sm border border-white/20">Skip</button>
+          <button onClick={onComplete} className="text-white/40 text-[9px] font-black uppercase tracking-widest py-1.5 px-3 rounded-full border border-white/5 backdrop-blur-md">Skip Intro</button>
         </header>
 
-        <div className="relative z-10 mt-auto flex flex-col items-center px-6 pb-12">
-          <div className="w-full text-center space-y-3 mb-10">
-            <h1 className="text-white text-4xl font-extrabold tracking-tight leading-tight">
-              Travel with <br/><span className="text-primary italic">your Tribe.</span>
+        <div className="relative z-10 mt-auto flex flex-col px-8 pb-12">
+          <div className="space-y-6 mb-10">
+            <div className="inline-flex items-center gap-2 bg-white/5 backdrop-blur-md border border-white/10 px-3 py-1 rounded-full">
+              <span className="material-symbols-outlined text-primary text-sm">public</span>
+              <span className="text-white/80 text-[9px] font-black uppercase tracking-widest">Global Conscious Network</span>
+            </div>
+            
+            <h1 className="text-white text-5xl font-black tracking-tighter leading-[0.85] italic">
+              Find your <span className="text-primary not-italic">Tribe.</span><br/>
+              Plan with <span className="text-white not-italic">Purpose.</span>
             </h1>
-            <p className="text-white/90 text-base font-medium leading-relaxed max-w-[320px] mx-auto">
-              Join special interest groups and find your next adventure with like-minded travelers.
+            
+            <p className="text-slate-400 text-sm font-medium leading-relaxed max-w-[280px]">
+              Floc is the hub for collective travel. Join niche communities, launch sustainable ventures, and track your global footprint.
             </p>
+
+            <div className="space-y-4 pt-4 border-l border-white/10 pl-4">
+              <ValueStep num="01" text="Join a Tribe that matches your passion" />
+              <ValueStep num="02" text="Co-create Ventures with active members" />
+              <ValueStep num="03" text="Track CO2 & community impact live" />
+            </div>
           </div>
-          <div className="flex gap-2.5 mb-8">
-            <div className="h-1.5 w-8 rounded-full bg-primary"></div>
-            <div className="h-1.5 w-1.5 rounded-full bg-white/40"></div>
-            <div className="h-1.5 w-1.5 rounded-full bg-white/40"></div>
-          </div>
+
           <button 
             onClick={() => setStep(2)}
-            className="w-full h-14 bg-primary text-white text-lg font-bold rounded-xl shadow-lg active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+            className="w-full h-16 bg-primary text-background-dark text-base font-black rounded-2xl shadow-2xl shadow-primary/20 active:scale-[0.98] transition-all flex items-center justify-center gap-3 group"
           >
-            <span>Next</span>
-            <span className="material-symbols-outlined">arrow_forward</span>
+            <span>Explore Tribes</span>
+            <span className="material-symbols-outlined font-black group-hover:translate-x-1 transition-transform">arrow_forward</span>
           </button>
+          
+          <p className="text-center mt-6 text-[9px] text-slate-600 font-bold uppercase tracking-[0.2em]">
+            Trust & Safety by Inspired Ventures Protocol
+          </p>
         </div>
       </div>
     );
@@ -84,76 +98,67 @@ const Onboarding: React.FC<Props> = ({ onComplete }) => {
       <div className="fixed -top-20 -right-20 size-80 bg-primary/5 rounded-full blur-[100px] -z-10"></div>
       
       <header className="flex items-center justify-between py-4">
-        <button onClick={() => setStep(1)} className="flex items-center justify-center size-10 rounded-full bg-surface-dark/50 text-white">
-          <span className="material-symbols-outlined">arrow_back_ios_new</span>
+        <button onClick={() => setStep(1)} className="flex items-center justify-center size-10 rounded-full bg-white/5 border border-white/10 text-white active:scale-90 transition-all">
+          <span className="material-symbols-outlined">arrow_back</span>
         </button>
         <div className="flex flex-col items-center">
-          <span className="text-[10px] uppercase tracking-widest opacity-60 font-bold text-white">Floc</span>
-          <span className="text-[8px] uppercase tracking-[0.2em] text-primary">by Inspired</span>
+          <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Curate Experiences</span>
         </div>
         <div className="size-10"></div>
       </header>
 
-      <div className="mt-4 flex flex-col gap-2">
-        <div className="flex justify-between items-end">
-          <span className="text-xs font-semibold opacity-60 text-white">Step 2 of 2</span>
-          <span className="text-xs font-bold text-primary">{selectedInterests.length}/3 Selected</span>
-        </div>
-        <div className="w-full h-1.5 bg-surface-dark rounded-full overflow-hidden">
-          <div className="h-full bg-primary rounded-full transition-all duration-500" style={{ width: `${(selectedInterests.length / 3) * 100}%` }}></div>
-        </div>
-      </div>
-
-      <div className="mt-8 mb-6 text-white">
-        <h1 className="text-4xl font-extrabold tracking-tight leading-tight">
-          What inspires <br/><span className="text-primary">you?</span>
-        </h1>
-        <p className="mt-3 text-slate-400 leading-relaxed">
-          Pick at least 3 interests to help us build your custom Floc feed.
+      <div className="mt-8 mb-10">
+        <h2 className="text-white text-4xl font-black tracking-tight leading-tight italic">
+          Your <br/><span className="text-primary not-italic">Vibe?</span>
+        </h2>
+        <p className="mt-3 text-slate-500 text-sm font-medium leading-relaxed">
+          We'll surface Tribes and Ventures that align with your travel DNA.
         </p>
       </div>
 
-      <div className="flex-grow">
-        <div className="flex flex-wrap gap-3 pb-32">
+      <div className="flex-grow overflow-y-auto hide-scrollbar">
+        <div className="grid grid-cols-2 gap-3 pb-32">
           {INTERESTS.map(interest => (
             <button
               key={interest.id}
               onClick={() => toggleInterest(interest.id)}
-              className={`flex items-center gap-2 px-5 py-3 rounded-full border transition-all ${
+              className={`flex flex-col items-center justify-center gap-3 px-4 py-6 rounded-3xl border transition-all duration-300 ${
                 selectedInterests.includes(interest.id) 
-                ? 'bg-primary border-primary text-background-dark shadow-lg shadow-primary/20' 
-                : 'bg-surface-dark border-white/5 text-white'
+                ? 'bg-primary border-primary text-background-dark shadow-xl shadow-primary/20 scale-[1.02]' 
+                : 'bg-white/5 border-white/5 text-slate-400 hover:border-white/20'
               }`}
             >
-              <span className="material-symbols-outlined text-[20px]">{interest.icon}</span>
-              <span className="text-sm font-bold">{interest.label}</span>
+              <span className="material-symbols-outlined text-[32px]">{interest.icon}</span>
+              <span className="text-[9px] font-black uppercase tracking-widest text-center leading-tight">{interest.label}</span>
             </button>
           ))}
         </div>
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-background-dark via-background-dark/95 to-transparent">
+      <div className="fixed bottom-0 left-0 right-0 p-8 bg-gradient-to-t from-background-dark via-background-dark/95 to-transparent">
         <div className="max-w-md mx-auto">
           <button 
             disabled={selectedInterests.length < 3}
             onClick={onComplete}
-            className={`w-full font-bold py-5 rounded-full text-lg transition-all ${
+            className={`w-full font-black py-5 rounded-2xl text-lg transition-all shadow-2xl ${
               selectedInterests.length >= 3 
-              ? 'bg-primary text-background-dark shadow-lg' 
-              : 'bg-primary/20 text-white/30 cursor-not-allowed border border-primary/10'
+              ? 'bg-primary text-background-dark shadow-primary/30' 
+              : 'bg-white/5 text-slate-700 cursor-not-allowed border border-white/5'
             }`}
           >
-            Get Started
+            {selectedInterests.length < 3 ? `Pick ${3 - selectedInterests.length} More` : 'Enter Discovery'}
           </button>
-          {selectedInterests.length < 3 && (
-            <p className="text-center mt-4 text-xs font-medium text-slate-500">
-              Please select {3 - selectedInterests.length} more {3 - selectedInterests.length === 1 ? 'interest' : 'interests'} to continue
-            </p>
-          )}
         </div>
       </div>
     </div>
   );
 };
+
+const ValueStep = ({ num, text }: { num: string; text: string }) => (
+  <div className="flex items-center gap-3">
+    <span className="text-[10px] font-black text-primary/40 tracking-tighter">{num}</span>
+    <span className="text-white/60 text-xs font-bold leading-tight">{text}</span>
+  </div>
+);
 
 export default Onboarding;
