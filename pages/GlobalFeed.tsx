@@ -59,6 +59,19 @@ const FlocLogo = ({ className = "size-8" }: { className?: string }) => (
 const GlobalFeed: React.FC<Props> = ({ onSelectCommunity, onOpenNotifications }) => {
   const [activeTab, setActiveTab] = useState<'pulse' | 'vibes'>('pulse');
 
+  // Helper to create a mock community from a post
+  const getPostCommunity = (post: TribePost): Community => ({
+    id: post.tribeName?.replace(/\s+/g, '-').toLowerCase() || 'tribe',
+    title: post.tribeName || 'Tribe',
+    meta: "Community • Global Pulse",
+    description: `The collective home for ${post.tribeName}. Focused on meaningful global ventures.`,
+    image: post.image || "https://picsum.photos/seed/tribe/800/400",
+    memberCount: "1.2k",
+    category: "Exploration",
+    upcomingTrips: [],
+    accessType: 'free'
+  });
+
   return (
     <div className="flex flex-col min-h-full bg-background-dark">
       <header className="sticky top-0 z-50 bg-background-dark/95 backdrop-blur-md px-6 pt-10 pb-4 flex items-center justify-between border-b border-white/5">
@@ -93,11 +106,25 @@ const GlobalFeed: React.FC<Props> = ({ onSelectCommunity, onOpenNotifications })
             <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest text-center w-16">Add Pulse</span>
           </div>
           {['Eco-Warriors', 'Paris Flâneurs', 'Aurora', 'Nomads', 'Culinary'].map((tribe, i) => (
-            <div key={i} className="flex flex-col items-center gap-2 shrink-0 cursor-pointer">
-              <div className="size-16 rounded-[1.5rem] p-1 bg-gradient-to-tr from-primary to-orange-400">
+            <div 
+              key={i} 
+              className="flex flex-col items-center gap-2 shrink-0 cursor-pointer group"
+              onClick={() => onSelectCommunity({
+                id: tribe.toLowerCase(),
+                title: tribe,
+                meta: "Community • Trending",
+                description: `A collective of explorers dedicated to ${tribe}.`,
+                image: `https://picsum.photos/seed/${tribe}/100/100`,
+                memberCount: "800+",
+                category: "Trending",
+                upcomingTrips: [],
+                accessType: 'free'
+              })}
+            >
+              <div className="size-16 rounded-[1.5rem] p-1 bg-gradient-to-tr from-primary to-orange-400 group-hover:scale-105 transition-transform">
                 <div className="size-full rounded-[1.2rem] border-2 border-background-dark bg-cover bg-center" style={{ backgroundImage: `url(https://picsum.photos/seed/${tribe}/100/100)` }}></div>
               </div>
-              <span className="text-[8px] font-black text-slate-300 uppercase tracking-widest text-center w-16 truncate">{tribe}</span>
+              <span className="text-[8px] font-black text-slate-300 uppercase tracking-widest text-center w-16 truncate group-hover:text-primary transition-colors">{tribe}</span>
             </div>
           ))}
         </section>
@@ -153,9 +180,12 @@ const GlobalFeed: React.FC<Props> = ({ onSelectCommunity, onOpenNotifications })
                       <div>
                         <div className="flex items-center gap-1.5">
                           <h4 className="text-white font-black text-sm">{post.author}</h4>
-                          <div className="bg-primary/10 border border-primary/20 rounded px-1.5 py-0.5">
+                          <button 
+                            onClick={() => onSelectCommunity(getPostCommunity(post))}
+                            className="bg-primary/10 border border-primary/20 rounded px-1.5 py-0.5 hover:bg-primary/20 active:scale-95 transition-all"
+                          >
                             <p className="text-primary text-[7px] font-black uppercase tracking-widest">{post.tribeName}</p>
-                          </div>
+                          </button>
                         </div>
                         <p className="text-slate-500 text-[9px] font-bold uppercase tracking-widest mt-0.5">{post.time} • Global Pulse</p>
                       </div>
@@ -168,13 +198,16 @@ const GlobalFeed: React.FC<Props> = ({ onSelectCommunity, onOpenNotifications })
                   <p className="text-slate-200 text-[13px] leading-relaxed mb-5 font-medium">{post.content}</p>
 
                   {post.image && (
-                    <div className="rounded-[2rem] overflow-hidden mb-5 aspect-[4/3] relative group shadow-2xl">
+                    <div 
+                      onClick={() => onSelectCommunity(getPostCommunity(post))}
+                      className="rounded-[2rem] overflow-hidden mb-5 aspect-[4/3] relative group shadow-2xl cursor-pointer"
+                    >
                       <img src={post.image} className="w-full h-full object-cover transition-transform group-hover:scale-110 duration-[5s]" alt="" />
                       <div className="absolute inset-0 bg-gradient-to-t from-background-dark/60 via-transparent to-transparent"></div>
                       <div className="absolute bottom-5 left-5">
                         <button className="bg-black/40 backdrop-blur-md border border-white/10 text-white text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full flex items-center gap-1.5 hover:bg-white/20 transition-all">
                            <span className="material-symbols-outlined text-xs">location_on</span>
-                           {post.tribeName.split(' ')[2] || 'Global'}
+                           {post.tribeName?.split(' ')[2] || 'Global'}
                         </button>
                       </div>
                     </div>
@@ -209,7 +242,21 @@ const GlobalFeed: React.FC<Props> = ({ onSelectCommunity, onOpenNotifications })
                    </div>
                    <div className="flex overflow-x-auto hide-scrollbar gap-4 -mx-4 px-4 pb-4">
                       {[1,2,3].map(i => (
-                        <div key={i} className="flex-none w-48 bg-surface-dark border border-white/5 rounded-3xl p-4 flex flex-col gap-3 shadow-xl">
+                        <div 
+                          key={i} 
+                          className="flex-none w-48 bg-surface-dark border border-white/5 rounded-3xl p-4 flex flex-col gap-3 shadow-xl cursor-pointer hover:border-primary/30 transition-all"
+                          onClick={() => onSelectCommunity({
+                            id: `nomad-${i}`,
+                            title: `Nomad ${i} Collective`,
+                            meta: "Social • Emerging",
+                            description: "A community focused on remote work and high-impact ventures.",
+                            image: `https://picsum.photos/seed/nomad${i}/400/300`,
+                            memberCount: "250+",
+                            category: "Social",
+                            upcomingTrips: [],
+                            accessType: 'free'
+                          })}
+                        >
                            <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
                               <span className="material-symbols-outlined">groups</span>
                            </div>

@@ -93,11 +93,13 @@ const MOCK_COMMUNITIES: Community[] = [
 ];
 
 const CATEGORIES = [
-  { id: 'all', label: 'All Groups', icon: 'grid_view' },
-  { id: 'eco', label: 'Sustainability', icon: 'eco' },
-  { id: 'photo', label: 'Photography', icon: 'photo_camera' },
-  { id: 'exp', label: 'Expedition', icon: 'explore' },
-  { id: 'social', label: 'Social', icon: 'groups' }
+  { id: 'all', label: 'All', icon: 'grid_view' },
+  { id: 'Photography', label: 'Photography', icon: 'photo_camera' },
+  { id: 'Adventure', label: 'Adventure', icon: 'landscape' },
+  { id: 'Eco-Travel', label: 'Sustainability', icon: 'eco' },
+  { id: 'Expedition', label: 'Expedition', icon: 'explore' },
+  { id: 'Wellness', label: 'Wellness', icon: 'spa' },
+  { id: 'Cultural', label: 'Cultural', icon: 'museum' }
 ];
 
 const FlocLogo = ({ className = "size-8" }: { className?: string }) => (
@@ -143,13 +145,7 @@ const Discovery: React.FC<Props> = ({ onSelectTrip, onSelectCommunity, onOpenNot
   const filteredCommunities = useMemo(() => {
     let result = prioritizedCommunities;
     if (activeFilter !== 'all') {
-      const catMap: Record<string, string> = {
-        'eco': 'Eco-Travel',
-        'photo': 'Photography',
-        'exp': 'Expedition',
-        'social': 'Social'
-      };
-      result = result.filter(c => c.category === catMap[activeFilter]);
+      result = result.filter(c => c.category === activeFilter);
     }
     if (searchQuery) {
       result = result.filter(comm => 
@@ -192,6 +188,8 @@ const Discovery: React.FC<Props> = ({ onSelectTrip, onSelectCommunity, onOpenNot
 
   const featuredCommunity = prioritizedCommunities[0];
 
+  const showResults = searchQuery !== '' || activeFilter !== 'all';
+
   return (
     <div className="flex flex-col min-h-full bg-background-dark pb-32">
       <header className={`fixed top-0 left-0 right-0 z-[60] px-6 transition-all duration-500 ${scrolled ? 'py-4 bg-background-dark/95 backdrop-blur-xl border-b border-white/5 shadow-2xl' : 'py-8 bg-transparent'}`}>
@@ -212,7 +210,7 @@ const Discovery: React.FC<Props> = ({ onSelectTrip, onSelectCommunity, onOpenNot
         </div>
       </header>
 
-      {!searchQuery && (
+      {!showResults && !searchQuery && (
         <section className="relative h-[550px] w-full shrink-0 group">
           <div className="absolute inset-0 bg-cover bg-center transition-transform duration-[20s] ease-linear group-hover:scale-110" style={{ backgroundImage: `url('${featuredCommunity.image}')` }}></div>
           <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-background-dark/20 to-background-dark"></div>
@@ -242,44 +240,80 @@ const Discovery: React.FC<Props> = ({ onSelectTrip, onSelectCommunity, onOpenNot
         </section>
       )}
 
-      <section className={`px-6 z-50 sticky top-[80px] transition-all duration-300 ${searchQuery ? 'mt-24' : '-mt-8'}`}>
-        <div className="relative group max-w-md mx-auto">
-          <div className="absolute inset-0 bg-primary/20 blur-2xl opacity-0 group-focus-within:opacity-100 transition-opacity"></div>
-          <div className="relative flex items-center">
-            <span className="material-symbols-outlined absolute left-5 text-slate-500 text-[20px] group-focus-within:text-primary transition-colors">search</span>
-            <input 
-              className="w-full h-16 pl-14 pr-12 rounded-3xl bg-surface-dark border border-white/10 ios-blur focus:bg-background-dark focus:border-primary outline-none text-sm font-bold text-white placeholder:text-slate-600 transition-all shadow-2xl" 
-              placeholder="Find your community or interest..." 
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-            {isExpandingSearch && (
-              <div className="absolute right-5">
-                <div className="size-5 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
-              </div>
-            )}
+      {/* Sticky Search and Filter Bar */}
+      <section className={`px-6 z-50 sticky top-[80px] transition-all duration-300 ${showResults ? 'mt-24' : '-mt-8'}`}>
+        <div className="max-w-md mx-auto space-y-4">
+          <div className="relative group">
+            <div className="absolute inset-0 bg-primary/20 blur-2xl opacity-0 group-focus-within:opacity-100 transition-opacity"></div>
+            <div className="relative flex items-center">
+              <span className="material-symbols-outlined absolute left-5 text-slate-500 text-[20px] group-focus-within:text-primary transition-colors">search</span>
+              <input 
+                className="w-full h-16 pl-14 pr-12 rounded-3xl bg-surface-dark border border-white/10 ios-blur focus:bg-background-dark focus:border-primary outline-none text-sm font-bold text-white placeholder:text-slate-600 transition-all shadow-2xl" 
+                placeholder="Find your community or interest..." 
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+              {isExpandingSearch && (
+                <div className="absolute right-5">
+                  <div className="size-5 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Category Chips - Now prominently placed under search */}
+          <div className="flex overflow-x-auto hide-scrollbar gap-2 py-2">
+            {CATEGORIES.map(cat => (
+              <button 
+                key={cat.id}
+                onClick={() => setActiveFilter(cat.id)}
+                className={`flex items-center gap-2 px-5 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap border shrink-0 ${activeFilter === cat.id ? 'bg-primary border-primary text-background-dark shadow-xl shadow-primary/20 scale-105' : 'bg-surface-dark border-white/10 text-slate-500 hover:text-white hover:border-white/20'}`}
+              >
+                <span className="material-symbols-outlined text-base">{cat.icon}</span>
+                {cat.label}
+              </button>
+            ))}
           </div>
         </div>
       </section>
 
       <main className="mt-8">
-        {searchQuery ? (
-          <section className="px-6 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        {showResults ? (
+          <section className="px-6 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-md mx-auto">
              <div className="flex items-center justify-between">
-                <h3 className="text-white font-black text-xl italic tracking-tighter">Communities</h3>
-                <span className="text-slate-500 text-[10px] font-black uppercase tracking-widest">{filteredCommunities.length} Results</span>
+                <div>
+                  <h3 className="text-white font-black text-xl italic tracking-tighter">
+                    {activeFilter === 'all' ? 'Discovery' : activeFilter}
+                  </h3>
+                  {activeFilter !== 'all' && <p className="text-[10px] font-black text-primary uppercase tracking-widest mt-1">Filtering by niche</p>}
+                </div>
+                <span className="text-slate-500 text-[10px] font-black uppercase tracking-widest">{filteredCommunities.length} Tribes Found</span>
              </div>
              <div className="space-y-4">
-                {filteredCommunities.map(comm => (
-                  <CommunityResultCard key={comm.id} community={comm} onClick={() => handleCommunityClick(comm)} />
-                ))}
+                {filteredCommunities.length > 0 ? (
+                  filteredCommunities.map(comm => (
+                    <CommunityResultCard key={comm.id} community={comm} onClick={() => handleCommunityClick(comm)} />
+                  ))
+                ) : (
+                  <div className="py-20 text-center">
+                    <span className="material-symbols-outlined text-6xl text-slate-800 mb-4">folder_off</span>
+                    <h4 className="text-white font-black">No matches found</h4>
+                    <p className="text-slate-500 text-xs mt-2">Try adjusting your filters or search terms</p>
+                    <button 
+                      onClick={() => { setActiveFilter('all'); setSearchQuery(''); }}
+                      className="mt-6 text-primary text-[10px] font-black uppercase tracking-widest underline"
+                    >
+                      Reset Discovery
+                    </button>
+                  </div>
+                )}
                 
-                {aiRelatedConcepts.length > 0 && (
+                {searchQuery && aiRelatedConcepts.length > 0 && (
                   <div className="mt-12 space-y-4">
                     <div className="flex items-center gap-2 px-2">
                        <span className="material-symbols-outlined text-primary text-base">auto_awesome</span>
-                       <h4 className="text-primary text-[10px] font-black uppercase tracking-[0.2em]">Related Interests</h4>
+                       <h4 className="text-primary text-[10px] font-black uppercase tracking-[0.2em]">AI Suggestions</h4>
                     </div>
                     {semanticMatches.map(comm => (
                        <CommunityResultCard key={comm.id} community={comm} onClick={() => handleCommunityClick(comm)} related />
@@ -291,7 +325,7 @@ const Discovery: React.FC<Props> = ({ onSelectTrip, onSelectCommunity, onOpenNot
         ) : (
           <div className="space-y-12">
             <section className="space-y-6">
-              <div className="px-6 flex items-center justify-between">
+              <div className="px-6 flex items-center justify-between max-w-md mx-auto">
                 <div className="flex flex-col">
                   <h3 className="text-white text-2xl font-black tracking-tighter italic leading-none">Recommended <span className="text-primary not-italic">for You</span></h3>
                   <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mt-1">Based on your recent journey history</p>
@@ -302,39 +336,41 @@ const Discovery: React.FC<Props> = ({ onSelectTrip, onSelectCommunity, onOpenNot
               </div>
               
               <div className="flex overflow-x-auto hide-scrollbar gap-5 px-6 pb-4">
-                {prioritizedCommunities.slice(0, 5).map(comm => (
-                  <div 
-                    key={comm.id}
-                    onClick={() => handleCommunityClick(comm)}
-                    className="flex-none w-[320px] group cursor-pointer relative"
-                  >
-                    <div className="bg-surface-dark border border-white/10 rounded-[2.5rem] overflow-hidden shadow-2xl transition-all group-hover:border-primary/40 duration-500">
-                      <div className="relative h-44">
-                        <img src={comm.image} className="size-full object-cover transition-transform group-hover:scale-105 duration-700" alt="" />
-                        <div className="absolute inset-0 bg-gradient-to-t from-surface-dark to-transparent"></div>
-                        <div className="absolute top-4 left-4">
-                           <div className="bg-primary/90 backdrop-blur-md text-background-dark text-[9px] font-black px-2.5 py-1 rounded-lg shadow-lg flex items-center gap-1.5">
-                              <span className="material-symbols-outlined text-xs">auto_awesome</span>
-                              Top Match
-                           </div>
+                <div className="flex gap-5 max-w-md mx-auto min-w-full lg:min-w-0">
+                  {prioritizedCommunities.slice(0, 5).map(comm => (
+                    <div 
+                      key={comm.id}
+                      onClick={() => handleCommunityClick(comm)}
+                      className="flex-none w-[320px] group cursor-pointer relative"
+                    >
+                      <div className="bg-surface-dark border border-white/10 rounded-[2.5rem] overflow-hidden shadow-2xl transition-all group-hover:border-primary/40 duration-500">
+                        <div className="relative h-44">
+                          <img src={comm.image} className="size-full object-cover transition-transform group-hover:scale-105 duration-700" alt="" />
+                          <div className="absolute inset-0 bg-gradient-to-t from-surface-dark to-transparent"></div>
+                          <div className="absolute top-4 left-4">
+                            <div className="bg-primary/90 backdrop-blur-md text-background-dark text-[9px] font-black px-2.5 py-1 rounded-lg shadow-lg flex items-center gap-1.5">
+                                <span className="material-symbols-outlined text-xs">auto_awesome</span>
+                                Top Match
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                      <div className="p-6">
-                        <div className="flex items-center justify-between mb-2">
-                           <span className="text-primary text-[9px] font-black uppercase tracking-widest">{comm.category}</span>
-                           <span className="text-slate-500 text-[9px] font-bold uppercase tracking-widest">{comm.memberCount} Members</span>
+                        <div className="p-6">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-primary text-[9px] font-black uppercase tracking-widest">{comm.category}</span>
+                            <span className="text-slate-500 text-[9px] font-bold uppercase tracking-widest">{comm.memberCount} Members</span>
+                          </div>
+                          <h4 className="text-white text-xl font-black italic tracking-tight truncate mb-3">{comm.title}</h4>
+                          <p className="text-slate-400 text-xs line-clamp-2 leading-relaxed font-medium">{comm.description}</p>
                         </div>
-                        <h4 className="text-white text-xl font-black italic tracking-tight truncate mb-3">{comm.title}</h4>
-                        <p className="text-slate-400 text-xs line-clamp-2 leading-relaxed font-medium">{comm.description}</p>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
             </section>
 
             <section className="space-y-6">
-              <div className="px-6 flex items-center justify-between">
+              <div className="px-6 flex items-center justify-between max-w-md mx-auto">
                 <div className="flex flex-col">
                   <h3 className="text-white text-2xl font-black tracking-tighter italic leading-none">Global <span className="text-primary not-italic">Collectives</span></h3>
                   <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mt-1">Explore all Inspired Ventures Communities</p>
@@ -342,45 +378,34 @@ const Discovery: React.FC<Props> = ({ onSelectTrip, onSelectCommunity, onOpenNot
                 <button onClick={onSeeAll} className="text-slate-500 text-[10px] font-black uppercase tracking-widest hover:text-white transition-colors">View All</button>
               </div>
               <div className="flex overflow-x-auto hide-scrollbar gap-5 px-6 pb-4">
-                {prioritizedCommunities.map(comm => (
-                  <div 
-                    key={comm.id}
-                    onClick={() => handleCommunityClick(comm)}
-                    className="flex-none w-64 group cursor-pointer"
-                  >
-                    <div className="relative aspect-[3/4] rounded-[2.5rem] overflow-hidden mb-4 shadow-2xl border border-white/5 group-hover:border-primary/40 transition-all duration-500">
-                      <img src={comm.image} className="size-full object-cover transition-transform group-hover:scale-110 duration-[2s]" alt="" />
-                      <div className="absolute inset-0 bg-gradient-to-t from-background-dark via-background-dark/20 to-transparent"></div>
-                      <div className="absolute bottom-6 left-6 right-6">
-                         <div className="flex items-center gap-1.5 mb-2">
-                           <span className="text-white text-[9px] font-black uppercase tracking-widest bg-black/40 px-2 py-0.5 rounded-full border border-white/10 backdrop-blur-sm">Join Group</span>
-                         </div>
-                         <h4 className="text-white text-lg font-black italic tracking-tight truncate leading-none">{comm.title}</h4>
+                <div className="flex gap-5 max-w-md mx-auto min-w-full lg:min-w-0">
+                  {prioritizedCommunities.map(comm => (
+                    <div 
+                      key={comm.id}
+                      onClick={() => handleCommunityClick(comm)}
+                      className="flex-none w-64 group cursor-pointer"
+                    >
+                      <div className="relative aspect-[3/4] rounded-[2.5rem] overflow-hidden mb-4 shadow-2xl border border-white/5 group-hover:border-primary/40 transition-all duration-500">
+                        <img src={comm.image} className="size-full object-cover transition-transform group-hover:scale-110 duration-[2s]" alt="" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-background-dark via-background-dark/20 to-transparent"></div>
+                        <div className="absolute bottom-6 left-6 right-6">
+                          <div className="flex items-center gap-1.5 mb-2">
+                            <span className="text-white text-[9px] font-black uppercase tracking-widest bg-black/40 px-2 py-0.5 rounded-full border border-white/10 backdrop-blur-sm">Join Group</span>
+                          </div>
+                          <h4 className="text-white text-lg font-black italic tracking-tight truncate leading-none">{comm.title}</h4>
+                        </div>
+                      </div>
+                      <div className="px-2 flex items-center justify-between">
+                        <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{comm.category}</span>
+                        <span className="text-primary text-[10px] font-black">{comm.memberCount}</span>
                       </div>
                     </div>
-                    <div className="px-2 flex items-center justify-between">
-                       <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{comm.category}</span>
-                       <span className="text-primary text-[10px] font-black">{comm.memberCount}</span>
-                    </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
             </section>
 
-            <section className="px-6 pt-4 pb-12">
-               <div className="flex overflow-x-auto hide-scrollbar gap-3 mb-12">
-                  {CATEGORIES.map(cat => (
-                    <button 
-                      key={cat.id}
-                      onClick={() => setActiveFilter(cat.id)}
-                      className={`flex items-center gap-2 px-5 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap border ${activeFilter === cat.id ? 'bg-primary border-primary text-background-dark shadow-xl shadow-primary/20' : 'bg-surface-dark border-white/10 text-slate-500 hover:text-white'}`}
-                    >
-                      <span className="material-symbols-outlined text-base">{cat.icon}</span>
-                      {cat.label}
-                    </button>
-                  ))}
-               </div>
-
+            <section className="px-6 pt-4 pb-12 max-w-md mx-auto">
                <div className="bg-gradient-to-br from-primary/10 to-primary/5 border-2 border-dashed border-primary/20 rounded-[4rem] p-12 flex flex-col items-center text-center group hover:border-primary/40 transition-all duration-700">
                   <div className="size-24 bg-primary/20 rounded-[2.5rem] flex items-center justify-center text-primary mb-6 group-hover:rotate-12 group-hover:scale-110 transition-all shadow-inner border border-primary/20">
                       <span className="material-symbols-outlined text-4xl font-black">add_circle</span>

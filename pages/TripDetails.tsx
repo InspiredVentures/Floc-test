@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Trip, TribePost, TribeComment } from '../types';
 
 interface Props {
@@ -92,6 +92,17 @@ const MOCK_POSTS: TribePost[] = [
     hasLiked: true,
     comments: [],
     time: '5h ago'
+  },
+  {
+    id: 'p3',
+    author: 'Mike Ross',
+    authorAvatar: 'https://picsum.photos/seed/mike/100/100',
+    role: 'Member',
+    content: "Just checked the gear list. All packed and ready to go! Counting down the days. 🎒",
+    likes: 45,
+    hasLiked: false,
+    comments: [],
+    time: '1h ago'
   }
 ];
 
@@ -100,6 +111,7 @@ const TripDetails: React.FC<Props> = ({ trip, onBack, onBook, onOpenChat }) => {
   const [isSavedOffline, setIsSavedOffline] = useState(false);
   const [posts, setPosts] = useState<TribePost[]>(MOCK_POSTS);
   const [activeView, setActiveView] = useState<'timeline' | 'feed'>('feed');
+  const [sortMode, setSortMode] = useState<'newest' | 'popular'>('newest');
   const [showShareModal, setShowShareModal] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
 
@@ -164,6 +176,24 @@ const TripDetails: React.FC<Props> = ({ trip, onBack, onBook, onOpenChat }) => {
   const [newTitle, setNewTitle] = useState('');
   const [newDesc, setNewDesc] = useState('');
   const [newTags, setNewTags] = useState('');
+
+  const sortedPosts = useMemo(() => {
+    const sorted = [...posts];
+    if (sortMode === 'popular') {
+      return sorted.sort((a, b) => b.likes - a.likes);
+    } else {
+      // For "newest", since we don't have real dates, we'll use our mock logic
+      // Assume "1h ago" < "3h ago" < "5h ago"
+      const getTimeVal = (timeStr: string) => {
+        const num = parseInt(timeStr.split(' ')[0]);
+        if (timeStr.includes('m ago')) return num;
+        if (timeStr.includes('h ago')) return num * 60;
+        if (timeStr.includes('d ago')) return num * 1440;
+        return 999999;
+      };
+      return sorted.sort((a, b) => getTimeVal(a.time) - getTimeVal(b.time));
+    }
+  }, [posts, sortMode]);
 
   const toggleComplete = (dayNum: number) => {
     setItinerary(prev => prev.map(item => 
@@ -401,8 +431,28 @@ const TripDetails: React.FC<Props> = ({ trip, onBack, onBook, onOpenChat }) => {
               </div>
             </div>
 
+            {/* Sorting Controls */}
+            <div className="flex items-center justify-between px-2 pt-2">
+               <h3 className="text-white font-black text-[10px] uppercase tracking-widest italic">Tribe Activity</h3>
+               <div className="flex items-center gap-3">
+                  <button 
+                    onClick={() => setSortMode('newest')}
+                    className={`text-[9px] font-black uppercase tracking-widest transition-all ${sortMode === 'newest' ? 'text-primary' : 'text-slate-600'}`}
+                  >
+                    Newest
+                  </button>
+                  <div className="size-1 bg-slate-800 rounded-full"></div>
+                  <button 
+                    onClick={() => setSortMode('popular')}
+                    className={`text-[9px] font-black uppercase tracking-widest transition-all ${sortMode === 'popular' ? 'text-primary' : 'text-slate-600'}`}
+                  >
+                    Popular
+                  </button>
+               </div>
+            </div>
+
             <div className="space-y-4">
-              {posts.map(post => (
+              {sortedPosts.map(post => (
                 <TribePostCard 
                   key={post.id} 
                   post={post} 
@@ -665,9 +715,11 @@ const TribePostCard: React.FC<{ post: TribePost; onLike: () => void }> = ({ post
   const [comments, setComments] = useState<TribeComment[]>(post.comments);
 
   const handleLikeClick = () => {
+    if (isLiking) return;
     setIsLiking(true);
     onLike();
-    setTimeout(() => setIsLiking(false), 0.4);
+    // Simulate haptic/visual feedback pop duration
+    setTimeout(() => setIsLiking(false), 400);
   };
 
   const handleAddComment = (e?: React.FormEvent) => {
@@ -687,7 +739,7 @@ const TribePostCard: React.FC<{ post: TribePost; onLike: () => void }> = ({ post
   };
 
   return (
-    <div className="bg-white/5 border border-white/5 rounded-3xl overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="bg-white/5 border border-white/5 rounded-3xl overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500 text-left">
       <div className="p-5">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
@@ -797,7 +849,7 @@ const SuggestionCard: React.FC<{ suggestion: ActivitySuggestion; onVote: (dir: '
   const [showComments, setShowComments] = useState(false);
 
   return (
-    <div className="bg-white/5 border border-white/5 rounded-2xl p-4 transition-all hover:bg-white/10">
+    <div className="bg-white/5 border border-white/5 rounded-2xl p-4 transition-all hover:bg-white/10 text-left">
       <div className="flex gap-4">
         <div className="flex flex-col items-center gap-1">
           <div className="flex flex-col items-center bg-white/5 rounded-2xl border border-white/10 overflow-hidden">
@@ -893,7 +945,7 @@ const ItineraryItem: React.FC<{
       </div>
 
       <div 
-        className={`ml-14 transition-all duration-500 rounded-3xl p-5 border cursor-pointer ${expanded ? 'bg-primary/5 border-primary/30 shadow-xl' : 'bg-white/5 border-white/5 hover:border-white/20'}`}
+        className={`ml-14 transition-all duration-500 rounded-3xl p-5 border cursor-pointer text-left ${expanded ? 'bg-primary/5 border-primary/30 shadow-xl' : 'bg-white/5 border-white/5 hover:border-white/20'}`}
         onClick={() => setExpanded(!expanded)}
       >
         <div className="flex items-start justify-between gap-4">

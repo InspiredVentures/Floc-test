@@ -123,6 +123,8 @@ const App: React.FC = () => {
             onCreate={() => setCurrentView(AppView.CREATE_VENTURE)}
             onManage={() => setCurrentView(AppView.MANAGE_MEMBERS)}
             onContactSupport={() => setCurrentView(AppView.LEADER_SUPPORT)}
+            onSelectCommunity={navigateToCommunity}
+            onOpenInsights={() => setCurrentView(AppView.ANALYTICS_API)}
           />
         );
       case AppView.CREATE_VENTURE:
@@ -152,6 +154,7 @@ const App: React.FC = () => {
           <Profile 
             onOpenSettings={() => setCurrentView(AppView.SETTINGS)} 
             onBack={() => setCurrentView(AppView.DISCOVERY)}
+            onSelectCommunity={navigateToCommunity}
           />
         );
       case AppView.CHAT:
@@ -208,7 +211,7 @@ const App: React.FC = () => {
           className="absolute inset-0 z-[60] bg-background-dark/90 backdrop-blur-xl animate-in fade-in duration-300"
           onClick={() => setIsPowerMenuOpen(false)}
         >
-          <div className="absolute bottom-32 left-0 right-0 px-8 space-y-4 animate-in slide-in-from-bottom-8 duration-500">
+          <div className="absolute bottom-32 left-0 right-0 px-8 space-y-4 animate-in slide-in-from-bottom-8 duration-500 max-h-[70vh] overflow-y-auto hide-scrollbar">
             <div className="mb-4">
                <FlocLogo className="text-6xl drop-shadow-[0_0_30px_rgba(255,107,53,0.3)]" />
             </div>
@@ -229,11 +232,18 @@ const App: React.FC = () => {
               delay="delay-150"
             />
             <PowerMenuItem 
+              icon="support_agent" 
+              title="Leader Concierge" 
+              desc="Get exclusive platform support." 
+              onClick={() => handleAction(AppView.LEADER_SUPPORT)}
+              delay="delay-200"
+            />
+            <PowerMenuItem 
               icon="dynamic_feed" 
               title="Post Pulse" 
               desc="Share an update with your followers." 
               onClick={() => handleAction(AppView.GLOBAL_FEED)}
-              delay="delay-200"
+              delay="delay-[250ms]"
             />
           </div>
         </div>
@@ -296,9 +306,9 @@ const PowerMenuItem = ({ icon, title, desc, onClick, delay }: { icon: string, ti
     <div className="size-12 rounded-2xl bg-primary/20 flex items-center justify-center text-primary">
       <span className="material-symbols-outlined text-2xl font-bold">{icon}</span>
     </div>
-    <div>
-      <h4 className="text-white font-black text-lg leading-none mb-1">{title}</h4>
-      <p className="text-slate-500 text-xs font-medium">{desc}</p>
+    <div className="flex-1 min-w-0">
+      <h4 className="text-white font-black text-lg leading-none mb-1 truncate">{title}</h4>
+      <p className="text-slate-500 text-xs font-medium truncate">{desc}</p>
     </div>
     <span className="material-symbols-outlined text-slate-700 ml-auto">chevron_right</span>
   </button>

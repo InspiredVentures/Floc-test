@@ -1,15 +1,25 @@
 
 import React from 'react';
 import { BarChart, Bar, ResponsiveContainer, XAxis, YAxis, Tooltip } from 'recharts';
+import { Community } from '../types';
 
 interface Props {
   onOpenNotifications: () => void;
   onCreate: () => void;
   onManage: () => void;
   onContactSupport: () => void;
+  onSelectCommunity: (community: Community) => void;
+  onOpenInsights: () => void;
 }
 
-const Dashboard: React.FC<Props> = ({ onOpenNotifications, onCreate, onManage, onContactSupport }) => {
+const Dashboard: React.FC<Props> = ({ 
+  onOpenNotifications, 
+  onCreate, 
+  onManage, 
+  onContactSupport, 
+  onSelectCommunity,
+  onOpenInsights
+}) => {
   const data = [
     { name: 'Mon', active: 40 },
     { name: 'Tue', active: 30 },
@@ -19,6 +29,19 @@ const Dashboard: React.FC<Props> = ({ onOpenNotifications, onCreate, onManage, o
     { name: 'Sat', active: 90 },
     { name: 'Sun', active: 85 },
   ];
+
+  // Mock community for the active tribe card
+  const activeTribe: Community = {
+    id: 'c4',
+    title: "Eco-Warriors Bali",
+    meta: "Sustainability • 3.5k members",
+    description: "Our community is dedicated to preserving Bali's natural beauty through direct action and eco-tourism.",
+    image: "https://images.unsplash.com/photo-1537996194471-e657df975ab4?auto=format&fit=crop&w=800&q=80",
+    memberCount: "3.5k",
+    category: "Eco-Travel",
+    upcomingTrips: [],
+    accessType: 'free',
+  };
 
   return (
     <div className="flex flex-col p-4 pt-10 gap-6">
@@ -48,8 +71,14 @@ const Dashboard: React.FC<Props> = ({ onOpenNotifications, onCreate, onManage, o
         </button>
       </header>
 
-      <section className="bg-white/5 rounded-2xl p-5 border border-white/5 shadow-xl">
-        <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">Active Tribe</p>
+      <section 
+        onClick={() => onSelectCommunity(activeTribe)}
+        className="bg-white/5 rounded-2xl p-5 border border-white/5 shadow-xl cursor-pointer hover:bg-white/10 transition-all group active:scale-[0.98]"
+      >
+        <div className="flex justify-between items-start mb-1">
+          <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Active Tribe</p>
+          <span className="material-symbols-outlined text-primary text-sm group-hover:translate-x-1 transition-transform">arrow_forward</span>
+        </div>
         <h2 className="text-xl font-black text-white mb-4 tracking-tight">Eco-Warriors in Bali</h2>
         <div className="flex -space-x-2">
           {[1,2,3,4].map(i => (
@@ -96,7 +125,7 @@ const Dashboard: React.FC<Props> = ({ onOpenNotifications, onCreate, onManage, o
         <ActionCard icon="add_location_alt" label="Start Venture" onClick={onCreate} />
         <ActionCard icon="group" label="Tribe Roster" onClick={onManage} />
         <ActionCard icon="support_agent" label="Leader Concierge" onClick={onContactSupport} />
-        <ActionCard icon="auto_awesome" label="Platform Insights" onClick={() => {}} />
+        <ActionCard icon="auto_awesome" label="Platform Insights" onClick={onOpenInsights} />
       </section>
     </div>
   );

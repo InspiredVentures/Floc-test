@@ -45,7 +45,7 @@ const JOINED_COMMUNITIES: Community[] = [
     image: "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?auto=format&fit=crop&w=800&q=80",
     memberCount: "1.2k",
     category: "Photography",
-    upcomingTrips: [MOCK_TRIPS[1]],
+    upcomingTrips: [], // No active trip mock
     accessType: 'free',
     unreadCount: 3,
     isManaged: false
@@ -128,8 +128,16 @@ const MyCommunities: React.FC<Props> = ({ onSelectCommunity, onOpenNotifications
                       <div className="flex items-center gap-2">
                         <h3 className="text-white text-xl font-black italic tracking-tight leading-none truncate">{community.title}</h3>
                         {community.unreadCount !== undefined && community.unreadCount > 0 && (
-                          <div className="flex items-center justify-center min-w-[20px] h-5 px-1.5 bg-primary text-background-dark text-[9px] font-black rounded-lg shadow-[0_4px_10px_rgba(255,107,53,0.4)] shrink-0 border border-white/20">
-                            {community.unreadCount}
+                          <div className="flex items-center gap-2 shrink-0">
+                            {/* Glowing Dot Indicator */}
+                            <span className="relative flex h-2 w-2">
+                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                              <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+                            </span>
+                            {/* Numeric Badge */}
+                            <div className="flex items-center justify-center min-w-[20px] h-5 px-1.5 bg-primary text-background-dark text-[9px] font-black rounded-lg shadow-[0_4px_10px_rgba(255,107,53,0.4)] border border-white/20">
+                              {community.unreadCount}
+                            </div>
                           </div>
                         )}
                       </div>
@@ -146,7 +154,7 @@ const MyCommunities: React.FC<Props> = ({ onSelectCommunity, onOpenNotifications
                   {community.upcomingTrips.length > 0 ? (
                     <div 
                       onClick={() => onSelectCommunity(community)}
-                      className="bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-4 flex items-center justify-between group/status cursor-pointer active:scale-95 transition-all"
+                      className="bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-4 flex items-center justify-between group/status cursor-pointer active:scale-95 transition-all hover:bg-emerald-500/20"
                     >
                       <div className="flex items-center gap-3">
                         <div className="size-10 rounded-xl bg-emerald-500 flex items-center justify-center shadow-lg shadow-emerald-500/30">
@@ -160,9 +168,12 @@ const MyCommunities: React.FC<Props> = ({ onSelectCommunity, onOpenNotifications
                       <span className="material-symbols-outlined text-emerald-500 group-hover/status:translate-x-1 transition-transform">chevron_right</span>
                     </div>
                   ) : (
-                    <div className="bg-white/5 border border-white/5 rounded-2xl p-4 flex items-center justify-between text-slate-500">
-                       <p className="text-[10px] font-black uppercase tracking-widest">No Active Ventures</p>
-                       <span className="material-symbols-outlined text-sm">more_horiz</span>
+                    <div 
+                      onClick={() => onSelectCommunity(community)}
+                      className="bg-white/5 border border-white/5 rounded-2xl p-4 flex items-center justify-between text-slate-500 cursor-pointer hover:bg-white/10 hover:border-white/20 transition-all group"
+                    >
+                       <p className="text-[10px] font-black uppercase tracking-widest group-hover:text-white transition-colors">Explore Tribe Activity</p>
+                       <span className="material-symbols-outlined text-sm group-hover:translate-x-1 transition-transform">chevron_right</span>
                     </div>
                   )}
 

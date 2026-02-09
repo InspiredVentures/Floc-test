@@ -1,14 +1,16 @@
 
 import React, { useState } from 'react';
+import { Community } from '../types';
 
 interface Props {
   onOpenSettings: () => void;
   onBack: () => void;
+  onSelectCommunity: (community: Community) => void;
 }
 
 type ProfileTab = 'overview' | 'adventures';
 
-const Profile: React.FC<Props> = ({ onOpenSettings, onBack }) => {
+const Profile: React.FC<Props> = ({ onOpenSettings, onBack, onSelectCommunity }) => {
   const [activeTab, setActiveTab] = useState<ProfileTab>('overview');
 
   return (
@@ -67,7 +69,7 @@ const Profile: React.FC<Props> = ({ onOpenSettings, onBack }) => {
             <span className="material-symbols-outlined text-sm">location_on</span>
             <p className="text-xs font-black uppercase tracking-widest">London, United Kingdom</p>
           </div>
-          <p className="text-slate-400 text-sm font-medium mt-4 px-8 max-w-sm leading-relaxed">
+          <p className="text-slate-400 text-sm font-medium mt-4 px-8 max-sm leading-relaxed">
             Mountain seeker & slow traveler. On a mission to explore 50 countries authentically. 🏔️✨
           </p>
         </div>
@@ -97,7 +99,7 @@ const Profile: React.FC<Props> = ({ onOpenSettings, onBack }) => {
       {/* Tab Content */}
       <div className="flex-1 px-6 pt-6">
         {activeTab === 'overview' && <OverviewTab />}
-        {activeTab === 'adventures' && <AdventuresTab />}
+        {activeTab === 'adventures' && <AdventuresTab onSelectCommunity={onSelectCommunity} />}
       </div>
     </div>
   );
@@ -131,41 +133,75 @@ const OverviewTab = () => (
   </div>
 );
 
-const AdventuresTab = () => (
-  <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
-    <section>
-      <h3 className="text-white text-lg font-black tracking-tight mb-4">Active Groups</h3>
-      <div className="space-y-4">
-        <GroupCard title="Patagonia Trekkers" members="1,240" img="https://picsum.photos/seed/pat/800/400" />
-        <GroupCard title="Eco-Warriors 2024" members="856" img="https://picsum.photos/seed/eco/800/400" />
-      </div>
-    </section>
+const AdventuresTab: React.FC<{ onSelectCommunity: (community: Community) => void }> = ({ onSelectCommunity }) => {
+  const mockActiveGroups: Community[] = [
+    {
+      id: 'c-pat',
+      title: "Patagonia Trekkers",
+      meta: "Adventure • 1.2k members",
+      description: "Dedicated to exploring the wild trails of South America with respect for the local environment.",
+      image: "https://picsum.photos/seed/pat/800/400",
+      memberCount: "1,240",
+      category: "Adventure",
+      upcomingTrips: [],
+      accessType: 'free'
+    },
+    {
+      id: 'c-eco',
+      title: "Eco-Warriors 2024",
+      meta: "Sustainability • 856 members",
+      description: "A collective focused on regenerative travel and supporting reforestation initiatives globally.",
+      image: "https://picsum.photos/seed/eco/800/400",
+      memberCount: "856",
+      category: "Sustainability",
+      upcomingTrips: [],
+      accessType: 'free'
+    }
+  ];
 
-    <section>
-      <h3 className="text-white text-lg font-black tracking-tight mb-4">Past Adventures</h3>
-      <div className="space-y-4">
-        <HistoryItem 
-          title="Sahara Expedition" 
-          date="Sept 2023" 
-          location="Morocco" 
-          badge="Gold Member"
-        />
-        <HistoryItem 
-          title="Andes Peak Climb" 
-          date="May 2023" 
-          location="Peru" 
-          badge="Community Hero"
-        />
-        <HistoryItem 
-          title="Kyoto Zen Retreat" 
-          date="Jan 2023" 
-          location="Japan" 
-          badge="Traveler"
-        />
-      </div>
-    </section>
-  </div>
-);
+  return (
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
+      <section>
+        <h3 className="text-white text-lg font-black tracking-tight mb-4">Active Groups</h3>
+        <div className="space-y-4">
+          {mockActiveGroups.map(group => (
+            <GroupCard 
+              key={group.id} 
+              title={group.title} 
+              members={group.memberCount} 
+              img={group.image} 
+              onClick={() => onSelectCommunity(group)}
+            />
+          ))}
+        </div>
+      </section>
+
+      <section>
+        <h3 className="text-white text-lg font-black tracking-tight mb-4">Past Adventures</h3>
+        <div className="space-y-4">
+          <HistoryItem 
+            title="Sahara Expedition" 
+            date="Sept 2023" 
+            location="Morocco" 
+            badge="Gold Member"
+          />
+          <HistoryItem 
+            title="Andes Peak Climb" 
+            date="May 2023" 
+            location="Peru" 
+            badge="Community Hero"
+          />
+          <HistoryItem 
+            title="Kyoto Zen Retreat" 
+            date="Jan 2023" 
+            location="Japan" 
+            badge="Traveler"
+          />
+        </div>
+      </section>
+    </div>
+  );
+};
 
 const QuickStat = ({ value, label, color }: { value: string, label: string, color: string }) => (
   <div className="flex-1 bg-white/5 border border-white/10 p-3 rounded-2xl flex flex-col items-center text-center">
@@ -201,8 +237,11 @@ const PreferenceRow = ({ label, value, icon }: { label: string, value: string, i
   </div>
 );
 
-const GroupCard = ({ title, members, img }: { title: string, members: string, img: string }) => (
-  <div className="relative overflow-hidden rounded-2xl aspect-[21/9] group cursor-pointer shadow-lg border border-white/5">
+const GroupCard = ({ title, members, img, onClick }: { title: string, members: string, img: string, onClick: () => void }) => (
+  <div 
+    onClick={onClick}
+    className="relative overflow-hidden rounded-2xl aspect-[21/9] group cursor-pointer shadow-lg border border-white/5 active:scale-[0.98] transition-all"
+  >
     <img src={img} className="absolute inset-0 w-full h-full object-cover transition-transform group-hover:scale-110" alt={title} />
     <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent"></div>
     <div className="absolute bottom-0 left-0 p-4 w-full">
