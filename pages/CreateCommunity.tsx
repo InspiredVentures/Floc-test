@@ -1,380 +1,332 @@
-
 import React, { useState } from 'react';
-import { GoogleGenAI } from "@google/genai";
+import { useNavigate } from 'react-router-dom';
+import { useUser } from '../contexts/UserContext';
+import { useToast } from '../contexts/ToastContext';
+import { Community } from '../types';
 
 interface Props {
-  onBack: () => void;
-  onComplete: () => void;
+  onBack?: () => void;
+  onComplete?: () => void;
 }
 
-const CATEGORIES = ['Photography', 'Eco-Travel', 'Expedition', 'Culinary', 'Wellness', 'Digital Nomad'];
+const STEPS = [
+  { id: 'identity', label: 'Identity', icon: 'fingerprint' },
+  { id: 'vibe', label: 'Vibe', icon: 'palette' },
+  { id: 'protocol', label: 'Protocol', icon: 'security' },
+  { id: 'features', label: 'Modules', icon: 'extension' },
+  { id: 'launch', label: 'Launch', icon: 'rocket_launch' },
+];
 
-const THEMES = [
-  { id: 'nature', label: 'Nature', url: 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&w=400&q=80' },
-  { id: 'city', label: 'Urban', url: 'https://images.unsplash.com/photo-1449156001933-468b7bb2596a?auto=format&fit=crop&w=400&q=80' },
-  { id: 'ocean', label: 'Ocean', url: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=400&q=80' },
-  { id: 'mountain', label: 'Alpine', url: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=400&q=80' },
+const CATEGORIES = ['Adventure', 'Eco-Travel', 'Wellness', 'Photography', 'Cultural', 'Trip', 'Digital Nomad'];
+
+const FEATURE_MODULES = [
+  { id: 'chat', label: 'Community Chat', icon: 'forum', desc: 'Real-time discussion channels' },
+  { id: 'events', label: 'Events Calendar', icon: 'event', desc: 'Schedule meetups & trips' },
+  { id: 'shop', label: 'Marketplace', icon: 'storefront', desc: 'Sell gear & merch' },
+  { id: 'voting', label: 'Governance', icon: 'how_to_vote', desc: 'Member voting rights' },
 ];
 
 const CreateCommunity: React.FC<Props> = ({ onBack, onComplete }) => {
-  const [step, setStep] = useState(1);
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [category, setCategory] = useState('');
-  const [coverUrl, setCoverUrl] = useState(THEMES[0].url);
-  const [accessType, setAccessType] = useState<'free' | 'request'>('free');
-  const [isGenerating, setIsGenerating] = useState(false);
-  
-  // Feature Toggles
-  const [features, setFeatures] = useState({
-    feed: true,
-    ventures: true,
-    directory: true,
-    aiGuide: true
+  const navigate = useNavigate();
+  const { createCommunity } = useUser();
+  const toast = useToast();
+  const [currentStep, setCurrentStep] = useState(0);
+  const [isMinting, setIsMinting] = useState(false);
+
+  // Type-safe form data
+  const [formData, setFormData] = useState<Omit<Community, 'id' | 'memberCount' | 'upcomingTrips' | 'meta' | 'accessType' | 'isManaged' | 'unreadCount'> & { image: string, entryQuestions: string[], enabledFeatures: string[] }>({
+    title: '',
+    category: '',
+    description: '',
+    image: '',
+    entryQuestions: ['Why do you want to join this tribe?', 'What is your travel style?'],
+    enabledFeatures: ['chat', 'events']
   });
 
-  const nextStep = () => setStep(prev => prev + 1);
-  const prevStep = () => setStep(prev => prev - 1);
-
-  const toggleFeature = (key: keyof typeof features) => {
-    setFeatures(prev => ({ ...prev, [key]: !prev[key] }));
-  };
-
-  const handleGenerateImage = async () => {
-    if (!title || !category) return;
-    setIsGenerating(true);
-    try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-      const prompt = `A cinematic and high-quality travel community cover image for a group called "${title}" focused on "${category}". The style should be professional, inspiring, and travel-oriented. No text in the image.`;
-      
-      const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash-image',
-        contents: [{ parts: [{ text: prompt }] }],
-        config: {
-          imageConfig: {
-            aspectRatio: "16:9"
-          }
-        }
-      });
-
-      for (const part of response.candidates[0].content.parts) {
-        if (part.inlineData) {
-          const base64EncodeString = part.inlineData.data;
-          setCoverUrl(`data:image/png;base64,${base64EncodeString}`);
-          break;
-        }
-      }
-    } catch (error) {
-      console.error("Image generation failed:", error);
-    } finally {
-      setIsGenerating(false);
+  const handleNext = () => {
+    if (currentStep < STEPS.length - 1) {
+      setCurrentStep(prev => prev + 1);
     }
   };
 
-  return (
-    <div className="flex flex-col min-h-full bg-background-dark">
-      <header className="px-4 pt-10 pb-4 border-b border-white/5 flex items-center justify-between sticky top-0 bg-background-dark/95 backdrop-blur-md z-50">
-        <button onClick={step === 1 ? onBack : prevStep} className="text-white p-2 active:scale-90 transition-transform">
-          <span className="material-symbols-outlined">{step === 1 ? 'close' : 'arrow_back'}</span>
-        </button>
-        <div className="flex-1 text-center">
-          <h1 className="text-lg font-black text-white tracking-tight italic">Tribe Architecture</h1>
-          <p className="text-[10px] text-primary font-bold uppercase tracking-[0.2em]">Step {step} of 5</p>
-        </div>
-        <div className="w-10"></div>
-      </header>
+  const startLaunch = () => {
+    handleLaunch();
+  };
 
-      <div className="p-6 flex-1 flex flex-col">
-        {/* Glowing Progress Bar */}
-        <div className="mb-10 flex gap-2">
-          {[1, 2, 3, 4, 5].map(s => (
-            <div 
-              key={s} 
-              className={`h-1.5 flex-1 rounded-full transition-all duration-700 ${
-                step >= s 
-                  ? 'bg-primary shadow-[0_0_15px_rgba(255,107,53,0.6)]' 
-                  : 'bg-white/10'
-              }`}
-            ></div>
-          ))}
-        </div>
+  const handleBack = () => {
+    if (currentStep > 0) {
+      setCurrentStep(prev => prev - 1);
+    } else {
+      if (onBack) onBack();
+      else navigate(-1);
+    }
+  };
 
-        {/* STEP 1: IDENTITY */}
-        {step === 1 && (
-          <div className="animate-in fade-in slide-in-from-right-4 duration-500 space-y-8">
-            <div>
-              <h2 className="text-3xl font-black text-white leading-tight">What's the <span className="text-primary italic">Soul</span> of this Tribe?</h2>
-              <p className="text-slate-500 text-xs mt-2 font-medium">Define the core mission that will attract like-minded explorers.</p>
+  const handleLaunch = async () => {
+    setIsMinting(true);
+    try {
+      const community = await createCommunity({
+        title: formData.title,
+        category: formData.category,
+        description: formData.description,
+        image: formData.image || 'https://images.unsplash.com/photo-1528696892704-5e1122852276?auto=format&fit=crop&w=800&q=80', // Default fallback
+        meta: `${formData.category} • 1 member`,
+        entryQuestions: formData.entryQuestions,
+        enabledFeatures: formData.enabledFeatures,
+        accessType: 'request'
+      });
+
+      console.log('[CreateCommunity] createCommunity returned:', community);
+
+      if (community) {
+        console.log('[CreateCommunity] Success! Navigating...');
+        toast.success(`Welcome to ${community.title}!`);
+        if (onComplete) {
+          console.log('[CreateCommunity] Calling onComplete prop');
+          onComplete();
+        } else {
+          console.log('[CreateCommunity] Navigating to /dashboard');
+          navigate('/dashboard', { state: { communityId: community.id } });
+        }
+      } else {
+        console.error('[CreateCommunity] Community creation failed (returned null/undefined)');
+        toast.error('Failed to create community. Please try again.');
+      }
+    } catch (error) {
+      console.error("Failed to create community", error);
+      toast.error('An unexpected error occurred.');
+    } finally {
+      setIsMinting(false);
+    }
+  };
+
+  const renderStepContent = () => {
+    switch (currentStep) {
+      case 0: // Identity
+        return (
+          <div className="space-y-6 animate-in slide-in-from-right duration-500">
+            <div className="space-y-2">
+              <label className="text-slate-400 text-xs font-bold uppercase tracking-widest">Community Name</label>
+              <input
+                type="text"
+                className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white font-bold focus:border-primary outline-none transition-all placeholder:text-slate-600"
+                placeholder="e.g. Arctic Explorers"
+                value={formData.title}
+                onChange={e => setFormData({ ...formData, title: e.target.value })}
+                autoFocus
+              />
             </div>
-            <div className="space-y-6">
-              <div>
-                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-2 px-1">Tribe Name</label>
-                <input 
-                  type="text" 
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder="e.g. Nordic Nomad Collective"
-                  className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all placeholder:text-slate-700 font-medium"
-                />
-              </div>
-              <div>
-                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-2 px-1">Category</label>
-                <div className="grid grid-cols-2 gap-2">
-                  {CATEGORIES.map(cat => (
-                    <button
-                      key={cat}
-                      onClick={() => setCategory(cat)}
-                      className={`py-3 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all ${
-                        category === cat 
-                          ? 'bg-primary border-primary text-background-dark shadow-lg shadow-primary/20' 
-                          : 'bg-white/5 border-white/5 text-slate-500'
-                      }`}
-                    >
-                      {cat}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-2 px-1">Mission Statement</label>
-                <textarea 
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Tell us what this tribe values most..."
-                  className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white focus:border-primary outline-none transition-all resize-none text-sm placeholder:text-slate-700 min-h-[120px]"
-                />
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* STEP 2: BRANDING */}
-        {step === 2 && (
-          <div className="animate-in fade-in slide-in-from-right-4 duration-500 space-y-8">
-            <div>
-              <h2 className="text-3xl font-black text-white leading-tight">Visual <span className="text-primary italic">Signature.</span></h2>
-              <p className="text-slate-500 text-xs mt-2 font-medium">Choose a theme or generate a unique cover with AI.</p>
-            </div>
-            
-            <div className="relative aspect-video rounded-[2.5rem] overflow-hidden border-2 border-white/10 shadow-2xl group">
-               {isGenerating && (
-                 <div className="absolute inset-0 z-20 bg-background-dark/80 backdrop-blur-sm flex flex-col items-center justify-center gap-4">
-                    <div className="size-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-                    <p className="text-primary text-[10px] font-black uppercase tracking-[0.2em]">Dreaming up your cover...</p>
-                 </div>
-               )}
-               <img src={coverUrl} className="w-full h-full object-cover" alt="Preview" />
-               <div className="absolute inset-0 bg-gradient-to-t from-background-dark via-transparent to-transparent"></div>
-               <div className="absolute bottom-6 left-6">
-                  <h3 className="text-white font-black text-2xl italic tracking-tight">{title || 'Your Tribe Name'}</h3>
-                  <p className="text-primary text-[10px] font-black uppercase tracking-[0.2em]">{category || 'Category'}</p>
-               </div>
-            </div>
-
-            <div className="flex flex-col gap-4">
-              <button 
-                onClick={handleGenerateImage}
-                disabled={isGenerating || !title || !category}
-                className="w-full bg-primary/10 border border-primary/40 hover:bg-primary/20 text-primary py-4 rounded-2xl flex items-center justify-center gap-3 transition-all active:scale-[0.98] disabled:opacity-50 group"
-              >
-                <span className="material-symbols-outlined font-black group-hover:rotate-12 transition-transform">auto_awesome</span>
-                <span className="text-[10px] font-black uppercase tracking-widest">Generate Custom AI Cover</span>
-              </button>
-
-              <div className="grid grid-cols-2 gap-4">
-                {THEMES.map(theme => (
-                  <button 
-                    key={theme.id}
-                    onClick={() => setCoverUrl(theme.url)}
-                    className={`relative h-20 rounded-2xl overflow-hidden border-2 transition-all ${coverUrl === theme.url ? 'border-primary' : 'border-white/5'}`}
+            <div className="space-y-2">
+              <label className="text-slate-400 text-xs font-bold uppercase tracking-widest">Category</label>
+              <div className="flex flex-wrap gap-2">
+                {CATEGORIES.map(cat => (
+                  <button
+                    key={cat}
+                    onClick={() => setFormData({ ...formData, category: cat })}
+                    className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all ${formData.category === cat ? 'bg-primary border-primary text-background-dark' : 'bg-white/5 border-white/5 text-slate-500 hover:border-white/20'}`}
                   >
-                    <img src={theme.url} className="w-full h-full object-cover" alt="" />
-                    <div className={`absolute inset-0 flex items-center justify-center transition-all ${coverUrl === theme.url ? 'bg-primary/20' : 'bg-black/40'}`}>
-                        <span className={`text-[10px] font-black uppercase tracking-widest ${coverUrl === theme.url ? 'text-white' : 'text-white/60'}`}>{theme.label}</span>
-                    </div>
+                    {cat}
                   </button>
                 ))}
               </div>
             </div>
-          </div>
-        )}
-
-        {/* STEP 3: FEATURES */}
-        {step === 3 && (
-          <div className="animate-in fade-in slide-in-from-right-4 duration-500 space-y-8">
-            <div>
-              <h2 className="text-3xl font-black text-white leading-tight">Engine <span className="text-primary italic">Architecture.</span></h2>
-              <p className="text-slate-500 text-xs mt-2 font-medium">Select the power tools available to your Tribe members.</p>
-            </div>
-
-            <div className="space-y-3">
-              <FeatureToggle 
-                icon="dynamic_feed" 
-                title="Pulse Social Feed" 
-                desc="Allow members to post updates and media." 
-                active={features.feed} 
-                onToggle={() => toggleFeature('feed')} 
-              />
-              <FeatureToggle 
-                icon="travel_explore" 
-                title="Venture Engine" 
-                desc="Plan and book group trips collaboratively." 
-                active={features.ventures} 
-                onToggle={() => toggleFeature('ventures')} 
-              />
-              <FeatureToggle 
-                icon="group" 
-                title="Member Directory" 
-                desc="Visibility of profiles for social networking." 
-                active={features.directory} 
-                onToggle={() => toggleFeature('directory')} 
-              />
-              <FeatureToggle 
-                icon="auto_awesome" 
-                title="Gemini Tribe Guide" 
-                desc="AI assistant for travel tips and scheduling." 
-                active={features.aiGuide} 
-                onToggle={() => toggleFeature('aiGuide')} 
+            <div className="space-y-2">
+              <label className="text-slate-400 text-xs font-bold uppercase tracking-widest">Mission</label>
+              <textarea
+                className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white text-sm font-medium focus:border-primary outline-none transition-all placeholder:text-slate-600 h-32 resize-none"
+                placeholder="What brings us together?"
+                value={formData.description}
+                onChange={e => setFormData({ ...formData, description: e.target.value })}
               />
             </div>
           </div>
-        )}
-
-        {/* STEP 4: ACCESS */}
-        {step === 4 && (
-          <div className="animate-in fade-in slide-in-from-right-4 duration-500 space-y-8">
-            <div>
-              <h2 className="text-3xl font-black text-white leading-tight">Governance <span className="text-primary italic">Mode.</span></h2>
-              <p className="text-slate-500 text-xs mt-2 font-medium">Control how explorers discover and join your inner circle.</p>
+        );
+      case 1: // Vibe
+        return (
+          <div className="space-y-6 animate-in slide-in-from-right duration-500">
+            <div className="space-y-2">
+              <label className="text-slate-400 text-xs font-bold uppercase tracking-widest">Cover Image URL</label>
+              <input
+                type="text"
+                className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white font-bold focus:border-primary outline-none transition-all placeholder:text-slate-600"
+                placeholder="https://..."
+                value={formData.image}
+                onChange={e => setFormData({ ...formData, image: e.target.value })}
+              />
+              <p className="text-[10px] text-slate-500">Leave empty for a random Unsplash image.</p>
             </div>
-            
+            {formData.image && (
+              <div className="h-48 w-full rounded-3xl bg-cover bg-center border border-white/10" style={{ backgroundImage: `url(${formData.image})` }}></div>
+            )}
+          </div>
+        );
+      case 2: // Protocol
+        return (
+          <div className="space-y-6 animate-in slide-in-from-right duration-500">
             <div className="space-y-4">
-              <AccessCard 
-                active={accessType === 'free'} 
-                title="Open Frontier" 
-                desc="Universal access. Perfect for scaling communities rapidly." 
-                icon="public" 
-                onClick={() => setAccessType('free')}
-              />
-              <AccessCard 
-                active={accessType === 'request'} 
-                title="Vetted Sanctum" 
-                desc="Member vetting required. You review every application." 
-                icon="verified_user" 
-                onClick={() => setAccessType('request')}
-              />
-            </div>
-
-            <div className="bg-primary/5 border border-primary/20 rounded-3xl p-5">
-               <div className="flex items-center gap-3 mb-2">
-                  <span className="material-symbols-outlined text-primary text-xl">gavel</span>
-                  <h4 className="text-[10px] font-black uppercase tracking-widest text-white">Inspired Protocol</h4>
-               </div>
-               <p className="text-[11px] text-slate-500 leading-relaxed">
-                  As the architect, you are responsible for maintaining Tribe safety. 
-                  Vetted communities show 40% higher engagement on global ventures.
-               </p>
+              <label className="text-slate-400 text-xs font-bold uppercase tracking-widest">Entry Questions</label>
+              {formData.entryQuestions.map((q, i) => (
+                <div key={i} className="flex gap-2">
+                  <span className="text-primary font-black pt-3 min-w-[20px]">{i + 1}.</span>
+                  <input
+                    type="text"
+                    className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white text-sm font-medium focus:border-primary outline-none transition-all"
+                    value={q}
+                    onChange={e => {
+                      const newQuestions = [...formData.entryQuestions];
+                      newQuestions[i] = e.target.value;
+                      setFormData({ ...formData, entryQuestions: newQuestions });
+                    }}
+                  />
+                  <button
+                    onClick={() => {
+                      const newQuestions = formData.entryQuestions.filter((_, idx) => idx !== i);
+                      setFormData({ ...formData, entryQuestions: newQuestions });
+                    }}
+                    className="bg-white/5 p-3 rounded-xl text-slate-500 hover:text-white transition-colors h-14 w-14 flex items-center justify-center shrink-0"
+                  >
+                    <span className="material-symbols-outlined text-lg">delete</span>
+                  </button>
+                </div>
+              ))}
+              <button
+                onClick={() => setFormData({ ...formData, entryQuestions: [...formData.entryQuestions, ''] })}
+                className="flex items-center gap-2 text-primary text-xs font-black uppercase tracking-widest hover:text-white transition-colors"
+              >
+                <span className="material-symbols-outlined text-sm">add</span>
+                Add Question
+              </button>
             </div>
           </div>
-        )}
-
-        {/* STEP 5: REVIEW */}
-        {step === 5 && (
-          <div className="animate-in fade-in slide-in-from-right-4 duration-500 space-y-8 text-center flex-1 flex flex-col justify-center">
-            <div className="relative size-32 mx-auto mb-6">
-              <div className="absolute inset-0 bg-primary/20 rounded-full blur-3xl animate-pulse"></div>
-              <div className="size-full bg-primary rounded-[2.5rem] flex items-center justify-center rotate-6 shadow-2xl shadow-primary/30 relative z-10">
-                <span className="material-symbols-outlined text-background-dark text-5xl font-black">celebration</span>
-              </div>
+        );
+      case 3: // Modules
+        return (
+          <div className="space-y-4 animate-in slide-in-from-right duration-500">
+            <label className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-4 block">Enable Features</label>
+            <div className="grid grid-cols-1 gap-3">
+              {FEATURE_MODULES.map(feature => {
+                const isEnabled = formData.enabledFeatures.includes(feature.id);
+                return (
+                  <button
+                    key={feature.id}
+                    onClick={() => {
+                      if (isEnabled) {
+                        setFormData({ ...formData, enabledFeatures: formData.enabledFeatures.filter(f => f !== feature.id) });
+                      } else {
+                        setFormData({ ...formData, enabledFeatures: [...formData.enabledFeatures, feature.id] });
+                      }
+                    }}
+                    className={`flex items-center gap-4 p-4 rounded-2xl border transition-all text-left group ${isEnabled ? 'bg-primary/10 border-primary text-white' : 'bg-white/5 border-white/5 text-slate-500 hover:border-white/20'}`}
+                  >
+                    <div className={`size-10 rounded-xl flex items-center justify-center transition-colors ${isEnabled ? 'bg-primary text-background-dark' : 'bg-background-dark text-slate-500 group-hover:text-white'}`}>
+                      <span className="material-symbols-outlined">{feature.icon}</span>
+                    </div>
+                    <div className="flex-1">
+                      <h4 className={`font-black uppercase tracking-widest text-[10px] ${isEnabled ? 'text-primary' : 'text-slate-300 group-hover:text-white'}`}>{feature.label}</h4>
+                      <p className="text-[10px] font-medium opacity-70">{feature.desc}</p>
+                    </div>
+                    <div className={`size-6 rounded-full border flex items-center justify-center transition-all ${isEnabled ? 'bg-primary border-primary' : 'border-slate-600 group-hover:border-slate-400'}`}>
+                      {isEnabled && <span className="material-symbols-outlined text-background-dark text-sm font-black">check</span>}
+                    </div>
+                  </button>
+                );
+              })}
             </div>
-            
-            <div>
-              <h2 className="text-3xl font-black text-white leading-tight mb-2">Ready to <span className="text-primary italic">Live.</span></h2>
-              <p className="text-slate-400 text-sm max-w-[280px] mx-auto font-medium leading-relaxed">Your Tribe is configured for success. One last check before deployment.</p>
+          </div>
+        );
+      case 4: // Launch
+        return (
+          <div className="text-center py-10 animate-in zoom-in duration-500">
+            <div className="size-24 rounded-[2.5rem] bg-gradient-to-br from-primary to-accent mx-auto mb-8 shadow-[0_0_40px_rgba(0,127,255,0.4)] flex items-center justify-center animate-pulse">
+              <span className="material-symbols-outlined text-white text-5xl">rocket_launch</span>
             </div>
+            <h2 className="text-3xl font-black text-white italic tracking-tighter mb-2">Ready for Liftoff?</h2>
+            <p className="text-slate-400 text-sm max-w-xs mx-auto mb-8 leading-relaxed">
+              You are about to mint <strong>{formData.title}</strong> on the Inspired Ventures Protocol.
+            </p>
 
-            <div className="bg-white/5 border border-white/10 rounded-[2.5rem] p-6 text-left space-y-5 shadow-2xl">
-              <div className="flex justify-between items-center">
-                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Tribe Architecture</span>
-                <span className="text-xs font-bold text-white italic truncate ml-4">{title || 'Unnamed Tribe'}</span>
+            <div className="bg-white/5 rounded-2xl p-6 text-left max-w-xs mx-auto space-y-4 border border-white/10">
+              <div className="flex justify-between text-xs border-b border-white/5 pb-2">
+                <span className="text-slate-500 font-bold uppercase tracking-widest">Type</span>
+                <span className="text-white font-bold">{formData.category}</span>
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Enabled Engines</span>
-                <div className="flex gap-1.5">
-                   {Object.entries(features).filter(([_,v]) => v).map(([k]) => (
-                     <div key={k} className="size-5 rounded bg-white/10 flex items-center justify-center">
-                        <span className="material-symbols-outlined text-[10px] text-primary">
-                          {k === 'feed' ? 'dynamic_feed' : k === 'ventures' ? 'travel_explore' : k === 'directory' ? 'group' : 'auto_awesome'}
-                        </span>
-                     </div>
-                   ))}
-                </div>
+              <div className="flex justify-between text-xs border-b border-white/5 pb-2">
+                <span className="text-slate-500 font-bold uppercase tracking-widest">Modules</span>
+                <span className="text-white font-bold">{formData.enabledFeatures.length} Active</span>
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Primary Manager</span>
-                <div className="flex items-center gap-1.5">
-                   <img src="https://picsum.photos/seed/alex/50/50" className="size-4 rounded-full" alt="" />
-                   <span className="text-[10px] font-black text-primary uppercase">You (Admin)</span>
-                </div>
+              <div className="flex justify-between text-xs">
+                <span className="text-slate-500 font-bold uppercase tracking-widest">Entry Protocol</span>
+                <span className="text-white font-bold">{formData.entryQuestions.length} Questions</span>
               </div>
             </div>
           </div>
-        )}
+        );
+      default:
+        return null;
+    }
+  };
 
-        <div className="mt-auto pt-10">
-          <button 
-            disabled={step === 1 && (!title || !category)}
-            onClick={step === 5 ? onComplete : nextStep}
-            className="w-full bg-primary text-background-dark font-black py-5 rounded-2xl text-lg shadow-2xl shadow-primary/30 active:scale-95 transition-all disabled:opacity-30 disabled:scale-100"
-          >
-            {step === 5 ? 'Launch Tribe' : 'Proceed to Next Step'}
-          </button>
-          <p className="text-center text-[9px] text-slate-700 font-bold uppercase tracking-[0.2em] mt-4">
-            Secured by Inspired Ventures Protocol
-          </p>
+  if (isMinting) {
+    return (
+      <div className="min-h-screen bg-background-dark flex flex-col items-center justify-center relative overflow-hidden">
+        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 brightness-100 contrast-150"></div>
+        <div className="relative z-10 text-center animate-in fade-in duration-1000">
+          <div className="size-24 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-8 shadow-2xl shadow-primary/20"></div>
+          <h2 className="text-4xl font-black text-white italic tracking-tighter mb-4">Minting Community...</h2>
+
+          <div className="space-y-2">
+            <p className="text-primary text-[10px] font-black uppercase tracking-[0.3em] animate-pulse">Establishing Governance</p>
+            <p className="text-slate-500 text-[10px] font-bold uppercase tracking-[0.2em]">Deploying Modules</p>
+          </div>
         </div>
       </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-background-dark flex flex-col">
+      {/* Header */}
+      <header className="px-6 py-6 flex items-center justify-between border-b border-white/5 relative z-50">
+        <button onClick={handleBack} className="size-10 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/10 text-white transition-all backdrop-blur-md">
+          <span className="material-symbols-outlined">arrow_back</span>
+        </button>
+        <div className="flex flex-col items-center">
+          <span className="text-white font-black text-sm uppercase tracking-widest">Create Community</span>
+          <div className="flex gap-1 mt-1.5">
+            {STEPS.map((s, i) => (
+              <div key={s.id} className={`h-1 rounded-full transition-all duration-500 ${i === currentStep ? 'w-6 bg-primary' : i < currentStep ? 'w-2 bg-primary/50' : 'w-1 bg-white/10'}`}></div>
+            ))}
+          </div>
+        </div>
+        <div className="size-10"></div>
+      </header>
+
+      {/* Content */}
+      <main className="flex-1 px-6 py-8 overflow-y-auto pb-32">
+        <div className="max-w-md mx-auto">
+          <div className="mb-8 animate-in slide-in-from-top-4 duration-500">
+            <h1 className="text-3xl font-black text-white italic tracking-tighter mb-2">{STEPS[currentStep].label}</h1>
+            <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">Step {currentStep + 1} of {STEPS.length}</p>
+          </div>
+
+          {renderStepContent()}
+        </div>
+      </main>
+
+      {/* Footer Actions */}
+      <footer className="fixed bottom-0 left-0 right-0 p-6 border-t border-white/5 bg-background-dark/95 backdrop-blur-xl z-50">
+        <div className="max-w-md mx-auto">
+          <button
+            onClick={currentStep === STEPS.length - 1 ? startLaunch : handleNext}
+            disabled={currentStep === 0 && !formData.title}
+            className="w-full bg-primary text-background-dark py-4 rounded-2xl font-black text-sm uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all shadow-lg shadow-primary/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+          >
+            {currentStep === STEPS.length - 1 ? 'Launch Protocol' : 'Continue'}
+          </button>
+        </div>
+      </footer>
     </div>
   );
 };
-
-const FeatureToggle = ({ icon, title, desc, active, onToggle }: { icon: string, title: string, desc: string, active: boolean, onToggle: () => void }) => (
-  <button 
-    onClick={onToggle}
-    className={`w-full p-4 rounded-2xl border text-left flex items-center gap-4 transition-all ${
-      active ? 'bg-white/10 border-white/20' : 'bg-white/5 border-white/5 opacity-50'
-    }`}
-  >
-    <div className={`size-10 rounded-xl flex items-center justify-center transition-all ${active ? 'bg-primary text-background-dark' : 'bg-white/10 text-slate-600'}`}>
-       <span className="material-symbols-outlined text-xl">{icon}</span>
-    </div>
-    <div className="flex-1">
-      <h4 className={`text-xs font-black uppercase tracking-tight ${active ? 'text-white' : 'text-slate-500'}`}>{title}</h4>
-      <p className="text-[9px] text-slate-600 font-bold leading-tight mt-0.5">{desc}</p>
-    </div>
-    <div className={`w-10 h-5 rounded-full relative transition-colors ${active ? 'bg-primary' : 'bg-slate-800'}`}>
-       <div className={`absolute top-1 size-3 bg-white rounded-full transition-all ${active ? 'left-6' : 'left-1'}`}></div>
-    </div>
-  </button>
-);
-
-const AccessCard = ({ active, title, desc, icon, onClick }: { active: boolean, title: string, desc: string, icon: string, onClick: () => void }) => (
-  <button 
-    onClick={onClick}
-    className={`p-6 rounded-[2rem] border text-left flex gap-5 transition-all ${
-      active 
-        ? 'bg-primary border-primary shadow-xl shadow-primary/10' 
-        : 'bg-white/5 border-white/10 hover:border-white/20'
-    }`}
-  >
-    <div className={`size-12 rounded-2xl flex items-center justify-center shrink-0 ${active ? 'bg-background-dark text-primary shadow-lg' : 'bg-white/5 text-slate-500'}`}>
-      <span className="material-symbols-outlined">{icon}</span>
-    </div>
-    <div className="flex-1">
-      <h4 className={`font-black text-sm mb-1 uppercase tracking-tight ${active ? 'text-background-dark' : 'text-white'}`}>{title}</h4>
-      <p className={`text-[11px] leading-tight font-medium ${active ? 'text-background-dark/70' : 'text-slate-500'}`}>{desc}</p>
-    </div>
-  </button>
-);
 
 export default CreateCommunity;

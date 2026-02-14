@@ -1,146 +1,205 @@
 
-import React from 'react';
-import { BarChart, Bar, ResponsiveContainer, XAxis, YAxis, Tooltip } from 'recharts';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Community } from '../types';
+import { useUser } from '../contexts/UserContext';
+import { COLORS } from '../constants';
+import { CommunitySwitcher } from '../components/CommunitySwitcher';
+import { StatCard } from '../components/StatCard';
+import { ActionTile } from '../components/ActionTile';
+import { ActivityChart } from '../components/ActivityChart';
+import { Feed } from '../components/Feed';
 
 interface Props {
+  communities: Community[];
   onOpenNotifications: () => void;
   onCreate: () => void;
   onManage: () => void;
   onContactSupport: () => void;
   onSelectCommunity: (community: Community) => void;
   onOpenInsights: () => void;
+  onOpenSettings: () => void;
 }
 
-const Dashboard: React.FC<Props> = ({ 
-  onOpenNotifications, 
-  onCreate, 
-  onManage, 
-  onContactSupport, 
+const Dashboard: React.FC<Props> = ({
+  communities,
+  onOpenNotifications,
+  onCreate,
+  onManage,
+  onContactSupport,
   onSelectCommunity,
-  onOpenInsights
+  onOpenInsights,
+  onOpenSettings
 }) => {
-  const data = [
-    { name: 'Mon', active: 40 },
-    { name: 'Tue', active: 30 },
-    { name: 'Wed', active: 45 },
-    { name: 'Thu', active: 55 },
-    { name: 'Fri', active: 70 },
-    { name: 'Sat', active: 90 },
-    { name: 'Sun', active: 85 },
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { isMember, notifications, user, profile } = useUser();
+
+  // 1. Identify Managed Communities
+  const managedCommunities = communities.filter(c => c.isManaged);
+
+  // 2. Determine Active Community
+  const [activeCommunityId, setActiveCommunityId] = useState<string>('');
+
+  useEffect(() => {
+    if (location.state?.communityId) {
+      setActiveCommunityId(location.state.communityId);
+    } else if (managedCommunities.length > 0 && !activeCommunityId) {
+      setActiveCommunityId(managedCommunities[0].id);
+    }
+  }, [location.state, managedCommunities, activeCommunityId]);
+
+  const activeCommunity = managedCommunities.find(c => c.id === activeCommunityId) || managedCommunities[0];
+  const unreadCount = notifications.filter(n => !n.isRead).length;
+
+  // 3. Dynamic Stats
+  const memberCount = parseInt(activeCommunity?.memberCount || '0');
+  const healthScore = activeCommunity ? Math.min(98, 50 + Math.floor(memberCount * 1.5)) : 0;
+  const weeklyGrowth = (memberCount > 0 ? (2 / memberCount) * 100 : 0).toFixed(1);
+
+  // Mock Data for Area Chart
+  const activityData = [
+    { name: 'Mon', active: Math.floor(memberCount * 0.2) },
+    { name: 'Tue', active: Math.floor(memberCount * 0.25) },
+    { name: 'Wed', active: Math.floor(memberCount * 0.15) },
+    { name: 'Thu', active: Math.floor(memberCount * 0.35) },
+    { name: 'Fri', active: Math.floor(memberCount * 0.5) },
+    { name: 'Sat', active: Math.floor(memberCount * 0.7) },
+    { name: 'Sun', active: Math.floor(memberCount * 0.6) },
   ];
 
-  // Mock community for the active tribe card
-  const activeTribe: Community = {
-    id: 'c4',
-    title: "Eco-Warriors Bali",
-    meta: "Sustainability • 3.5k members",
-    description: "Our community is dedicated to preserving Bali's natural beauty through direct action and eco-tourism.",
-    image: "https://images.unsplash.com/photo-1537996194471-e657df975ab4?auto=format&fit=crop&w=800&q=80",
-    memberCount: "3.5k",
-    category: "Eco-Travel",
-    upcomingTrips: [],
-    accessType: 'free',
-  };
-
   return (
-    <div className="flex flex-col p-4 pt-10 gap-6">
-      <header className="flex items-center justify-between">
+    <div className="min-h-screen bg-background flex flex-col relative overflow-hidden font-sans text-[#14532D]">
+      {/* Background Texture */}
+      <div className="absolute inset-0 bg-background opacity-20 pointer-events-none"></div>
+
+      {/* Top Navigation Bar */}
+      <header className="px-6 py-6 flex items-center justify-between relative z-10">
         <div className="flex items-center gap-3">
-          <div className="relative">
-            <img src="https://picsum.photos/seed/alex/100/100" className="size-12 rounded-full border-2 border-primary" alt="Alex" />
-            <div className="absolute -bottom-1 -right-1 bg-primary rounded-full p-0.5 border-2 border-background-dark">
-              <span className="material-symbols-outlined text-[14px] font-bold text-background-dark">verified</span>
-            </div>
+          <div className="size-10 rounded-full bg-gradient-to-tr from-primary to-accent p-0.5">
+            <img
+              src={profile?.avatar_url || "https://picsum.photos/seed/alex/100/100"}
+              className="w-full h-full rounded-full border-2 border-white object-cover"
+              alt="Profile"
+            />
           </div>
           <div>
-            <div className="flex items-center gap-1.5">
-              <h1 className="text-xs font-black uppercase tracking-widest text-primary">Leader</h1>
-              <span className="text-white/40 text-[10px] lowercase font-medium">by</span>
-              <span className="text-white/60 text-[10px] font-black uppercase italic tracking-tighter">Inspired</span>
+            <h1 className="text-primary font-heading font-black text-lg leading-none italic uppercase">
+              {profile?.display_name || 'Leader'}
+            </h1>
+            <div className="flex items-center gap-1.5 mt-1">
+              <span className="text-[10px] font-bold bg-primary/10 text-primary px-1.5 py-0.5 rounded uppercase tracking-widest">
+                Commander
+              </span>
             </div>
-            <p className="text-lg font-black text-white leading-tight tracking-tight">Alex Sterling</p>
           </div>
         </div>
-        <button 
-          onClick={onOpenNotifications}
-          className="size-10 flex items-center justify-center rounded-full bg-slate-800 relative"
-        >
-          <span className="material-symbols-outlined text-white">notifications</span>
-          <span className="absolute top-2 right-2 size-2 bg-primary rounded-full border-2 border-slate-800"></span>
-        </button>
+
+        <div className="flex gap-3">
+          <button
+            onClick={onOpenNotifications}
+            className="size-10 rounded-xl bg-white border border-primary/10 flex items-center justify-center relative hover:bg-primary/5 transition-all active:scale-95 shadow-sm"
+          >
+            <span className="material-symbols-outlined text-primary">notifications</span>
+            {unreadCount > 0 && (
+              <span className="absolute top-2 right-2 size-2 bg-accent rounded-full border border-white"></span>
+            )}
+          </button>
+        </div>
       </header>
 
-      <section 
-        onClick={() => onSelectCommunity(activeTribe)}
-        className="bg-white/5 rounded-2xl p-5 border border-white/5 shadow-xl cursor-pointer hover:bg-white/10 transition-all group active:scale-[0.98]"
-      >
-        <div className="flex justify-between items-start mb-1">
-          <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Active Tribe</p>
-          <span className="material-symbols-outlined text-primary text-sm group-hover:translate-x-1 transition-transform">arrow_forward</span>
-        </div>
-        <h2 className="text-xl font-black text-white mb-4 tracking-tight">Eco-Warriors in Bali</h2>
-        <div className="flex -space-x-2">
-          {[1,2,3,4].map(i => (
-            <img key={i} className="size-8 rounded-full border-2 border-background-dark" src={`https://picsum.photos/seed/${i+10}/100/100`} alt="Member" />
-          ))}
-          <div className="size-8 rounded-full border-2 border-background-dark bg-slate-800 flex items-center justify-center text-[10px] font-bold text-white">+142</div>
-        </div>
-      </section>
+      <main className="flex-1 px-6 pb-24 space-y-8 relative z-10 overflow-y-auto">
 
-      <section>
-        <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-3 px-1">Tribe Health</h3>
-        <div className="bg-gradient-to-br from-slate-900 to-black rounded-3xl p-6 border border-white/5 relative overflow-hidden shadow-2xl">
-          <div className="relative z-10">
-            <div className="flex items-end gap-4">
-              <div className="text-4xl font-black text-white tracking-tighter">92<span className="text-primary text-2xl">%</span></div>
-              <div className="mb-1 text-[10px] font-black text-emerald-400 flex items-center gap-1 uppercase tracking-widest">
-                <span className="material-symbols-outlined text-sm">trending_up</span> +4.2% week
-              </div>
-            </div>
-            <div className="w-full bg-white/10 h-2 rounded-full mt-5 overflow-hidden">
-              <div className="bg-primary h-full rounded-full w-[92%] shadow-[0_0_10px_rgba(255,107,53,0.5)]"></div>
-            </div>
-            <p className="text-[11px] text-slate-400 mt-4 font-medium leading-relaxed">Engagement is peaking. Your last expedition post reached 88% of members.</p>
-          </div>
-        </div>
-      </section>
-
-      <section className="h-48 bg-white/5 rounded-3xl p-5 border border-white/5 shadow-xl">
-        <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-4">Activity Index</h3>
-        <ResponsiveContainer width="100%" height="80%">
-          <BarChart data={data}>
-            <XAxis dataKey="name" stroke="#64748b" fontSize={10} axisLine={false} tickLine={false} />
-            <Tooltip 
-              cursor={{fill: 'rgba(255,255,255,0.05)'}}
-              contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '12px', color: '#fff', fontSize: '10px' }}
-              itemStyle={{ color: '#FF6B35', fontWeight: 'bold' }}
+        {/* Active Community Switcher / Hero */}
+        <section className="relative animate-in fade-in slide-in-from-bottom-4 duration-700">
+          {activeCommunity ? (
+            <CommunitySwitcher
+              communities={managedCommunities}
+              activeCommunityId={activeCommunityId}
+              onSelectCommunity={setActiveCommunityId}
+              onNavigate={onSelectCommunity}
+              weeklyGrowth={weeklyGrowth}
+              memberCount={memberCount}
             />
-            <Bar dataKey="active" fill="#FF6B35" radius={[6, 6, 0, 0]} />
-          </BarChart>
-        </ResponsiveContainer>
-      </section>
+          ) : (
+            <div className="bg-white border border-primary/10 border-dashed rounded-[2rem] p-8 text-center shadow-sm">
+              <p className="text-primary/40 text-sm mb-4 font-bold uppercase tracking-widest">You are not leading any communities yet.</p>
+              <button onClick={onCreate} className="text-accent font-black uppercase tracking-widest text-xs hover:underline">
+                Launch your first community
+              </button>
+            </div>
+          )}
+        </section>
 
-      <section className="grid grid-cols-2 gap-4 pb-12">
-        <ActionCard icon="add_location_alt" label="Start Venture" onClick={onCreate} />
-        <ActionCard icon="group" label="Tribe Roster" onClick={onManage} />
-        <ActionCard icon="support_agent" label="Leader Concierge" onClick={onContactSupport} />
-        <ActionCard icon="auto_awesome" label="Platform Insights" onClick={onOpenInsights} />
-      </section>
-    </div>
+        {/* Stats Grid */}
+        <section className="grid grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
+          {/* Health Dial Card */}
+          <StatCard
+            label="Community Health"
+            value={healthScore}
+            subtext="Top 5% of communities utilizing this protocol."
+            icon="ecg_heart"
+            color="text-green-500"
+          />
+
+          {/* Quick Actions Grid (Nested) */}
+          <div className="grid grid-rows-2 gap-3">
+            <button
+              onClick={onCreate}
+              className="bg-primary hover:bg-primary/90 rounded-2xl p-4 flex items-center gap-3 transition-all active:scale-95 group shadow-lg shadow-primary/20"
+            >
+              <div className="size-8 rounded-lg bg-white/20 text-white flex items-center justify-center group-hover:scale-110 transition-transform">
+                <span className="material-symbols-outlined text-lg">add</span>
+              </div>
+              <div className="text-left">
+                <span className="block text-[10px] font-black uppercase tracking-widest text-white">New Venture</span>
+              </div>
+            </button>
+
+            <button
+              onClick={onManage}
+              className="bg-white hover:bg-primary/5 border border-primary/10 rounded-2xl p-4 flex items-center gap-3 transition-all active:scale-95 group shadow-sm"
+            >
+              <div className="size-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                <span className="material-symbols-outlined text-lg">group</span>
+              </div>
+              <div className="text-left">
+                <span className="block text-[10px] font-black uppercase tracking-widest text-primary/60 group-hover:text-primary">Members</span>
+              </div>
+            </button>
+          </div>
+        </section>
+
+
+
+        {/* Global Feed */}
+        <section className="animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200">
+          <div className="flex items-center justify-between mb-4 px-2">
+            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/40">Global Feed</h3>
+            <button className="text-[10px] font-bold text-primary hover:underline">View All</button>
+          </div>
+
+          <Feed limit={5} />
+        </section>
+
+        {/* Analytics Chart */}
+        <ActivityChart data={activityData} onOpenInsights={onOpenInsights} />
+
+
+        {/* Advanced Tools */}
+        <section className="animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300">
+          <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/40 mb-4 px-2">Commander Tools</h3>
+          <div className="grid grid-cols-2 gap-3">
+            <ActionTile icon="manage_accounts" label="Roles & Permissions" active={false} onClick={onManage} />
+            <ActionTile icon="settings_suggest" label="Protocol Settings" active={false} onClick={onOpenSettings} />
+            <ActionTile icon="campaign" label="Broadcast" active={false} onClick={() => { }} />
+            <ActionTile icon="diamond" label="Treasury" active={false} onClick={() => { }} />
+          </div>
+        </section>
+
+      </main>
+    </div >
   );
 };
-
-const ActionCard = ({ icon, label, onClick }: { icon: string, label: string, onClick?: () => void }) => (
-  <button 
-    onClick={onClick}
-    className="flex flex-col items-center gap-3 bg-white/5 p-5 rounded-3xl border border-white/5 hover:border-primary/20 hover:bg-white/10 transition-all active:scale-95 shadow-lg group"
-  >
-    <div className="size-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
-      <span className="material-symbols-outlined font-black text-2xl">{icon}</span>
-    </div>
-    <span className="text-[10px] font-black text-center leading-tight text-white uppercase tracking-widest">{label}</span>
-  </button>
-);
 
 export default Dashboard;

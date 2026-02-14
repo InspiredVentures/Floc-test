@@ -1,14 +1,15 @@
 
-import React, { useState, useRef, useEffect } from 'react';
-import { GoogleGenAI } from "@google/genai";
-import { Message, TribePost, AppView } from '../types';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
+import { useUser } from '../contexts/UserContext';
+import { CommunityPost, AppView } from '../types';
 
 interface Props {
   onBack: () => void;
   onOpenResource: (view: AppView) => void;
 }
 
-const MOCK_LEADER_POSTS: TribePost[] = [
+const MOCK_LEADER_POSTS: CommunityPost[] = [
+  // ... (unchanged)
   {
     id: 'lp1',
     author: 'Inspired Team',
@@ -47,70 +48,58 @@ const MOCK_LEADER_POSTS: TribePost[] = [
 const CONCIERGE_ID = 'inspired-concierge';
 
 const LeaderSupport: React.FC<Props> = ({ onBack, onOpenResource }) => {
+  const { messages: globalMessages, sendMessage, markAsRead, conversations } = useUser();
   const [activeTab, setActiveTab] = useState<'chat' | 'feed'>('chat');
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: 'welcome',
-      senderId: CONCIERGE_ID,
-      senderName: 'Inspired Concierge',
-      senderAvatar: 'https://img.icons8.com/fluency/96/artificial-intelligence.png',
-      text: "Welcome back, Leader. I'm your dedicated Inspired Concierge for everything related to managing your Tribe and ventures. How can I assist you today?",
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      isMe: false
-    }
-  ]);
   const [inputText, setInputText] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  const conversation = useMemo(() =>
+    conversations.find(c => c.participants.includes(CONCIERGE_ID)),
+    [conversations]
+  );
+
+  const messages = useMemo(() => {
+    if (!conversation) return [];
+    return globalMessages
+      .filter(msg => msg.conversationId === conversation.id)
+      .sort((a, b) => a.timestamp - b.timestamp)
+      .map(msg => ({
+        id: msg.id,
+        senderId: msg.senderId,
+        senderName: msg.senderName,
+        senderAvatar: msg.senderAvatar,
+        text: msg.content,
+        timestamp: new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        isMe: msg.senderId === 'alex-sterling'
+      }));
+  }, [globalMessages, conversation]);
+
+  const isTyping = conversation?.participantDetails.find(p => p.username === CONCIERGE_ID)?.isTyping;
+
+  useEffect(() => {
+    if (conversation && conversation.unreadCount > 0) {
+      markAsRead(conversation.id);
+    }
+  }, [conversation, markAsRead]);
 
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages, isTyping]);
+  }, [messages, isTyping, activeTab]);
 
-  const sendMessage = async (e: React.FormEvent) => {
+  const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputText.trim()) return;
 
-    const userMsg: Message = {
-      id: Date.now().toString(),
-      senderId: 'me',
-      senderName: 'Alex Sterling',
-      senderAvatar: 'https://picsum.photos/seed/alex/100/100',
-      text: inputText,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      isMe: true
-    };
-
-    setMessages(prev => [...prev, userMsg]);
-    const currentInput = inputText;
+    sendMessage(
+      CONCIERGE_ID,
+      'Inspired Concierge',
+      'https://img.icons8.com/fluency/96/artificial-intelligence.png',
+      inputText.trim(),
+      conversation?.id
+    );
     setInputText('');
-    setIsTyping(true);
-
-    try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-      const response = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
-        contents: `You are the "Inspired Ventures Concierge", a premium support agent for travel group leaders. The leader "Alex Sterling" is asking: "${currentInput}". Be professional, helpful, and highly knowledgeable about platform features like Venture creation, Tribe management, and sustainability tracking. Keep responses concise and inspiring.`,
-      });
-
-      const conciergeMsg: Message = {
-        id: `concierge-${Date.now()}`,
-        senderId: CONCIERGE_ID,
-        senderName: 'Inspired Concierge',
-        senderAvatar: 'https://img.icons8.com/fluency/96/artificial-intelligence.png',
-        text: response.text || "I'm looking into that for you. Is there anything else I can help with?",
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        isMe: false
-      };
-
-      setMessages(prev => [...prev, conciergeMsg]);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setIsTyping(false);
-    }
   };
 
   return (
@@ -132,14 +121,14 @@ const LeaderSupport: React.FC<Props> = ({ onBack, onOpenResource }) => {
 
       <div className="px-6 py-4 bg-background-dark">
         <div className="flex bg-white/5 p-1 rounded-2xl ring-1 ring-white/10">
-          <button 
+          <button
             onClick={() => setActiveTab('chat')}
             className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'chat' ? 'bg-white text-background-dark shadow-xl' : 'text-slate-500'}`}
           >
             <span className="material-symbols-outlined text-sm">chat</span>
             Inspired Concierge
           </button>
-          <button 
+          <button
             onClick={() => setActiveTab('feed')}
             className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'feed' ? 'bg-white text-background-dark shadow-xl' : 'text-slate-500'}`}
           >
@@ -157,11 +146,10 @@ const LeaderSupport: React.FC<Props> = ({ onBack, onOpenResource }) => {
                 <div key={msg.id} className={`flex ${msg.isMe ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-2 duration-300`}>
                   <div className={`flex gap-3 max-w-[85%] ${msg.isMe ? 'flex-row-reverse' : 'flex-row'}`}>
                     <img src={msg.senderAvatar} className="size-8 rounded-full border border-white/10 shrink-0 self-end mb-1" alt="" />
-                    <div className={`p-4 rounded-2xl shadow-xl ${
-                      msg.isMe 
-                        ? 'bg-primary text-background-dark rounded-br-none' 
-                        : 'bg-surface-dark text-white border border-white/5 rounded-bl-none'
-                    }`}>
+                    <div className={`p-4 rounded-2xl shadow-xl ${msg.isMe
+                      ? 'bg-primary text-background-dark rounded-br-none'
+                      : 'bg-surface-dark text-white border border-white/5 rounded-bl-none'
+                      }`}>
                       <p className="text-xs leading-relaxed">{msg.text}</p>
                       <span className={`text-[8px] font-black uppercase tracking-widest mt-2 block text-right ${msg.isMe ? 'text-background-dark/40' : 'text-slate-500'}`}>
                         {msg.timestamp}
@@ -172,34 +160,34 @@ const LeaderSupport: React.FC<Props> = ({ onBack, onOpenResource }) => {
               ))}
               {isTyping && (
                 <div className="flex justify-start">
-                   <div className="flex gap-3 items-center">
-                     <div className="size-8 rounded-full bg-primary/10 flex items-center justify-center">
-                        <span className="material-symbols-outlined text-primary text-xs animate-pulse">support_agent</span>
-                     </div>
-                     <div className="bg-surface-dark border border-white/5 px-4 py-2 rounded-2xl rounded-bl-none">
-                        <div className="flex gap-1">
-                          <div className="w-1 h-1 bg-primary rounded-full animate-bounce"></div>
-                          <div className="w-1 h-1 bg-primary rounded-full animate-bounce [animation-delay:-0.15s]"></div>
-                          <div className="w-1 h-1 bg-primary rounded-full animate-bounce [animation-delay:-0.3s]"></div>
-                        </div>
-                     </div>
-                   </div>
+                  <div className="flex gap-3 items-center">
+                    <div className="size-8 rounded-full bg-primary/10 flex items-center justify-center">
+                      <span className="material-symbols-outlined text-primary text-xs animate-pulse">support_agent</span>
+                    </div>
+                    <div className="bg-surface-dark border border-white/5 px-4 py-2 rounded-2xl rounded-bl-none">
+                      <div className="flex gap-1">
+                        <div className="w-1 h-1 bg-primary rounded-full animate-bounce"></div>
+                        <div className="w-1 h-1 bg-primary rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+                        <div className="w-1 h-1 bg-primary rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
 
             <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-background-dark via-background-dark to-transparent">
-              <form onSubmit={sendMessage} className="relative group">
-                <input 
-                  type="text" 
+              <form onSubmit={handleSendMessage} className="relative group">
+                <input
+                  type="text"
                   value={inputText}
                   onChange={(e) => setInputText(e.target.value)}
                   placeholder="Ask Inspired Concierge..."
                   className="w-full bg-surface-dark border border-white/10 rounded-2xl py-4 pl-6 pr-14 text-sm text-white focus:border-primary outline-none transition-all shadow-2xl"
                 />
-                <button 
+                <button
                   type="submit"
-                  disabled={!inputText.trim() || isTyping}
+                  disabled={!inputText.trim()}
                   className="absolute right-2 top-1/2 -translate-y-1/2 size-10 bg-primary rounded-xl flex items-center justify-center text-background-dark shadow-lg active:scale-90 transition-all disabled:opacity-50"
                 >
                   <span className="material-symbols-outlined font-black">send</span>
@@ -211,8 +199,8 @@ const LeaderSupport: React.FC<Props> = ({ onBack, onOpenResource }) => {
           <div className="p-6 space-y-8 animate-in fade-in slide-in-from-right-4 duration-500 pb-32">
             <section className="space-y-4">
               <div className="flex items-center justify-between">
-                 <h3 className="text-white text-lg font-black tracking-tight italic">Global Updates</h3>
-                 <span className="text-primary text-[8px] font-black uppercase tracking-[0.2em] bg-primary/10 px-2 py-0.5 rounded">Leader Access Only</span>
+                <h3 className="text-white text-lg font-black tracking-tight italic">Global Updates</h3>
+                <span className="text-primary text-[8px] font-black uppercase tracking-[0.2em] bg-primary/10 px-2 py-0.5 rounded">Leader Access Only</span>
               </div>
               <div className="space-y-6">
                 {MOCK_LEADER_POSTS.map(post => (
@@ -228,14 +216,14 @@ const LeaderSupport: React.FC<Props> = ({ onBack, onOpenResource }) => {
                     </div>
                     <p className="text-slate-300 text-xs leading-relaxed mb-4">{post.content}</p>
                     <div className="flex items-center gap-4 pt-4 border-t border-white/5">
-                       <button className="flex items-center gap-1.5 text-slate-500 hover:text-primary transition-colors">
-                          <span className={`material-symbols-outlined text-sm ${post.hasLiked ? 'fill-1 text-primary' : ''}`}>favorite</span>
-                          <span className="text-[10px] font-black">{post.likes}</span>
-                       </button>
-                       <button className="flex items-center gap-1.5 text-slate-500 hover:text-white transition-colors">
-                          <span className="material-symbols-outlined text-sm">forum</span>
-                          <span className="text-[10px] font-black">Discuss</span>
-                       </button>
+                      <button className="flex items-center gap-1.5 text-slate-500 hover:text-primary transition-colors">
+                        <span className={`material-symbols-outlined text-sm ${post.hasLiked ? 'fill-1 text-primary' : ''}`}>favorite</span>
+                        <span className="text-[10px] font-black">{post.likes}</span>
+                      </button>
+                      <button className="flex items-center gap-1.5 text-slate-500 hover:text-white transition-colors">
+                        <span className="material-symbols-outlined text-sm">forum</span>
+                        <span className="text-[10px] font-black">Discuss</span>
+                      </button>
                     </div>
                   </div>
                 ))}
@@ -243,13 +231,13 @@ const LeaderSupport: React.FC<Props> = ({ onBack, onOpenResource }) => {
             </section>
 
             <section className="space-y-4">
-               <h3 className="text-white text-lg font-black tracking-tight italic px-1">Resource Vault</h3>
-               <div className="grid grid-cols-2 gap-4">
-                  <ResourceItem icon="description" title="Impact Guide" onClick={() => onOpenResource(AppView.IMPACT_GUIDE)} />
-                  <ResourceItem icon="gavel" title="Protocol PDF" onClick={() => onOpenResource(AppView.PROTOCOL_VIEWER)} />
-                  <ResourceItem icon="savings" title="Billing Center" onClick={() => onOpenResource(AppView.BILLING_CENTER)} />
-                  <ResourceItem icon="insights" title="Analytics API" onClick={() => onOpenResource(AppView.ANALYTICS_API)} />
-               </div>
+              <h3 className="text-white text-lg font-black tracking-tight italic px-1">Resource Vault</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <ResourceItem icon="description" title="Impact Guide" onClick={() => onOpenResource(AppView.IMPACT_GUIDE)} />
+                <ResourceItem icon="gavel" title="Protocol PDF" onClick={() => onOpenResource(AppView.PROTOCOL_VIEWER)} />
+                <ResourceItem icon="savings" title="Billing Center" onClick={() => onOpenResource(AppView.BILLING_CENTER)} />
+                <ResourceItem icon="insights" title="Analytics API" onClick={() => onOpenResource(AppView.ANALYTICS_API)} />
+              </div>
             </section>
           </div>
         )}

@@ -22,3 +22,20 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Project specific
+phantom-hypernova/
+scraped_images.txt
+found_images.txt
+scraped_static_results.json
+*.py
+*.cjs
+.env
+.env.production
+check_images.py
+download_and_extract.py
+fetch_images.cjs
+find_wetravel_links.cjs
+generate_journal.cjs
+scrape_static.py
+scraper.py

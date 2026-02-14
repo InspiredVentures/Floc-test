@@ -1,5 +1,6 @@
 
 import React, { useState } from 'react';
+import { useLocation } from 'react-router-dom';
 
 interface Props {
   onBack: () => void;
@@ -7,10 +8,13 @@ interface Props {
 }
 
 const CreateVenture: React.FC<Props> = ({ onBack, onComplete }) => {
-  const [step, setStep] = useState(1);
-  const [title, setTitle] = useState('');
-  const [destination, setDestination] = useState('');
-  const [budget, setBudget] = useState('eco'); // eco, mid, luxury
+  const location = useLocation();
+  const initialData = location.state?.proposal || {};
+
+  const [step, setStep] = useState(initialData.destination ? 2 : 1);
+  const [title, setTitle] = useState(initialData.destination ? `Trip to ${initialData.destination}` : '');
+  const [destination, setDestination] = useState(initialData.destination || '');
+  const [budget, setBudget] = useState(initialData.budget?.toLowerCase() || 'eco'); // eco, mid, luxury
 
   const nextStep = () => setStep(prev => prev + 1);
 
@@ -30,8 +34,8 @@ const CreateVenture: React.FC<Props> = ({ onBack, onComplete }) => {
       <div className="p-6 flex-1 flex flex-col">
         <div className="mb-10 flex gap-2">
           {[1, 2, 3].map(s => (
-            <div 
-              key={s} 
+            <div
+              key={s}
               className={`h-1.5 flex-1 rounded-full transition-all duration-500 ${step >= s ? 'bg-primary shadow-[0_0_10px_rgba(19,236,91,0.5)]' : 'bg-white/10'}`}
             ></div>
           ))}
@@ -43,18 +47,18 @@ const CreateVenture: React.FC<Props> = ({ onBack, onComplete }) => {
             <div className="space-y-4">
               <div>
                 <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-2">Venture Name</label>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  placeholder="e.g. Amazon River Cleanup Expedition"
+                  placeholder="e.g. Amazon River Cleanup Journey"
                   className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
                 />
               </div>
               <div>
                 <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-2">Destination</label>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   value={destination}
                   onChange={(e) => setDestination(e.target.value)}
                   placeholder="Where are we heading?"
@@ -69,25 +73,25 @@ const CreateVenture: React.FC<Props> = ({ onBack, onComplete }) => {
           <div className="animate-in fade-in slide-in-from-right-4 duration-500 space-y-8">
             <h2 className="text-3xl font-black text-white leading-tight">Choose the <span className="text-primary italic">Vibe.</span></h2>
             <div className="grid grid-cols-1 gap-4">
-              <VibeOption 
-                active={budget === 'eco'} 
-                title="Conscious & Raw" 
-                desc="Back to basics, maximum local impact." 
-                icon="eco" 
+              <VibeOption
+                active={budget === 'eco'}
+                title="Conscious & Raw"
+                desc="Back to basics, maximum local impact."
+                icon="eco"
                 onClick={() => setBudget('eco')}
               />
-              <VibeOption 
-                active={budget === 'mid'} 
-                title="Comfort Seekers" 
-                desc="Boutique eco-stays with local charm." 
-                icon="hotel" 
+              <VibeOption
+                active={budget === 'mid'}
+                title="Comfort Seekers"
+                desc="Boutique eco-stays with local charm."
+                icon="hotel"
                 onClick={() => setBudget('mid')}
               />
-              <VibeOption 
-                active={budget === 'luxury'} 
-                title="Impact Luxury" 
-                desc="High-end villas with net-zero footprint." 
-                icon="diamond" 
+              <VibeOption
+                active={budget === 'luxury'}
+                title="Impact Luxury"
+                desc="High-end villas with net-zero footprint."
+                icon="diamond"
                 onClick={() => setBudget('luxury')}
               />
             </div>
@@ -101,12 +105,12 @@ const CreateVenture: React.FC<Props> = ({ onBack, onComplete }) => {
             </div>
             <div>
               <h2 className="text-3xl font-black text-white leading-tight mb-2">Ready for Lift Off!</h2>
-              <p className="text-slate-400 text-sm">Review your venture details. Once posted, Tribe members can apply to join.</p>
+              <p className="text-slate-400 text-sm">Review your venture details. Once posted, Community members can apply to join.</p>
             </div>
             <div className="bg-white/5 border border-white/10 rounded-3xl p-6 text-left space-y-4">
               <div className="flex justify-between">
                 <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Name</span>
-                <span className="text-xs font-bold text-white">{title || 'Amazon Expedition'}</span>
+                <span className="text-xs font-bold text-white">{title || 'Amazon Journey'}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Dest.</span>
@@ -121,7 +125,7 @@ const CreateVenture: React.FC<Props> = ({ onBack, onComplete }) => {
         )}
 
         <div className="mt-auto pt-10">
-          <button 
+          <button
             onClick={step === 3 ? onComplete : nextStep}
             className="w-full bg-primary text-background-dark font-black py-5 rounded-2xl text-lg shadow-2xl shadow-primary/20 active:scale-95 transition-all"
           >
@@ -137,7 +141,7 @@ const CreateVenture: React.FC<Props> = ({ onBack, onComplete }) => {
 };
 
 const VibeOption = ({ active, title, desc, icon, onClick }: { active: boolean, title: string, desc: string, icon: string, onClick: () => void }) => (
-  <button 
+  <button
     onClick={onClick}
     className={`p-5 rounded-3xl border text-left flex gap-4 transition-all ${active ? 'bg-primary border-primary shadow-xl shadow-primary/10' : 'bg-white/5 border-white/10'}`}
   >

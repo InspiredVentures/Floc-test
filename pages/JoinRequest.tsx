@@ -59,7 +59,7 @@ const JoinRequest: React.FC<Props> = ({ community, onBack, onSent }) => {
           <span className="material-symbols-outlined">close</span>
         </button>
         <div className="flex-1">
-          <h1 className="text-lg font-black text-white tracking-tight italic">Join the Tribe</h1>
+          <h1 className="text-lg font-black text-white tracking-tight italic">Join the Community</h1>
           <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.2em]">Requesting access</p>
         </div>
       </header>
@@ -69,14 +69,14 @@ const JoinRequest: React.FC<Props> = ({ community, onBack, onSent }) => {
           <img src={community.image} className="size-16 rounded-2xl object-cover shrink-0 shadow-lg" alt="" />
           <div>
             <h2 className="text-white font-black text-xl leading-tight">{community.title}</h2>
-            <p className="text-primary text-[10px] font-black uppercase tracking-widest mt-1">Managed by Tribe Admin</p>
+            <p className="text-primary text-[10px] font-black uppercase tracking-widest mt-1">Managed by Community Admin</p>
           </div>
         </div>
 
         <section className="space-y-4">
           <div className="space-y-2">
             <h3 className="text-white text-3xl font-black leading-tight">
-              Why do you want <br/>to join <span className="text-primary italic">this Tribe?</span>
+              Why do you want <br />to join <span className="text-primary italic">this Community?</span>
             </h3>
             <p className="text-slate-400 text-sm leading-relaxed">
               This community is "Request Only". Introduce yourself to the admin and explain what you can bring to the collective.
@@ -86,7 +86,7 @@ const JoinRequest: React.FC<Props> = ({ community, onBack, onSent }) => {
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="relative">
               <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-2 px-1">Your Introduction</label>
-              <textarea 
+              <textarea
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 rows={6}
@@ -106,7 +106,7 @@ const JoinRequest: React.FC<Props> = ({ community, onBack, onSent }) => {
               </p>
             </div>
 
-            <button 
+            <button
               type="submit"
               disabled={isSending || !message.trim()}
               className="w-full bg-primary text-background-dark font-black py-5 rounded-2xl text-lg shadow-2xl shadow-primary/20 active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:scale-100"

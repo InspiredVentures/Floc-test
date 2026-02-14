@@ -26,6 +26,52 @@ export enum AppView {
   IMPACT = 'IMPACT'
 }
 
+export interface Member {
+  id: string;
+  name: string;
+  role: 'Owner' | 'Admin' | 'Co-Leader' | 'Member';
+  avatar: string;
+  location: string;
+  joinedDate: string;
+  customPermissions?: string[];
+  status?: 'approved' | 'pending' | 'rejected' | 'banned';
+  email?: string;
+  isContactable?: boolean;
+}
+
+export interface CommunityEvent {
+  id: string;
+  title: string;
+  description: string;
+  date: string;
+  time: string;
+  location: string;
+  attendees: number;
+  image?: string;
+  month: string;
+  day: string;
+  isAttending?: boolean;
+}
+
+export interface CommunityResource {
+  id: string;
+  title: string;
+  type: string;
+  size?: string;
+  url: string;
+  icon: string;
+  downloadCount?: number;
+}
+
+export interface PendingMember {
+  id: string;
+  name: string;
+  avatar: string;
+  reason: string;
+  timestamp: string;
+  category: string;
+}
+
 export interface Community {
   id: string;
   title: string;
@@ -38,6 +84,11 @@ export interface Community {
   accessType: 'free' | 'request';
   unreadCount?: number;
   isManaged?: boolean;
+  members?: Member[];
+  pendingMembers?: PendingMember[];
+  declinedMembers?: PendingMember[];
+  entryQuestions?: string[];
+  enabledFeatures?: string[];
 }
 
 export interface Trip {
@@ -49,6 +100,8 @@ export interface Trip {
   image: string;
   status: 'CONFIRMED' | 'PLANNING' | 'DRAFT';
   membersCount: number;
+  communityId?: string;
+  wetravelId?: string; // To link back to source
 }
 
 export interface TripSuggestion {
@@ -68,18 +121,21 @@ export interface TripSuggestion {
 
 export interface Message {
   id: string;
+  conversationId: string;
   senderId: string;
   senderName: string;
   senderAvatar: string;
-  text: string;
-  timestamp: string;
-  isMe: boolean;
+  recipientId?: string; // Optional for group chats
+  content: string;
+  timestamp: number;
+  read: boolean;
+  isMe?: boolean; // Optional, can be derived
   status?: 'sent' | 'delivered' | 'read';
   sources?: { title: string; uri: string }[];
   suggestion?: TripSuggestion;
 }
 
-export interface TribeComment {
+export interface CommunityComment {
   id: string;
   user: string;
   avatar: string;
@@ -87,31 +143,82 @@ export interface TribeComment {
   time: string;
 }
 
-export interface TribePost {
+export interface CommunityPost {
   id: string;
   author: string;
   authorAvatar: string;
-  role: 'Manager' | 'Guide' | 'Member';
+  communityName?: string;
+  role?: string;
   content: string;
   image?: string;
   video?: string;
   likes: number;
   hasLiked: boolean;
-  comments: TribeComment[];
+  comments: { id: string; user: string; avatar: string; text: string; time: string }[];
   time: string;
   timestamp?: number;
-  tribeName?: string;
   suggestion?: TripSuggestion;
+  communityId?: string;
+  isPinned?: boolean;
 }
+
+export interface Profile {
+  id: string;
+  username: string;
+  display_name: string;
+  avatar_url: string;
+  bio?: string;
+  location?: string;
+  role?: string;
+}
+
+export interface User {
+  id: string;
+  username: string;
+  displayName: string;
+  avatar: string;
+  bio: string;
+  location?: string;
+  joinedDate: string;
+  isOnline?: boolean;
+  lastSeen?: string;
+  stats: {
+    trips: number;
+    communities: number;
+    followers: number;
+    following: number;
+  };
+}
+
+// DirectMessage is deprecated in favor of unified Message
+export type DirectMessage = Message;
+
+export interface Conversation {
+  id: string;
+  participants: string[];  // usernames
+  participantDetails: {
+    username: string;
+    displayName: string;
+    avatar: string;
+    isOnline?: boolean;
+    isTyping?: boolean;
+  }[];
+  lastMessage?: Message;
+  unreadCount: number;
+  type?: 'direct' | 'group';
+  title?: string; // For group chats
+}
+
 
 export interface AppNotification {
   id: string;
   type: 'TRIP' | 'CHAT' | 'SUGGESTION';
   title: string;
   message: string;
-  timestamp: string;
+  timestamp: number;
   isRead: boolean;
   relatedId?: string;
+  relatedType?: 'trip' | 'community';
 }
 
 export interface NotificationPreferences {

@@ -1,194 +1,359 @@
-
-import React, { useState, useEffect, useMemo } from 'react';
-import { Trip, TribePost, TribeComment, TripSuggestion } from '../types';
+import React, { useState, useEffect } from 'react';
+import { Trip, TripSuggestion } from '../types';
+import { useToast } from '../contexts/ToastContext';
+import { useUser } from '../contexts/UserContext';
+import { useNavigate } from 'react-router-dom';
+import { communityService } from '../services/communityService';
+import { TripSuggestionCard } from '../components/TripSuggestionCard';
+import { CreateSuggestionModal } from '../components/CreateSuggestionModal';
+import { ChatInterface } from '../components/ChatInterface';
+import { Feed } from '../components/Feed';
+import { SEO } from '../components/SEO';
 
 interface Props {
   trip: Trip;
   onBack: () => void;
   onBook: () => void;
   onOpenChat?: () => void;
+  isBooking?: boolean;
 }
 
-interface ItineraryDay {
-  day: number;
-  title: string;
-  content: string;
-  tags: string[];
-  completed: boolean;
-}
+const TripDetails: React.FC<Props> = ({ trip, onBack, onBook, onOpenChat, isBooking }) => {
+  const navigate = useNavigate();
+  const { user } = useUser();
+  const { success } = useToast();
+  /* State */
+  const [activeView, setActiveView] = useState<'group' | 'chat' | 'docs' | 'lab'>('group');
+  const [showSuggestModal, setShowSuggestModal] = useState(false);
+  const [suggestions, setSuggestions] = useState<TripSuggestion[]>([]);
+  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
 
-const DEFAULT_ITINERARY: ItineraryDay[] = [
-  { 
-    day: 1, 
-    title: "Arrival & Welcome", 
-    content: `Arrive at the destination. Private transfer to our locally managed resort. Evening welcome circle and traditional dinner.`,
-    tags: ["Dinner Included", "Transfer"],
-    completed: true 
-  },
-  { 
-    day: 2, 
-    title: "Local Heritage Trek", 
-    content: "A moderate 4-hour trek through historic sites and nature trails. Experience authentic local life and have lunch with a village family.",
-    tags: ["Lunch Included", "Active"],
-    completed: false 
-  },
-  { 
-    day: 3, 
-    title: "Community Workshop", 
-    content: "Spend the day at a local center. Learn about heritage and help with local community projects.",
-    tags: ["Volunteering", "Culture"],
-    completed: false 
-  },
-  { 
-    day: 4, 
-    title: "Nature Photography", 
-    content: "Journey to hidden natural wonders. Visit three of the area's most beautiful spots and stay in a community-run lodge.",
-    tags: ["Nature", "Photography"],
-    completed: false 
-  },
-];
+  // Logic to determine if user has access (booked)
+  const isBooked = user?.bookedTrips?.includes(trip.id);
 
-const TripDetails: React.FC<Props> = ({ trip, onBack, onBook, onOpenChat }) => {
-  const [itinerary, setItinerary] = useState<ItineraryDay[]>(DEFAULT_ITINERARY);
-  const [activeView, setActiveView] = useState<'timeline' | 'lab'>('timeline');
-  const [pulsingDay, setPulsingDay] = useState<number | null>(null);
+  /* Effects */
+  useEffect(() => {
+    if (activeView === 'chat' && !isBooked) {
+      // If user tries to access chat without booking, switch back to group
+      setActiveView('group');
+    }
+  }, [activeView, isBooked]);
 
-  const toggleComplete = (dayNum: number) => {
-    setItinerary(prev => prev.map(item => {
-      if (item.day === dayNum) {
-        const isNowCompleted = !item.completed;
-        if (isNowCompleted) setPulsingDay(dayNum);
-        return { ...item, completed: isNowCompleted };
-      }
-      return item;
-    }));
+  useEffect(() => {
+    if (trip.communityId) {
+      loadSuggestions();
+    }
+  }, [trip.communityId]);
+
+  /* Handlers */
+  const loadSuggestions = async () => {
+    if (!trip.communityId) return;
+    setIsLoadingSuggestions(true);
+    try {
+      const fetched = await communityService.getSuggestions(trip.communityId, user?.id);
+      setSuggestions(fetched);
+    } catch (e) {
+      console.error("Failed to load suggestions", e);
+    } finally {
+      setIsLoadingSuggestions(false);
+    }
   };
 
-  const handlePulseProgress = (day: ItineraryDay) => {
-    // This would typically navigate to GlobalFeed with prefilled state
-    // For now, we simulate the action and clear the highlight
-    setPulsingDay(null);
-    alert(`Success! We've shared Day ${day.day} of "${trip.title}" to the Pulse Feed!`);
+  const handleVote = async (id: string, dir: 'up' | 'down') => {
+    if (!user) return;
+    const success = await communityService.voteSuggestion(id, user.id, dir);
+    if (success) {
+      setSuggestions(prev => prev.map(s => {
+        if (s.id !== id) return s;
+        // Optimistic update logic
+        const currentVote = s.myVote;
+        let voteChange = 0;
+        if (currentVote === dir) {
+          voteChange = (dir === 'up' ? -1 : 1); // remove
+          return { ...s, myVote: null, votes: s.votes + voteChange };
+        } else if (currentVote) {
+          voteChange = (dir === 'up' ? 2 : -2); // switch
+          return { ...s, myVote: dir, votes: s.votes + voteChange };
+        } else {
+          voteChange = (dir === 'up' ? 1 : -1); // new
+          return { ...s, myVote: dir, votes: s.votes + voteChange };
+        }
+      }));
+    }
   };
 
-  const completedCount = itinerary.filter(i => i.completed).length;
-  const progressPercent = Math.round((completedCount / itinerary.length) * 100);
+  const handleAddComment = async (id: string, text: string) => {
+    if (!user) return;
+    const newComment = await communityService.addSuggestionComment(id, user.id, user.displayName, user.avatar, text);
+    if (newComment) {
+      setSuggestions(prev => prev.map(s => {
+        if (s.id !== id) return s;
+        return { ...s, comments: [...(s.comments || []), newComment] };
+      }));
+    }
+  };
 
   return (
-    <div className="relative flex flex-col min-h-screen">
-      <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between p-4 bg-gradient-to-b from-black/60 to-transparent">
-        <button onClick={onBack} className="bg-white/10 backdrop-blur-md text-white p-2 rounded-full flex items-center justify-center hover:bg-white/20 transition-colors active:scale-90">
+    <div className="flex flex-col min-h-screen bg-[#FCFBF5] text-[#14532D] font-body selection:bg-accent selection:text-white">
+      <SEO
+        title={trip.title}
+        description={`Join the ${trip.title} trip to ${trip.destination}.`}
+        image={trip.image}
+      />
+      <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between p-4 bg-gradient-to-b from-black/60 to-transparent pointer-events-none">
+        <button onClick={onBack} className="bg-white/10 backdrop-blur-md text-white p-2 rounded-full flex items-center justify-center hover:bg-white/20 transition-colors active:scale-90 pointer-events-auto">
           <span className="material-symbols-outlined">arrow_back_ios_new</span>
         </button>
       </header>
 
-      <div className="relative h-[380px] w-full shrink-0">
-        <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `linear-gradient(0deg, rgba(22,13,8,1) 0%, rgba(22,13,8,0.4) 40%, rgba(22,13,8,0) 100%), url('${trip.image}')` }}></div>
+      <div className="relative h-[45vh] w-full shrink-0">
+        <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `linear-gradient(0deg, #FCFBF5 0%, rgba(252, 251, 245,0.4) 40%, transparent 100%), url('${trip.image}')` }}></div>
         <div className="absolute bottom-6 left-6 right-6">
-          <h1 className="text-white text-4xl font-black leading-tight tracking-tight italic uppercase">{trip.title}</h1>
-          <p className="text-white/60 text-[10px] font-black uppercase tracking-widest mt-2">{trip.destination}</p>
+          <div className="flex items-center gap-2 mb-2">
+            <span className="bg-accent/20 backdrop-blur-md text-accent border border-accent/20 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">{trip.status}</span>
+            <span className="bg-primary/20 backdrop-blur-md text-primary border border-primary/20 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">{trip.dates}</span>
+          </div>
+          <h1 className="text-primary text-4xl font-heading font-black leading-tight tracking-tight italic uppercase">{trip.title}</h1>
+          <p className="text-primary/60 text-[10px] font-black uppercase tracking-widest mt-2 flex items-center gap-2">
+            <span className="material-symbols-outlined text-sm">location_on</span>
+            {trip.destination}
+          </p>
         </div>
       </div>
 
-      <main className="flex-1 flex flex-col gap-8 px-4 pb-40 -mt-2 relative z-10 bg-background-dark rounded-t-[2rem] pt-8 shadow-[0_-20px_40px_rgba(0,0,0,0.5)]">
-        <div className="flex bg-white/5 p-1 rounded-2xl ring-1 ring-white/10">
-          <button onClick={() => setActiveView('timeline')} className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all ${activeView === 'timeline' ? 'bg-white text-background-dark shadow-lg' : 'text-slate-500'}`}><span className="material-symbols-outlined text-sm">route</span>Timeline</button>
-          <button onClick={() => setActiveView('lab')} className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all ${activeView === 'lab' ? 'bg-white text-background-dark shadow-lg' : 'text-slate-500'}`}><span className="material-symbols-outlined text-sm">rocket_launch</span>Venture Lab</button>
+      <main className="flex-1 flex flex-col gap-6 px-4 pb-40 -mt-2 relative z-10 bg-[#FCFBF5] rounded-t-[2rem] pt-8 shadow-[0_-20px_40px_rgba(0,0,0,0.05)]">
+
+        {/* Action Bar */}
+        <div className="grid grid-cols-2 gap-4">
+          <button
+            onClick={() => navigate('/global-feed')}
+            className="flex flex-col items-center justify-center gap-1 bg-white border border-primary/10 p-4 rounded-2xl shadow-sm hover:border-accent/50 hover:shadow-md transition-all group"
+          >
+            <span className="material-symbols-outlined text-accent text-2xl group-hover:scale-110 transition-transform">public</span>
+            <span className="text-[9px] font-black uppercase tracking-widest text-primary/60">Ask Global Community</span>
+          </button>
+          <button
+            onClick={() => isBooked ? setActiveView('chat') : onBook()}
+            disabled={isBooking}
+            className={`flex flex-col items-center justify-center gap-1 p-4 rounded-2xl shadow-lg transition-all active:scale-95 ${isBooked ? 'bg-primary text-white shadow-primary/30' : 'bg-accent text-white shadow-accent/30'}`}
+          >
+            {isBooking ? (
+              <span className="size-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            ) : (
+              <>
+                <span className="material-symbols-outlined text-2xl">{isBooked ? 'forum' : 'airplane_ticket'}</span>
+                <span className="text-[9px] font-black uppercase tracking-widest">{isBooked ? 'Open Team Chat' : 'Reserve Spot'}</span>
+              </>
+            )}
+          </button>
         </div>
 
-        {activeView === 'timeline' && (
-          <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
-             <div className="bg-gradient-to-br from-slate-900 to-black border border-white/10 rounded-[2.5rem] p-6 relative overflow-hidden shadow-2xl">
-              <div className="flex items-center justify-between relative z-10">
-                <div className="flex-1">
-                  <p className="text-[10px] font-black text-primary uppercase tracking-[0.2em] mb-1">Live Progress</p>
-                  <h3 className="text-white text-2xl font-black mb-1 italic">Journey Log</h3>
-                  <p className="text-slate-400 text-xs font-medium">{completedCount} of {itinerary.length} days completed</p>
-                </div>
-                <div className="relative size-20 shrink-0 flex items-center justify-center">
-                  <svg className="size-full -rotate-90">
-                    <circle cx="40" cy="40" r="34" className="stroke-white/5 fill-none" strokeWidth="6" />
-                    <circle cx="40" cy="40" r="34" className="stroke-primary fill-none transition-all duration-1000 ease-out shadow-[0_0_10px_rgba(255,107,53,0.5)]" strokeWidth="6" strokeDasharray="213.6" strokeDashoffset={213.6 - (213.6 * progressPercent / 100)} strokeLinecap="round" />
-                  </svg>
-                  <div className="absolute inset-0 flex flex-col items-center justify-center"><span className="text-sm font-black text-white italic">{progressPercent}%</span></div>
-                </div>
-              </div>
+        <div className="flex bg-primary/5 p-1 rounded-2xl ring-1 ring-primary/10 overflow-x-auto">
+          <button onClick={() => setActiveView('group')} className={`flex-1 min-w-[80px] flex items-center justify-center gap-2 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all ${activeView === 'group' ? 'bg-primary text-white shadow-lg' : 'text-primary/40 hover:bg-primary/5'}`}>
+            <span className="material-symbols-outlined text-sm">groups</span>
+            <span className="hidden sm:inline">The Group</span>
+            <span className="sm:hidden">Group</span>
+          </button>
+
+          {isBooked && (
+            <button onClick={() => setActiveView('chat')} className={`flex-1 min-w-[80px] flex items-center justify-center gap-2 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all ${activeView === 'chat' ? 'bg-primary text-white shadow-lg' : 'text-primary/40 hover:bg-primary/5'}`}>
+              <span className="material-symbols-outlined text-sm">chat</span>
+              Chat
+            </button>
+          )}
+
+          <button onClick={() => setActiveView('docs')} className={`flex-1 min-w-[80px] flex items-center justify-center gap-2 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all ${activeView === 'docs' ? 'bg-primary text-white shadow-lg' : 'text-primary/40 hover:bg-primary/5'}`}>
+            <span className="material-symbols-outlined text-sm">description</span>
+            <span className="hidden sm:inline">Docs</span>
+            <span className="sm:hidden">Docs</span>
+          </button>
+
+          <button onClick={() => setActiveView('lab')} className={`flex-1 min-w-[80px] flex items-center justify-center gap-2 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all ${activeView === 'lab' ? 'bg-primary text-white shadow-lg' : 'text-primary/40 hover:bg-primary/5'}`}>
+            <span className="material-symbols-outlined text-sm">science</span>
+            <span className="hidden sm:inline">Lab</span>
+            <span className="sm:hidden">Lab</span>
+          </button>
+        </div>
+
+        {activeView === 'group' && (
+          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            {/* Roster Section */}
+            <div>
+              <h3 className="text-primary text-xl font-heading font-black italic uppercase tracking-tighter">Squad Roster</h3>
+              <p className="text-primary/60 text-[10px] font-bold uppercase tracking-widest mt-1">
+                {isBooked ? `${trip.membersCount} Confirmed Travellers` : 'Join the group to unlock profiles'}
+              </p>
             </div>
 
-            <section className="relative pl-4 space-y-4">
-               {itinerary.map((item, idx) => (
-                 <ItineraryItem 
-                   key={item.day} 
-                   item={item} 
-                   onToggleComplete={() => toggleComplete(item.day)} 
-                   isPulsing={pulsingDay === item.day}
-                   onPulse={() => handlePulseProgress(item)}
-                 />
-               ))}
-            </section>
+            {isBooked ? (
+              // Unlocked View
+              <div className="space-y-8">
+                {/* Member Grid - Collapsible or horizontal scroll */}
+                <div className="bg-white p-4 rounded-[2rem] border border-primary/5 shadow-sm">
+                  <div className="flex -space-x-3 overflow-x-auto pb-2 scrollbar-none">
+                    {[1, 2, 3, 4, 5, 6, 7].map(i => (
+                      <img key={i} className="inline-block size-12 rounded-full ring-2 ring-white cursor-pointer hover:scale-110 transition-transform hover:z-10" src={`https://i.pravatar.cc/100?img=${i + 10}`} alt="Member" title={`Member ${i}`} />
+                    ))}
+                    <div className="size-12 rounded-full bg-primary/10 ring-2 ring-white flex items-center justify-center text-[10px] font-black text-primary">
+                      +{trip.membersCount > 7 ? trip.membersCount - 7 : 0}
+                    </div>
+                  </div>
+                  <div className="flex justify-between items-center mt-2 px-1">
+                    <p className="text-[10px] font-bold text-primary/40 uppercase tracking-widest">Team Online</p>
+                    <button onClick={() => setActiveView('chat')} className="text-[10px] font-black text-accent uppercase tracking-widest hover:underline flex items-center gap-1">
+                      Open Chat <span className="material-symbols-outlined text-sm">arrow_forward</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Trip Feed */}
+                <div>
+                  <h3 className="text-primary text-xl font-heading font-black italic uppercase tracking-tighter mb-4">Trip Feed</h3>
+                  <Feed
+                    context="trip"
+                    contextId={trip.id}
+                    initialPosts={[
+                      {
+                        id: 'welcome-post',
+                        author: 'Eva Guide',
+                        authorAvatar: 'https://i.pravatar.cc/150?img=32',
+                        role: 'Lead Guide',
+                        content: `Welcome to the official feed for ${trip.title}! This is your space to share excitement, gear tips, and coordinate before we fly. ✈️`,
+                        likes: 12,
+                        hasLiked: false,
+                        comments: [],
+                        time: '2 days ago',
+                        timestamp: Date.now()
+                      }
+                    ]}
+                  />
+                </div>
+              </div>
+            ) : (
+              // Locked View
+              <div className="bg-white/50 backdrop-blur-sm p-8 rounded-[2.5rem] border border-primary/5 text-center space-y-6 relative overflow-hidden">
+                <div className="absolute inset-0 bg-primary/5 pattern-grid-lg opacity-10"></div>
+                <div className="relative z-10 flex flex-col items-center gap-4">
+                  <div className="size-16 bg-primary/10 rounded-full flex items-center justify-center text-primary mb-2">
+                    <span className="material-symbols-outlined text-3xl">lock</span>
+                  </div>
+                  <h3 className="text-primary text-lg font-black uppercase italic">Classified Access</h3>
+                  <p className="text-primary/60 text-xs font-medium max-w-xs mx-auto leading-relaxed">
+                    The roster and dedicated tactical feed are reserved for confirmed team members. Secure your spot to meet your group.
+                  </p>
+                  <button onClick={onBook} className="mt-2 text-accent text-[10px] font-black uppercase tracking-widest hover:underline">
+                    Reserve your spot now
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeView === 'chat' && isBooked && (
+          <div className="h-[600px] bg-white rounded-[2.5rem] shadow-inner border border-primary/5 overflow-hidden animate-in fade-in zoom-in-95 duration-300">
+            <ChatInterface
+              id={trip.id}
+              title={`Chat: ${trip.title}`}
+              subtitle="Team Channel"
+              type="trip"
+              embedded={true}
+            />
+          </div>
+        )}
+
+        {activeView === 'docs' && (
+          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div>
+              <h3 className="text-primary text-xl font-heading font-black italic uppercase tracking-tighter text-glow-accent">Journey Brief</h3>
+              <p className="text-primary/60 text-[10px] font-bold uppercase tracking-widest mt-1">Pre-departure materials</p>
+            </div>
+
+            {isBooked ? (
+              <div className="grid gap-4">
+                {[
+                  { title: 'Mission Protocol', type: 'PDF • 2.4MB', icon: 'shield_with_heart' },
+                  { title: 'Packing Strategy', type: 'PDF • 1.1MB', icon: 'hiking' },
+                  { title: 'Travel Insurance', type: 'Action Required', icon: 'verified_user', urgent: true },
+                  { title: 'Impact Agreement', type: 'Signed', icon: 'assignment_turned_in' }
+                ].map((doc, idx) => (
+                  <div key={idx} className={`bg-white p-5 rounded-3xl border ${doc.urgent ? 'border-accent/40 bg-accent/5' : 'border-primary/5'} flex items-center gap-4 group hover:border-accent transition-all cursor-pointer`}>
+                    <div className={`size-12 rounded-2xl flex items-center justify-center ${doc.urgent ? 'bg-accent/10 text-accent' : 'bg-primary/5 text-primary'}`}>
+                      <span className="material-symbols-outlined">{doc.icon}</span>
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="text-primary font-black uppercase italic text-sm">{doc.title}</h4>
+                      <p className={`text-[10px] font-bold uppercase tracking-widest ${doc.urgent ? 'text-accent' : 'text-primary/40'}`}>{doc.type}</p>
+                    </div>
+                    <span className="material-symbols-outlined text-primary/20 group-hover:text-accent transition-colors">download</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="bg-white/50 backdrop-blur-sm p-8 rounded-[2.5rem] border border-primary/5 text-center space-y-6 relative overflow-hidden">
+                <div className="absolute inset-0 bg-primary/5 pattern-lines opacity-10"></div>
+                <div className="relative z-10 flex flex-col items-center gap-4">
+                  <div className="size-16 bg-primary/10 rounded-full flex items-center justify-center text-primary mb-2">
+                    <span className="material-symbols-outlined text-3xl">folder_off</span>
+                  </div>
+                  <h3 className="text-primary text-lg font-black uppercase italic">Documents Locked</h3>
+                  <p className="text-primary/60 text-xs font-medium max-w-xs mx-auto leading-relaxed">
+                    Mission protocols, packing lists, and insurance uploads will be available here after booking confirmation.
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
         {activeView === 'lab' && (
-          <div className="py-20 text-center animate-in fade-in zoom-in-95 duration-500">
-             <div className="size-20 bg-white/5 rounded-[2rem] border border-white/5 flex items-center justify-center mx-auto mb-6">
-                <span className="material-symbols-outlined text-slate-700 text-4xl font-black">rocket_launch</span>
-             </div>
-             <h3 className="text-white text-xl font-black italic tracking-tighter">Venture Planning Lab</h3>
-             <p className="text-slate-500 text-xs mt-3 max-w-[240px] mx-auto leading-relaxed">
-               Collaborate on trip extensions and post-venture activities with other explorers.
-             </p>
-             <button className="mt-8 bg-primary/10 border border-primary/20 text-primary px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest">Post a Suggestion</button>
+          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-primary text-xl font-heading font-black italic uppercase tracking-tighter">Venture Lab</h3>
+                <p className="text-primary/60 text-[10px] font-bold uppercase tracking-widest mt-1">Shape future expeditions</p>
+              </div>
+              <button
+                onClick={() => setShowSuggestModal(true)}
+                className="bg-primary text-white p-3 rounded-xl shadow-lg border border-primary/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-2"
+              >
+                <span className="material-symbols-outlined text-lg">add_circle</span>
+                <span className="text-[10px] font-black uppercase tracking-widest hidden sm:inline">Pitch Idea</span>
+              </button>
+            </div>
+
+            {isLoadingSuggestions ? (
+              <div className="text-center py-10 text-primary/40">Loading ideas...</div>
+            ) : (
+              <div className="space-y-6">
+                {suggestions.map(sug => (
+                  <TripSuggestionCard
+                    key={sug.id}
+                    suggestion={sug}
+                    onVote={(dir) => handleVote(sug.id, dir)}
+                    onAddComment={(text) => handleAddComment(sug.id, text)}
+                  />
+                ))}
+                {suggestions.length === 0 && (
+                  <div className="text-center py-10 bg-white border border-primary/5 rounded-[2rem]">
+                    <span className="material-symbols-outlined text-4xl text-primary/20 mb-2">lightbulb</span>
+                    <p className="text-primary/60 text-xs font-bold uppercase tracking-widest">No proposals yet</p>
+                    <p className="text-primary/40 text-[10px] mt-1">Be the first to pitch a new adventure!</p>
+                  </div>
+                )}
+              </div>
+            )}
+
           </div>
         )}
+
+        <CreateSuggestionModal
+          isOpen={showSuggestModal}
+          onClose={() => setShowSuggestModal(false)}
+          communityId={trip.communityId}
+          onSuggestionCreated={(newSug) => setSuggestions(prev => [newSug, ...prev])}
+        />
       </main>
-
-      <section className="fixed bottom-0 left-0 right-0 z-[60] p-6 pb-10 bg-background-dark/95 backdrop-blur-3xl border-t border-white/5 max-w-md mx-auto">
-         <button onClick={onBook} className="w-full bg-primary text-background-dark h-16 rounded-2xl font-black text-lg shadow-2xl shadow-primary/30 active:scale-95 transition-all flex items-center justify-center gap-3">
-            <span>Secure Spot</span>
-            <span className="material-symbols-outlined font-black">arrow_forward</span>
-         </button>
-      </section>
-    </div>
-  );
-};
-
-const ItineraryItem: React.FC<{ item: ItineraryDay; onToggleComplete: () => void; isPulsing: boolean; onPulse: () => void }> = ({ item, onToggleComplete, isPulsing, onPulse }) => {
-  const [expanded, setExpanded] = useState(false);
-  return (
-    <div className="relative mb-6 last:mb-0 animate-in fade-in slide-in-from-left-4 duration-500">
-      <div className={`absolute left-[16px] top-4 flex items-center justify-center size-8 rounded-full z-10 transition-all ${item.completed ? 'bg-primary scale-110 shadow-lg shadow-primary/30' : 'bg-slate-800 border border-white/10'}`}>
-        {item.completed ? <span className="material-symbols-outlined text-background-dark text-base font-black">check</span> : <span className="text-[10px] font-black text-slate-500">{item.day}</span>}
-      </div>
-      <div className={`ml-14 transition-all rounded-[2rem] p-6 border cursor-pointer group ${expanded ? 'bg-primary/5 border-primary/30 shadow-2xl' : 'bg-white/5 border-white/5 hover:border-white/20'}`} onClick={() => setExpanded(!expanded)}>
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex-1 min-w-0">
-             <h3 className={`font-black text-sm transition-all truncate ${item.completed && !expanded ? 'text-slate-600 line-through' : 'text-white italic uppercase'}`}>{item.title}</h3>
-             {isPulsing && (
-                <button 
-                  onClick={(e) => { e.stopPropagation(); onPulse(); }}
-                  className="mt-3 bg-primary text-background-dark px-3 py-1.5 rounded-lg text-[8px] font-black uppercase tracking-widest animate-bounce flex items-center gap-2 shadow-lg"
-                >
-                   <span className="material-symbols-outlined text-[10px]">dynamic_feed</span>
-                   Pulse this milestone
-                </button>
-             )}
-          </div>
-          <button onClick={(e) => { e.stopPropagation(); onToggleComplete(); }} className={`size-9 rounded-xl transition-all flex items-center justify-center shrink-0 ${item.completed ? 'bg-primary text-background-dark' : 'bg-white/5 text-slate-700 border border-white/10'}`}>
-            <span className="material-symbols-outlined text-xl font-black">{item.completed ? 'task_alt' : 'circle'}</span>
-          </button>
-        </div>
-        {expanded && (
-          <div className="mt-5 animate-in fade-in slide-in-from-top-3 duration-400 space-y-4">
-             <p className="text-xs text-slate-400 leading-relaxed font-medium">{item.content}</p>
-             <div className="flex flex-wrap gap-2">
-               {item.tags.map(tag => (
-                 <span key={tag} className="bg-white/5 border border-white/10 px-2 py-1 rounded-lg text-[8px] uppercase font-black tracking-widest text-slate-500">{tag}</span>
-               ))}
-             </div>
-          </div>
-        )}
-      </div>
     </div>
   );
 };

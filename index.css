@@ -1,0 +1,175 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #14532D;
+  /* Updated to a more vibrant Forest Green */
+  --color-primary-teal: #007FFF;
+  /* Sapphire Blue */
+  --color-primary-green: #14532D;
+  /* Forest Green */
+  --color-background-light: #FCFBF5;
+  /* EVA Cream - Standardized */
+  --color-background-dark: #14532D;
+  /* Forest Green */
+  --color-accent: #007FFF;
+  /* Sapphire Blue */
+  --color-secondary: #E8F5E9;
+  /* Light Green */
+  --color-muted: #F1F8E9;
+
+  --font-display: "Plus Jakarta Sans", sans-serif;
+  --font-serif: "Playfair Display", serif;
+  --font-manrope: "Manrope", sans-serif;
+  --font-sans: "Inter", sans-serif;
+
+  --animate-sparkle-1: sparkle-1 0.6s ease-out forwards;
+  --animate-sparkle-2: sparkle-2 0.6s ease-out forwards;
+  --animate-sparkle-3: sparkle-3 0.6s ease-out forwards;
+  --animate-sparkle-4: sparkle-4 0.6s ease-out forwards;
+  --animate-notification-pulse: notification-pulse 2s infinite;
+
+  @keyframes sparkle-1 {
+    0% {
+      transform: translate(0, 0) scale(0);
+      opacity: 0;
+    }
+
+    50% {
+      opacity: 1;
+    }
+
+    100% {
+      transform: translate(-20px, -20px) scale(1);
+      opacity: 0;
+    }
+  }
+
+  @keyframes sparkle-2 {
+    0% {
+      transform: translate(0, 0) scale(0);
+      opacity: 0;
+    }
+
+    50% {
+      opacity: 1;
+    }
+
+    100% {
+      transform: translate(20px, -20px) scale(1);
+      opacity: 0;
+    }
+  }
+
+  @keyframes sparkle-3 {
+    0% {
+      transform: translate(0, 0) scale(0);
+      opacity: 0;
+    }
+
+    50% {
+      opacity: 1;
+    }
+
+    100% {
+      transform: translate(-20px, 20px) scale(1);
+      opacity: 0;
+    }
+  }
+
+  @keyframes heart-pop {
+    0% {
+      transform: scale(1);
+    }
+
+    15% {
+      transform: scale(1.4);
+    }
+
+    30% {
+      transform: scale(0.9);
+    }
+
+    45% {
+      transform: scale(1.15);
+    }
+
+    60% {
+      transform: scale(0.95);
+    }
+
+    100% {
+      transform: scale(1);
+    }
+  }
+
+  @keyframes notification-pulse {
+    0% {
+      transform: scale(1);
+      box-shadow: 0 0 0 0 rgba(0, 127, 255, 0.7);
+    }
+
+    70% {
+      transform: scale(1.1);
+      box-shadow: 0 0 0 6px rgba(0, 127, 255, 0);
+    }
+
+    100% {
+      transform: scale(1);
+      box-shadow: 0 0 0 0 rgba(0, 127, 255, 0);
+    }
+  }
+}
+
+:root,
+[data-theme="eva"],
+main[data-theme="eva"] {
+  /* EVA Branding - Forest Green & Sapphire Blue */
+  --font-body: 'Nunito', sans-serif;
+  --font-heading: 'Fredoka', sans-serif;
+
+  --background: #FCFBF5;
+  /* Cream - Slightly more saturated */
+  --foreground: #14532D;
+  /* Deep Jungle Green */
+
+  --primary: #14532D;
+  /* Deep Jungle Green */
+  --primary-foreground: #ffffff;
+
+  --secondary: #E8F5E9;
+  /* Light Green */
+  --secondary-foreground: #14532D;
+
+  --accent: #007FFF;
+  /* Sapphire Blue - High Visibility */
+  --accent-foreground: #ffffff;
+
+  --muted: #F1F8E9;
+  --muted-foreground: #558B2F;
+
+  --card: #ffffff;
+  --card-foreground: #14532D;
+
+  --border: #C8E6C9;
+  --radius: 2rem;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.ios-blur {
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}

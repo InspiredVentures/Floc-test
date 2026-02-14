@@ -1,47 +1,17 @@
-
 import React, { useState, useMemo, useEffect } from 'react';
 import { AppNotification } from '../types';
+import { useUser } from '../contexts/UserContext';
 
 interface Props {
   onBack: () => void;
   onNavigateToTrip?: (id: string) => void;
-  onNavigateToChat?: (id: string) => void;
+  onNavigateToChat?: (id: string, type: 'trip' | 'community') => void;
 }
-
-const INITIAL_NOTIFICATIONS: AppNotification[] = [
-  {
-    id: '1',
-    type: 'TRIP',
-    title: 'Flight Confirmed!',
-    message: 'Your flight to Nairobi for Safari in Kenya is confirmed. View details in your itinerary.',
-    timestamp: '10:42 AM',
-    isRead: false,
-    relatedId: '1'
-  },
-  {
-    id: '2',
-    type: 'CHAT',
-    title: 'Sarah Jenkins',
-    message: '“Hey everyone! Just applied for my visa!”',
-    timestamp: '09:15 AM',
-    isRead: false,
-    relatedId: '1'
-  },
-  {
-    id: '3',
-    type: 'SUGGESTION',
-    title: 'New Activity Lab',
-    message: 'Mike Ross suggested "Sunrise Yoga at Mt. Kenya" for your upcoming trip.',
-    timestamp: 'Yesterday',
-    isRead: true,
-    relatedId: '1'
-  }
-];
 
 type FilterType = 'ALL' | 'TRIP' | 'CHAT' | 'SUGGESTION';
 
 const Notifications: React.FC<Props> = ({ onBack, onNavigateToTrip, onNavigateToChat }) => {
-  const [notifications, setNotifications] = useState<AppNotification[]>(INITIAL_NOTIFICATIONS);
+  const { notifications, markNotificationsAsRead, deleteNotification } = useUser();
   const [activeFilter, setActiveFilter] = useState<FilterType>('ALL');
   const [showSuccessCheck, setShowSuccessCheck] = useState(false);
 
@@ -51,33 +21,25 @@ const Notifications: React.FC<Props> = ({ onBack, onNavigateToTrip, onNavigateTo
   }, [notifications, activeFilter]);
 
   const markAllRead = () => {
-    setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+    markNotificationsAsRead();
     setShowSuccessCheck(true);
     setTimeout(() => setShowSuccessCheck(false), 2000);
-  };
-
-  const deleteNotification = (id: string) => {
-    setNotifications(prev => prev.filter(n => n.id !== id));
-  };
-
-  const toggleRead = (id: string) => {
-    setNotifications(prev => prev.map(n => 
-      n.id === id ? { ...n, isRead: !n.isRead } : n
-    ));
   };
 
   const handleAction = (notification: AppNotification) => {
     if (notification.type === 'TRIP' && notification.relatedId) {
       onNavigateToTrip?.(notification.relatedId);
     } else if (notification.type === 'CHAT' && notification.relatedId) {
-      onNavigateToChat?.(notification.relatedId);
+      onNavigateToChat?.(notification.relatedId, notification.relatedType || 'trip');
     }
-    setNotifications(prev => prev.map(n => 
-      n.id === notification.id ? { ...n, isRead: true } : n
-    ));
   };
 
   const unreadCount = notifications.filter(n => !n.isRead).length;
+
+  const formatTimestamp = (ts: number) => {
+    const date = new Date(ts);
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
 
   return (
     <div className="flex flex-col min-h-full bg-background-dark pb-20">
@@ -93,13 +55,12 @@ const Notifications: React.FC<Props> = ({ onBack, onNavigateToTrip, onNavigateTo
             </p>
           </div>
         </div>
-        
+
         {unreadCount > 0 && (
-          <button 
+          <button
             onClick={markAllRead}
-            className={`size-10 flex items-center justify-center rounded-2xl border transition-all active:scale-95 animate-in zoom-in ${
-                showSuccessCheck ? 'bg-emerald-500 border-emerald-400 text-background-dark' : 'bg-primary border-primary/20 text-background-dark shadow-lg shadow-primary/20'
-            }`}
+            className={`size-10 flex items-center justify-center rounded-2xl border transition-all active:scale-95 animate-in zoom-in ${showSuccessCheck ? 'bg-primary border-primary/40 text-white' : 'bg-primary border-primary/20 text-white shadow-lg shadow-primary/20'
+              }`}
             title="Mark all as read"
           >
             <span className="material-symbols-outlined text-[20px] font-black">
@@ -112,11 +73,11 @@ const Notifications: React.FC<Props> = ({ onBack, onNavigateToTrip, onNavigateTo
       <main className="p-6 relative">
         {/* Decorative background sparkles when success triggers */}
         {showSuccessCheck && (
-           <div className="absolute inset-x-0 top-0 pointer-events-none flex justify-center -translate-y-full">
-              {[...Array(6)].map((_, i) => (
-                <div key={i} className={`size-2 bg-primary rounded-full animate-sparkle-${(i%4)+1}`}></div>
-              ))}
-           </div>
+          <div className="absolute inset-x-0 top-0 pointer-events-none flex justify-center -translate-y-full">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className={`size-2 bg-primary rounded-full animate-sparkle-${(i % 4) + 1}`}></div>
+            ))}
+          </div>
         )}
 
         <div className="flex overflow-x-auto hide-scrollbar gap-2 mb-8">
@@ -124,11 +85,10 @@ const Notifications: React.FC<Props> = ({ onBack, onNavigateToTrip, onNavigateTo
             <button
               key={type}
               onClick={() => setActiveFilter(type)}
-              className={`px-5 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap border ${
-                activeFilter === type 
-                  ? 'bg-primary border-primary text-background-dark shadow-lg shadow-primary/20' 
-                  : 'bg-white/5 border-white/5 text-slate-500 hover:text-white'
-              }`}
+              className={`px-5 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap border ${activeFilter === type
+                ? 'bg-primary border-primary text-background-dark shadow-lg shadow-primary/20'
+                : 'bg-white/5 border-white/5 text-slate-500 hover:text-white'
+                }`}
             >
               {type === 'SUGGESTION' ? 'Lab' : type}
             </button>
@@ -138,28 +98,26 @@ const Notifications: React.FC<Props> = ({ onBack, onNavigateToTrip, onNavigateTo
         {filteredNotifications.length > 0 ? (
           <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
             {filteredNotifications.map(notification => (
-              <div 
+              <div
                 key={notification.id}
-                className={`relative group p-5 rounded-[2rem] border transition-all duration-300 overflow-hidden ${
-                  notification.isRead 
-                    ? 'bg-white/[0.02] border-white/5 opacity-70' 
-                    : 'bg-white/[0.05] border-primary/20 shadow-xl shadow-primary/5 opacity-100'
-                }`}
+                className={`relative group p-5 rounded-[2rem] border transition-all duration-300 overflow-hidden ${notification.isRead
+                  ? 'bg-white/[0.02] border-white/5 opacity-70'
+                  : 'bg-white/[0.05] border-primary/20 shadow-xl shadow-primary/5 opacity-100'
+                  }`}
               >
                 {!notification.isRead && (
                   <div className="absolute top-0 left-0 w-1 h-full bg-primary shadow-[0_0_10px_rgba(255,107,53,0.5)]"></div>
                 )}
-                
+
                 <div className="flex gap-4">
-                  <div className={`size-12 rounded-2xl flex items-center justify-center shrink-0 shadow-inner ${
-                    notification.type === 'TRIP' ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' :
+                  <div className={`size-12 rounded-2xl flex items-center justify-center shrink-0 shadow-inner ${notification.type === 'TRIP' ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' :
                     notification.type === 'CHAT' ? 'bg-primary/10 text-primary border border-primary/20' :
-                    'bg-orange-500/10 text-orange-400 border border-orange-500/20'
-                  }`}>
+                      'bg-accent/10 text-accent border border-accent/20'
+                    }`}>
                     <span className="material-symbols-outlined text-2xl">
                       {notification.type === 'TRIP' ? 'flight_takeoff' :
-                       notification.type === 'CHAT' ? 'forum' :
-                       'auto_awesome'}
+                        notification.type === 'CHAT' ? 'forum' :
+                          'auto_awesome'}
                     </span>
                   </div>
 
@@ -170,34 +128,24 @@ const Notifications: React.FC<Props> = ({ onBack, onNavigateToTrip, onNavigateTo
                       </h3>
                       <div className="flex items-center gap-2">
                         <span className="text-[9px] text-slate-600 font-black uppercase tracking-tighter whitespace-nowrap">
-                          {notification.timestamp}
+                          {formatTimestamp(notification.timestamp)}
                         </span>
-                        {!notification.isRead && (
-                           <button 
-                             onClick={() => toggleRead(notification.id)}
-                             className="text-primary hover:scale-110 transition-transform"
-                             title="Mark as read"
-                           >
-                             <span className="material-symbols-outlined text-sm font-black">done</span>
-                           </button>
-                        )}
                       </div>
                     </div>
-                    
+
                     <p className={`text-xs leading-relaxed line-clamp-2 ${notification.isRead ? 'text-slate-600 font-medium' : 'text-slate-400 font-semibold'}`}>
                       {notification.message}
                     </p>
 
                     <div className="mt-4 flex items-center gap-3">
-                      <button 
+                      <button
                         onClick={() => handleAction(notification)}
-                        className={`px-5 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl shadow-lg active:scale-95 transition-all ${
-                          notification.isRead ? 'bg-white/10 text-white/40' : 'bg-white text-background-dark'
-                        }`}
+                        className={`px-5 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl shadow-lg active:scale-95 transition-all ${notification.isRead ? 'bg-white/10 text-white hover:bg-white/15' : 'bg-white text-background-dark hover:bg-white/90'
+                          }`}
                       >
                         {notification.type === 'CHAT' ? 'Open Chat' : 'View Details'}
                       </button>
-                      <button 
+                      <button
                         onClick={() => deleteNotification(notification.id)}
                         className="size-8 flex items-center justify-center rounded-xl bg-white/5 text-slate-700 hover:text-red-400 transition-all border border-white/5 ml-auto"
                       >
@@ -211,15 +159,15 @@ const Notifications: React.FC<Props> = ({ onBack, onNavigateToTrip, onNavigateTo
           </div>
         ) : (
           <div className="py-32 flex flex-col items-center text-center animate-in fade-in zoom-in-95 duration-700">
-             <div className="relative size-32 mb-8">
-                <div className="relative size-full bg-white/5 rounded-[2.5rem] border border-white/10 flex items-center justify-center shadow-2xl">
-                   <span className="material-symbols-outlined text-slate-700 text-5xl">notifications_off</span>
-                </div>
-             </div>
-             <h3 className="text-white text-2xl font-black italic tracking-tighter mb-2">Zero Distractions</h3>
-             <p className="text-slate-500 text-sm font-medium max-w-[240px] leading-relaxed">
-                You're completely caught up. New venture updates and tribe messages will appear here.
-             </p>
+            <div className="relative size-32 mb-8">
+              <div className="relative size-full bg-white/5 rounded-[2.5rem] border border-white/10 flex items-center justify-center shadow-2xl">
+                <span className="material-symbols-outlined text-slate-700 text-5xl">notifications_off</span>
+              </div>
+            </div>
+            <h3 className="text-white text-2xl font-black italic tracking-tighter mb-2">Zero Distractions</h3>
+            <p className="text-slate-500 text-sm font-medium max-w-[240px] leading-relaxed">
+              You're completely caught up. New venture updates and community messages will appear here.
+            </p>
           </div>
         )}
       </main>

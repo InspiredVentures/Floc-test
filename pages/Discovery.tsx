@@ -1,251 +1,164 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { MOCK_TRIPS } from '../constants';
+import { useNavigate } from 'react-router-dom';
 import { Trip, Community } from '../types';
-import { GoogleGenAI } from "@google/genai";
-
-interface Props {
-  onSelectTrip: (trip: Trip) => void;
-  onSelectCommunity: (community: Community) => void;
-  onOpenNotifications: () => void;
-  onSeeAll: () => void;
-  onCreateCommunity?: () => void;
-}
-
-const MOCK_COMMUNITIES: Community[] = [
-  {
-    id: 'c1',
-    title: "Parisian Flâneurs",
-    meta: "Photography • 1.2k members",
-    description: "Exploring the hidden architecture and street life of Paris. We focus on ethical travel and supporting local artisans.",
-    image: "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?auto=format&fit=crop&w=800&q=80",
-    memberCount: "1.2k",
-    category: "Photography",
-    upcomingTrips: [MOCK_TRIPS[1]],
-    accessType: 'free'
-  },
-  {
-    id: 'c3',
-    title: "Summit Seekers",
-    meta: "Adventure • 4.5k members",
-    description: "Conquering the world's highest peaks with a focus on local mountain community support and ethical guiding.",
-    image: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=800&q=80",
-    memberCount: "4.5k",
-    category: "Adventure",
-    upcomingTrips: [MOCK_TRIPS[2]],
-    accessType: 'request'
-  },
-  {
-    id: 'c4',
-    title: "Eco-Warriors Bali",
-    meta: "Sustainability • 3.5k members",
-    description: "Preserving Bali's natural beauty through direct community action and conscious travel experiences.",
-    image: "https://images.unsplash.com/photo-1537996194471-e657df975ab4?auto=format&fit=crop&w=800&q=80",
-    memberCount: "3.5k",
-    category: "Eco-Travel",
-    upcomingTrips: [],
-    accessType: 'free'
-  }
-];
+import { FlocLogo } from '../components/FlocLogo';
+import { CommunityResultCard } from '../components/CommunityResultCard';
+import { useUser } from '../contexts/UserContext';
+import BackToTop from '../components/BackToTop';
+import { Skeleton } from '../components/Skeleton';
+import { motion } from 'framer-motion';
 
 const CATEGORIES = [
   { id: 'all', label: 'All', icon: 'grid_view' },
-  { id: 'Photography', label: 'Photography', icon: 'photo_camera' },
-  { id: 'Adventure', label: 'Adventure', icon: 'landscape' },
-  { id: 'Eco-Travel', label: 'Sustainability', icon: 'eco' },
-  { id: 'Expedition', label: 'Expedition', icon: 'explore' },
-  { id: 'Wellness', label: 'Wellness', icon: 'spa' },
-  { id: 'Cultural', label: 'Cultural', icon: 'museum' }
+  { id: 'my-tribes', label: 'My Groups', icon: 'groups' },
+  { id: 'Planning', label: 'Planning', icon: 'campaign' },
+  { id: 'Confirmed', label: 'Confirmed', icon: 'check_circle' },
+  { id: 'Global', label: 'Global', icon: 'public' }
 ];
 
-const FlocLogo = ({ className = "size-8" }: { className?: string }) => (
-  <div className={`flex items-baseline font-black leading-none text-primary ${className}`}>
-    <span className="text-[1.1em] tracking-tighter italic">F</span>
-    <div className="size-[0.25em] bg-primary rounded-full ml-[0.05em] mb-[0.1em]"></div>
-  </div>
-);
-
-const Discovery: React.FC<Props> = ({ onSelectTrip, onSelectCommunity, onOpenNotifications, onSeeAll, onCreateCommunity }) => {
+const Discovery: React.FC = () => {
+  const navigate = useNavigate();
+  const { isMember, joinCommunity, leaveCommunity, communities } = useUser();
   const [activeFilter, setActiveFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [isExpandingSearch, setIsExpandingSearch] = useState(false);
-  const [aiRelatedConcepts, setAiRelatedConcepts] = useState<string[]>([]);
   const [scrolled, setScrolled] = useState(false);
   const [impactTicker, setImpactTicker] = useState(42812);
-  const [isArchitecting, setIsArchitecting] = useState(false);
-  const [architectResult, setArchitectResult] = useState<{name: string, desc: string} | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 50);
     window.addEventListener('scroll', handleScroll);
     const ticker = setInterval(() => setImpactTicker(prev => prev + Math.floor(Math.random() * 5)), 3000);
-    return () => { window.removeEventListener('scroll', handleScroll); clearInterval(ticker); };
+    const timer = setTimeout(() => setIsLoading(false), 800);
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      clearInterval(ticker);
+      clearTimeout(timer);
+    };
   }, []);
 
   const filteredCommunities = useMemo(() => {
-    let result = MOCK_COMMUNITIES;
-    if (activeFilter !== 'all') result = result.filter(c => c.category === activeFilter);
+    let result = communities;
+    if (activeFilter === 'my-tribes') {
+      result = result.filter(c => isMember(c.id));
+    } else if (activeFilter !== 'all') {
+      result = result.filter(c => c.category === activeFilter);
+    }
     if (searchQuery) {
-      result = result.filter(comm => 
-        comm.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-        comm.description.toLowerCase().includes(searchQuery.toLowerCase())
+      const q = searchQuery.toLowerCase();
+      result = result.filter(comm =>
+        comm.title.toLowerCase().includes(q) ||
+        comm.description.toLowerCase().includes(q)
       );
     }
     return result;
-  }, [activeFilter, searchQuery]);
-
-  const handleTribeArchitect = async () => {
-    if (!searchQuery) return;
-    setIsArchitecting(true);
-    setArchitectResult(null);
-    try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-      const response = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
-        contents: `Architect a conceptual travel community based on this search query: "${searchQuery}". 
-        Return a JSON object with "name" (a catchy tribe name) and "desc" (a 150-char description of its core mission). 
-        Make it sound exclusive and adventurous.`,
-        config: { responseMimeType: "application/json" }
-      });
-      const data = JSON.parse(response.text || '{}');
-      setArchitectResult(data);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setIsArchitecting(false);
-    }
-  };
-
-  const showResults = searchQuery !== '' || activeFilter !== 'all';
+  }, [activeFilter, searchQuery, communities, isMember]);
 
   return (
-    <div className="flex flex-col min-h-full bg-background-dark pb-32">
-      {/* Global Impact Ticker */}
-      <div className="bg-primary/10 border-b border-primary/20 py-2 px-6 flex items-center justify-center gap-4 overflow-hidden whitespace-nowrap">
-         <div className="flex items-center gap-2 animate-in fade-in slide-in-from-left-4">
-            <span className="material-symbols-outlined text-[10px] text-primary">public</span>
-            <span className="text-[7px] font-black uppercase tracking-[0.2em] text-white/60">Global Protocol Pulse:</span>
-            <span className="text-[7px] font-black uppercase text-primary italic">{impactTicker.toLocaleString()}KG CO2 OFFSET</span>
-            <span className="size-1 bg-white/20 rounded-full"></span>
-            <span className="text-[7px] font-black uppercase text-emerald-400">82 VENTURES LIVE</span>
-         </div>
+    <div className="flex flex-col min-h-full bg-background text-[#14532D] pb-32">
+      <div className="bg-primary/5 border-b border-primary/5 py-2 px-6 flex items-center justify-center gap-4 overflow-hidden whitespace-nowrap">
+        <div className="flex items-center gap-2">
+          <span className="material-symbols-outlined text-[10px] text-accent">public</span>
+          <span className="text-[7px] font-black uppercase tracking-[0.2em] text-primary/40">Community Impact:</span>
+          <span className="text-[7px] font-black uppercase text-accent italic">{impactTicker.toLocaleString()}KG CO2 OFFSET</span>
+          <span className="size-1 bg-primary/20 rounded-full"></span>
+          <span className="text-[7px] font-black uppercase text-accent">82 VENTURES LIVE</span>
+        </div>
       </div>
 
-      <header className={`fixed top-0 left-0 right-0 z-[60] px-6 transition-all duration-500 ${scrolled ? 'py-4 bg-background-dark/95 backdrop-blur-xl border-b border-white/5 shadow-2xl mt-0' : 'py-8 bg-transparent mt-8'}`}>
-        <div className="max-w-md mx-auto flex items-center justify-between">
+      <header className={`sticky top-0 z-[40] px-6 transition-all duration-300 ${scrolled ? 'py-4 bg-white/80 backdrop-blur-xl border-b border-primary/5 shadow-2xl' : 'py-8'}`}>
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <FlocLogo className={`transition-all duration-500 transform ${scrolled ? 'text-2xl' : 'text-5xl'}`} />
-            {!scrolled && (
-              <div className="animate-in fade-in slide-in-from-left-2 duration-500 ml-2 pt-1">
-                <h1 className="text-white font-black text-xl tracking-tighter leading-none italic">Discovery</h1>
-                <span className="text-primary text-[8px] uppercase tracking-[0.2em] font-black leading-none">Inspired Ventures</span>
-              </div>
-            )}
+            <div className="size-8 bg-primary rounded-lg flex items-center justify-center text-white">
+              <span className="material-symbols-outlined text-xl font-black">eco</span>
+            </div>
+            <div className="flex flex-col pt-1">
+              <h1 className="text-primary font-black text-xl tracking-tighter leading-none italic uppercase">Discovery</h1>
+              <span className="text-accent text-[8px] uppercase tracking-[0.2em] font-black leading-none">by Inspired</span>
+            </div>
           </div>
-          <button onClick={onOpenNotifications} className="size-10 flex items-center justify-center rounded-2xl bg-white/5 border border-white/10 relative ios-blur hover:bg-white/10 transition-all">
-            <span className="material-symbols-outlined text-white text-[20px]">notifications</span>
-            <span className="absolute top-2.5 right-2.5 size-2 bg-primary rounded-full border-2 border-background-dark"></span>
-          </button>
+          <div className="flex items-center gap-3">
+            <div className="relative hidden md:block w-64 lg:w-96">
+              <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-accent text-lg">search</span>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search niche or community..."
+                className="w-full h-10 bg-primary/5 border border-primary/10 rounded-xl pl-10 pr-4 text-xs text-primary placeholder:text-primary/30 focus:border-accent outline-none transition-all"
+              />
+            </div>
+            <button onClick={() => navigate('/notifications')} className="size-10 flex items-center justify-center rounded-2xl bg-primary/5 border border-primary/10 relative transition-all active:scale-95 hover:bg-primary/10">
+              <span className="material-symbols-outlined text-primary text-[20px]">notifications</span>
+              <span className="absolute top-2.5 right-2.5 size-2 bg-accent rounded-full animate-pulse"></span>
+            </button>
+          </div>
         </div>
       </header>
 
-      <section className={`px-6 z-50 sticky top-[95px] transition-all duration-300 ${showResults ? 'mt-28' : 'mt-40'}`}>
-        <div className="max-w-md mx-auto space-y-4">
-          <div className="relative group">
-            <span className="material-symbols-outlined absolute left-5 top-1/2 -translate-y-1/2 text-slate-500 text-[20px] group-focus-within:text-primary transition-colors">search</span>
-            <input 
-              className="w-full h-16 pl-14 pr-12 rounded-3xl bg-surface-dark border border-white/10 ios-blur focus:bg-background-dark focus:border-primary outline-none text-sm font-bold text-white placeholder:text-slate-600 transition-all shadow-2xl" 
-              placeholder="Search niche or tribe..." 
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
-
-          <div className="flex overflow-x-auto hide-scrollbar gap-2 py-2">
+      <main className="mt-8 px-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex overflow-x-auto hide-scrollbar gap-2 py-4 mb-8">
             {CATEGORIES.map(cat => (
-              <button 
+              <button
                 key={cat.id}
                 onClick={() => setActiveFilter(cat.id)}
-                className={`flex items-center gap-2 px-5 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap border shrink-0 ${activeFilter === cat.id ? 'bg-primary border-primary text-background-dark shadow-lg shadow-primary/20 scale-105' : 'bg-surface-dark border-white/10 text-slate-500 hover:text-white hover:border-white/20'}`}
+                className={`flex items-center gap-2 px-5 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap border shrink-0 ${activeFilter === cat.id ? 'bg-primary border-primary text-white shadow-lg' : 'bg-primary/5 border-primary/10 text-primary/40 hover:text-primary'}`}
               >
                 <span className="material-symbols-outlined text-base">{cat.icon}</span>
                 {cat.label}
               </button>
             ))}
           </div>
-        </div>
-      </section>
 
-      <main className="mt-8 px-6">
-        <div className="max-w-md mx-auto space-y-8">
-          {filteredCommunities.length > 0 ? (
-            filteredCommunities.map(comm => (
-              <CommunityResultCard key={comm.id} community={comm} onClick={() => onSelectCommunity(comm)} />
-            ))
+          {isLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[1, 2, 3, 4, 5, 6].map(i => (
+                <div key={i} className="bg-white/5 border border-white/5 rounded-[2.5rem] p-6 h-64">
+                  <Skeleton className="h-full w-full !rounded-[2rem]" />
+                </div>
+              ))}
+            </div>
           ) : (
-            <div className="py-12 space-y-8 animate-in fade-in zoom-in-95 duration-500">
-               <div className="text-center">
-                  <div className="size-20 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4 border border-white/5">
-                     <span className="material-symbols-outlined text-4xl text-slate-700">search_off</span>
-                  </div>
-                  <h4 className="text-white font-black text-xl italic tracking-tight">Tribe not found</h4>
-                  <p className="text-slate-500 text-xs mt-2 font-medium">No results for "{searchQuery}"</p>
-               </div>
-
-               {searchQuery && (
-                 <div className="bg-gradient-to-br from-primary/10 to-primary/5 border-2 border-dashed border-primary/20 rounded-[3rem] p-8 text-center group">
-                    <div className="size-16 bg-primary/10 rounded-2xl flex items-center justify-center text-primary mx-auto mb-6 group-hover:rotate-12 transition-transform">
-                       <span className="material-symbols-outlined text-3xl font-black">architecture</span>
-                    </div>
-                    
-                    {architectResult ? (
-                      <div className="animate-in fade-in slide-in-from-bottom-2 duration-700">
-                         <h3 className="text-white font-black text-2xl italic tracking-tighter mb-2">{architectResult.name}</h3>
-                         <p className="text-slate-400 text-xs leading-relaxed mb-6 italic">"{architectResult.desc}"</p>
-                         <button onClick={onCreateCommunity} className="bg-primary text-background-dark px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all">Launch this Tribe</button>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredCommunities.map((community, idx) => (
+                <motion.div
+                  key={community.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: idx * 0.1 }}
+                  className="group cursor-pointer"
+                  onClick={() => navigate(`/community/${community.id}`)}
+                >
+                  <div className="bg-white border border-primary/10 rounded-[2.5rem] overflow-hidden shadow-xl transition-all group-hover:border-accent/30 group-hover:scale-[1.02]">
+                    <div className="aspect-[4/3] bg-cover bg-center relative" style={{ backgroundImage: `url(${community.image})` }}>
+                      <div className="absolute inset-0 bg-gradient-to-t from-primary/90 via-transparent to-transparent"></div>
+                      <div className="absolute bottom-6 left-6 right-6">
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="bg-accent text-white text-[8px] font-black uppercase tracking-[0.2em] px-2.5 py-1 rounded-full">{community.category}</div>
+                          <div className="bg-white text-primary text-[8px] font-black uppercase tracking-[0.2em] px-2.5 py-1 rounded-full">{community.memberCount} Members</div>
+                        </div>
+                        <h3 className="text-white text-xl font-heading font-black italic tracking-tighter leading-none uppercase">{community.title}</h3>
                       </div>
-                    ) : (
-                      <>
-                        <h3 className="text-white font-black text-lg italic tracking-tight mb-2">Architect with AI</h3>
-                        <p className="text-slate-500 text-xs leading-relaxed mb-6">Build the blueprint for a new tribe based on your search query.</p>
-                        <button 
-                          onClick={handleTribeArchitect}
-                          disabled={isArchitecting}
-                          className="bg-white/5 border border-white/10 text-primary px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center gap-3 mx-auto hover:bg-white/10 transition-all disabled:opacity-50"
-                        >
-                           {isArchitecting ? (
-                             <div className="size-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
-                           ) : (
-                             <span className="material-symbols-outlined text-sm font-black">auto_awesome</span>
-                           )}
-                           {isArchitecting ? 'Architecting...' : 'Dream up this Tribe'}
-                        </button>
-                      </>
-                    )}
-                 </div>
-               )}
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          )}
+
+          {!isLoading && filteredCommunities.length === 0 && (
+            <div className="py-20 text-center">
+              <span className="material-symbols-outlined text-4xl text-primary/20 mb-4 opacity-50">search_off</span>
+              <p className="text-primary/40 text-sm font-bold uppercase tracking-widest italic text-center">No communities found for your selection.</p>
             </div>
           )}
         </div>
       </main>
+      <BackToTop />
     </div>
   );
 };
-
-const CommunityResultCard: React.FC<{ community: Community, onClick: () => void }> = ({ community, onClick }) => (
-  <div 
-    onClick={onClick}
-    className="flex items-center gap-5 p-5 rounded-[2.5rem] bg-surface-dark border border-white/10 hover:border-primary/40 transition-all cursor-pointer shadow-xl group active:scale-[0.98]"
-  >
-    <div className="size-24 rounded-[2rem] bg-cover bg-center shrink-0 shadow-2xl transition-all group-hover:scale-105" style={{ backgroundImage: `url(${community.image})` }}></div>
-    <div className="flex-1 min-w-0">
-      <span className="text-primary text-[9px] font-black uppercase tracking-[0.2em] mb-1.5 inline-block">{community.category}</span>
-      <h4 className="text-white font-black text-xl italic tracking-tight leading-none mb-2 truncate">{community.title}</h4>
-      <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">{community.memberCount} Members</p>
-    </div>
-    <span className="material-symbols-outlined text-slate-700 text-2xl font-black group-hover:text-primary transition-all">chevron_right</span>
-  </div>
-);
 
 export default Discovery;
