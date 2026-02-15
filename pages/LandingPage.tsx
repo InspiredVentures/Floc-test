@@ -123,14 +123,14 @@ const LandingPage = () => {
             id: 'bhutan',
             title: "Bhutanese Mindfulness",
             tags: "Bhutan / 2026",
-            img: "https://images.unsplash.com/photo-1539020290231-9584fd1720d2?auto=format&fit=crop&q=80&w=800",
+            img: "https://images.unsplash.com/photo-1578513304533-35619550cedc?auto=format&fit=crop&q=80&w=800",
             desc: "Immerse into a living Himalayan kingdom where tradition is preserved. Cross Dochula Pass and walk the ancient Trans-Bhutan Trail."
         },
         {
             id: 'uganda-rwanda',
             title: "Uganda & Rwanda",
             tags: "East Africa / 2026",
-            img: "https://images.unsplash.com/photo-1516422741124-97eb73f380c7?auto=format&fit=crop&q=80&w=800",
+            img: "https://images.unsplash.com/photo-1535941339077-2dd1c7963098?auto=format&fit=crop&q=80&w=800",
             desc: "Sit among mountain gorillas in Uganda then track chimps across the border in Rwanda. A journey of primate conservation and community support."
         }
     ];
@@ -274,7 +274,10 @@ const LandingPage = () => {
                             >
                                 Start Your Adventure
                             </button>
-                            <button className="w-full sm:w-auto px-10 py-5 bg-white text-primary rounded-full font-bold text-lg hover:bg-background transition-all shadow-xl">
+                            <button
+                                onClick={() => navigate('/community')}
+                                className="w-full sm:w-auto px-10 py-5 bg-white text-primary rounded-full font-bold text-lg hover:bg-background transition-all shadow-xl"
+                            >
                                 Join the Community
                             </button>
                         </div>
@@ -423,7 +426,7 @@ const LandingPage = () => {
                             <ul className="space-y-4 text-foreground/60">
                                 <li><button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="hover:text-accent font-medium">Home</button></li>
                                 <li><button onClick={() => document.getElementById('trips')?.scrollIntoView({ behavior: 'smooth' })} className="hover:text-accent font-medium">Our Trips</button></li>
-                                <li><button onClick={() => document.getElementById('impact')?.scrollIntoView({ behavior: 'smooth' })} className="hover:text-accent font-medium">Impact Philosophy</button></li>
+                                <li><button onClick={() => document.getElementById('community')?.scrollIntoView({ behavior: 'smooth' })} className="hover:text-accent font-medium">Impact Philosophy</button></li>
                                 <li><button onClick={() => navigate('/blog')} className="hover:text-accent font-medium">Journal</button></li>
                                 <li><button onClick={() => navigate('/reviews')} className="hover:text-accent font-medium">Reviews</button></li>
                                 <li><button onClick={() => navigate('/about')} className="hover:text-accent font-medium">About Us</button></li>

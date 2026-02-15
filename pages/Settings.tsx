@@ -27,7 +27,7 @@ const Settings: React.FC<Props> = ({ onBack }) => {
 
     try {
       const result = await dataSeedingService.seedDatabase((status) => {
-        console.log(status);
+
       });
 
       if (result.success) {

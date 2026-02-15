@@ -11,12 +11,7 @@ const MyCommunities: React.FC = () => {
   const { joinedCommunityIds, communities, isLoading } = useUser();
   const [activeTab, setActiveTab] = useState<'all' | 'managed'>('all');
 
-  // DEBUG LOG
-  console.log('[MyCommunities] Render Info:', {
-    joinedIDs: joinedCommunityIds,
-    totalCommunities: communities.length,
-    firstCommunityId: communities[0]?.id
-  });
+  // DEBUG LOG REMOVED
 
   const joinedCommunities = communities.filter(c => joinedCommunityIds.includes(c.id)).map(c => ({
     ...c,

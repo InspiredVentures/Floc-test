@@ -8,7 +8,7 @@ export const AuthGuard: React.FC<{ children: React.ReactElement }> = ({ children
 
     useEffect(() => {
         if (!isLoading && !user) {
-            console.log('[AuthGuard] No user found in context, redirecting to login');
+
             navigate('/login');
         }
     }, [user, isLoading, navigate]);

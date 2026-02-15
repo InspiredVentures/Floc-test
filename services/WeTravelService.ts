@@ -51,7 +51,7 @@ export const WeTravelService = {
         }
 
         const apiUrl = `${API_BASE}/trips/${tripId}`;
-        console.log('[WeTravel] Fetching trip:', tripId, 'from', apiUrl);
+
 
         try {
             const response = await fetch(apiUrl, {

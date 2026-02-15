@@ -76,16 +76,16 @@ const CreateCommunity: React.FC<Props> = ({ onBack, onComplete }) => {
         accessType: 'request'
       });
 
-      console.log('[CreateCommunity] createCommunity returned:', community);
+
 
       if (community) {
-        console.log('[CreateCommunity] Success! Navigating...');
+
         toast.success(`Welcome to ${community.title}!`);
         if (onComplete) {
-          console.log('[CreateCommunity] Calling onComplete prop');
+
           onComplete();
         } else {
-          console.log('[CreateCommunity] Navigating to /dashboard');
+
           navigate('/dashboard', { state: { communityId: community.id } });
         }
       } else {

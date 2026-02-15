@@ -173,7 +173,7 @@ const CommunityDetails: React.FC<Props> = ({ community, onBack, onSelectTrip, on
                   <span className="text-[10px] font-black uppercase tracking-widest">Ask Community</span>
                 </button>
                 <button
-                  onClick={() => window.alert("Messaging Team...")} // Replace with actual logic
+                  onClick={() => errorToast("Direct messaging with the team is coming soon!")}
                   className="bg-white hover:bg-slate-50 text-slate-600 p-4 rounded-2xl flex flex-col items-center gap-2 transition-colors border border-slate-200"
                 >
                   <span className="material-symbols-outlined text-2xl">support_agent</span>
