@@ -123,7 +123,7 @@ const LandingPage = () => {
             id: 'bhutan',
             title: "Bhutanese Mindfulness",
             tags: "Bhutan / 2026",
-            img: "https://images.unsplash.com/photo-1578513304533-35619550cedc?auto=format&fit=crop&q=80&w=800",
+            img: "https://images.unsplash.com/photo-1580974844145-298a8570094d?auto=format&fit=crop&q=80&w=800",
             desc: "Immerse into a living Himalayan kingdom where tradition is preserved. Cross Dochula Pass and walk the ancient Trans-Bhutan Trail."
         },
         {

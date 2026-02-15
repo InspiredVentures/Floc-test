@@ -81,7 +81,7 @@ export const TRIP_CONTENT: { [key: string]: TripContent } = {
                 day: '08',
                 title: 'Borneo Elephant Sanctuary',
                 desc: 'We check out of Deramakot and travel to Kinabatangan, one of Borneo’s premier wildlife regions. Our destination is the Borneo Elephant Sanctuary (BES), specifically dedicated to the conservation of the endangered Borneo pygmy elephant. Here, you will meet the team and learn about the critical challenges these gentle giants face, from habitat loss to human-elephant conflict. You’ll get an introduction to the sanctuary’s daily operations and the vital work being done to protect the species.',
-                image: 'https://images.unsplash.com/photo-1585675402636-64560b3d686f?q=80&w=800'
+                image: "https://images.unsplash.com/photo-1580974844145-298a8570094d?auto=format&fit=crop&w=800&q=80"
             },
             {
                 day: '09',
@@ -273,7 +273,7 @@ export const TRIP_CONTENT: { [key: string]: TripContent } = {
             { day: '04', title: 'Dochula Pass & Trans-Bhutan Trail', desc: "Cross the Dochula Pass (3,100m) with its 108 chortens and panoramic Himalayan views. Descend through old-growth forests on a restored section of the ancient Trans-Bhutan Trail, once the country's primary artery.", image: 'https://static.wixstatic.com/media/11062b_55e4be1e75564866b6c28290f9a9d271~mv2.png' },
             { day: '05', title: 'Punakha Dzong & River Float', desc: "Visit Punakha Dzong, Bhutan’s most beautiful fortress, set at the meeting point of two sacred rivers. Enjoy a gentle river float and a hike to Khamsum Yuelley Namgyal temple for panoramic valley views.", image: 'https://static.wixstatic.com/media/11062b_2381e8a6e7444f4f902e7b649aa3f0ac~mv2.png' },
             { day: '06', title: 'Black-Necked Cranes & Paro', desc: "Walk the Gangtey Nature Trail through the winter habitat of the endangered black-necked cranes. Visit the Gangtey Gompa monastery before returning to Paro to share regional dishes unique to the valley.", image: 'https://static.wixstatic.com/media/1d3653_651fe57951874276b946fe7c733e7acb~mv2.jpg' },
-            { day: '07', title: 'Tiger’s Nest Monastery', desc: "Complete the journey with the iconic hike to Taktshang (Tiger’s Nest), revered as Bhutan's most sacred spiritual site. Celebrate the achievement with a traditional hot-stone bath at a local farmhouse.", image: 'https://images.unsplash.com/photo-1578513304533-35619550cedc?q=80&w=800' },
+            { day: '07', title: 'Tiger’s Nest Monastery', desc: "Complete the journey with the iconic hike to Taktshang (Tiger’s Nest), revered as Bhutan's most sacred spiritual site. Celebrate the achievement with a traditional hot-stone bath at a local farmhouse.", image: 'https://images.unsplash.com/photo-1580974844145-298a8570094d?q=80&w=800' },
             { day: '08', title: 'Departure', desc: "Farewell breakfast and return flight to Kathmandu. Transfer to the city for onward travel or stay to explore more of the Himalayan capital.", image: 'https://static.wixstatic.com/media/06d336_f991ee242fe9457abc75957db1d47cff~mv2.png' }
         ],
         inclusions: [

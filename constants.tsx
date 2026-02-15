@@ -43,7 +43,7 @@ const STATIC_TRIPS: Trip[] = [
     destination: 'Bhutan',
     dates: 'May 10 — 18, 2026',
     price: '£4,200',
-    image: 'https://images.unsplash.com/photo-1578513304533-35619550cedc?auto=format&fit=crop&w=800&q=80',
+    image: 'https://images.unsplash.com/photo-1580974844145-298a8570094d?auto=format&fit=crop&w=800&q=80',
     status: 'PLANNING',
     membersCount: 5,
     communityId: 'bhutan-planning'
