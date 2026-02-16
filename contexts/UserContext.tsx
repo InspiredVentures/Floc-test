@@ -137,6 +137,13 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         // Listen for Auth Changes
         const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
             if (event === 'SIGNED_OUT') {
+                // Protect Mock Session from being cleared by Supabase's lack of session
+                const storedMockUser = localStorage.getItem('mock_user');
+                if (storedMockUser) {
+                    console.log('[UserContext] Supabase SIGNED_OUT, but Mock Session exists. Ignoring.');
+                    return;
+                }
+
                 setUser(null);
                 setProfile(null);
                 setJoinedCommunityIds([]);

@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FlocLogo } from '../components/FlocLogo';
 
@@ -14,15 +14,37 @@ const Login: React.FC = () => {
   const [loginMethod, setLoginMethod] = useState<'email' | 'google' | 'protocol' | null>(null);
   const [magicLinkSent, setMagicLinkSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { debugLogin } = useUser();
+  const { user, debugLogin } = useUser();
 
-  const performLogin = (method: 'google' | 'protocol') => {
+  useEffect(() => {
+    if (user) {
+      navigate('/dashboard');
+    }
+  }, [user, navigate]);
+
+  const performLogin = async (method: 'google' | 'protocol') => {
     setLoginMethod(method);
     setIsLoggingIn(true);
-    // Simulated auth delay for protocol verification
-    setTimeout(() => {
-      navigate('/onboarding');
-    }, 1800);
+    setError(null);
+
+    try {
+      if (method === 'google') {
+        const { error } = await authService.signInWithGoogle();
+        if (error) throw error;
+      } else if (method === 'protocol') {
+        // Map Protocol to Anonymous Login for now
+        const { error } = await authService.signInAnonymously();
+        if (error) throw error;
+        // Delay to match UI experience
+        setTimeout(() => {
+          navigate('/dashboard');
+        }, 1000);
+      }
+    } catch (err: any) {
+      console.error('Login failed:', err);
+      setError(err.message || 'Authentication failed');
+      setIsLoggingIn(false);
+    }
   };
 
   const handleEmailSubmit = async (e: React.FormEvent) => {

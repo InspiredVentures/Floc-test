@@ -61,5 +61,19 @@ export const authService = {
     async signInAnonymously() {
         const { data, error } = await supabase.auth.signInAnonymously();
         return { data, error };
+    },
+
+    async signInWithGoogle() {
+        const { data, error } = await supabase.auth.signInWithOAuth({
+            provider: 'google',
+            options: {
+                queryParams: {
+                    access_type: 'offline',
+                    prompt: 'consent',
+                },
+                redirectTo: window.location.origin,
+            },
+        });
+        return { data, error };
     }
 };
