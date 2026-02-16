@@ -43,10 +43,9 @@ const JoinRequest: React.FC<Props> = ({ community, onBack, onSent }) => {
         category: detectCategory(message)
       };
 
-      // Persist to localStorage for ManageMembers to pick up
-      const existing = localStorage.getItem('floc_pending_requests');
-      const pendingRequests = existing ? JSON.parse(existing) : [];
-      localStorage.setItem('floc_pending_requests', JSON.stringify([newRequest, ...pendingRequests]));
+      // TODO: Connect to backend API to securely handle join requests.
+      // Do not store sensitive user data (like 'newRequest') in localStorage.
+      // This functionality was previously insecure and has been disabled until a proper backend integration is implemented.
 
       onSent();
     }, 1200);
