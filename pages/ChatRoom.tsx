@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useUser } from '../contexts/UserContext';
 import { Message, TripSuggestion } from '../types';
+import { Virtuoso } from 'react-virtuoso';
 
 interface Props {
   id: string; // This could be communityId or tripId
@@ -15,8 +16,6 @@ const ChatRoom: React.FC<Props> = ({ id, title, subtitle, onBack, type = 'commun
   const [inputText, setInputText] = useState('');
   const [showSugMenu, setShowSugMenu] = useState(false);
 
-  const scrollRef = useRef<HTMLDivElement>(null);
-
   const conversationId = id; // For group chats, we use the community/trip id as conversationId
 
   const convoMessages = useMemo(() =>
@@ -28,10 +27,6 @@ const ChatRoom: React.FC<Props> = ({ id, title, subtitle, onBack, type = 'commun
   useEffect(() => {
     markAsRead(conversationId);
   }, [conversationId, markAsRead, convoMessages.length]);
-
-  useEffect(() => {
-    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-  }, [convoMessages]);
 
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
@@ -69,42 +64,57 @@ const ChatRoom: React.FC<Props> = ({ id, title, subtitle, onBack, type = 'commun
         </div>
       </header>
 
-      <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-6 scroll-smooth hide-scrollbar pb-24">
-        {convoMessages.length > 0 ? convoMessages.map((msg) => {
-          const isMe = msg.senderId === 'alex-sterling';
-          return (
-            <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-2 duration-300`}>
-              <div className={`flex gap-3 max-w-[85%] ${isMe ? 'flex-row-reverse' : 'flex-row'}`}>
-                <img src={msg.senderAvatar} className="w-8 h-8 rounded-xl self-end mb-1 border border-white/10 shadow-sm" alt="" />
-                <div className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
-                  {!isMe && <span className="text-[10px] font-black text-slate-500 mb-1 ml-1 uppercase tracking-tighter">{msg.senderName}</span>}
-                  <div className={`px-4 py-3 rounded-2xl relative shadow-xl ${isMe ? 'bg-primary text-background-dark font-medium rounded-br-none' : 'bg-white/5 text-white rounded-bl-none border border-white/10'}`}>
-                    <p className="text-[13px] leading-relaxed whitespace-pre-wrap">{msg.content}</p>
-                    {msg.suggestion && (
-                      <div className="mt-3 bg-black/20 rounded-xl p-3 border border-white/10">
-                        <p className="text-[9px] font-black text-primary uppercase tracking-widest mb-1">Trip Pitch</p>
-                        <h4 className="text-white font-black text-xs italic">{msg.suggestion.destination}</h4>
-                        <div className="flex gap-2 mt-2">
-                          <span className="text-[8px] bg-white/5 px-1.5 py-0.5 rounded text-slate-400">{msg.suggestion.budget}</span>
-                          <span className="text-[8px] bg-white/5 px-1.5 py-0.5 rounded text-slate-400">{msg.suggestion.duration}</span>
+      <div className="flex-1 min-h-0 relative">
+        {convoMessages.length > 0 ? (
+          <Virtuoso
+            style={{ height: '100%' }}
+            data={convoMessages}
+            initialTopMostItemIndex={convoMessages.length - 1}
+            followOutput="auto"
+            alignToBottom={true}
+            className="hide-scrollbar"
+            components={{
+              Header: () => <div className="h-4" />,
+              Footer: () => <div className="h-24" />
+            }}
+            itemContent={(index, msg) => {
+              if (!msg) return null;
+              const isMe = msg.senderId === 'alex-sterling';
+              return (
+                <div className={`flex ${isMe ? 'justify-end' : 'justify-start'} px-4 mb-6 animate-in fade-in slide-in-from-bottom-2 duration-300`}>
+                  <div className={`flex gap-3 max-w-[85%] ${isMe ? 'flex-row-reverse' : 'flex-row'}`}>
+                    <img src={msg.senderAvatar} className="w-8 h-8 rounded-xl self-end mb-1 border border-white/10 shadow-sm" alt="" />
+                    <div className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
+                      {!isMe && <span className="text-[10px] font-black text-slate-500 mb-1 ml-1 uppercase tracking-tighter">{msg.senderName}</span>}
+                      <div className={`px-4 py-3 rounded-2xl relative shadow-xl ${isMe ? 'bg-primary text-background-dark font-medium rounded-br-none' : 'bg-white/5 text-white rounded-bl-none border border-white/10'}`}>
+                        <p className="text-[13px] leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+                        {msg.suggestion && (
+                          <div className="mt-3 bg-black/20 rounded-xl p-3 border border-white/10">
+                            <p className="text-[9px] font-black text-primary uppercase tracking-widest mb-1">Trip Pitch</p>
+                            <h4 className="text-white font-black text-xs italic">{msg.suggestion.destination}</h4>
+                            <div className="flex gap-2 mt-2">
+                              <span className="text-[8px] bg-white/5 px-1.5 py-0.5 rounded text-slate-400">{msg.suggestion.budget}</span>
+                              <span className="text-[8px] bg-white/5 px-1.5 py-0.5 rounded text-slate-400">{msg.suggestion.duration}</span>
+                            </div>
+                          </div>
+                        )}
+                        <div className={`flex items-center gap-1.5 mt-1.5 justify-end ${isMe ? 'text-background-dark/30' : 'text-slate-600'}`}>
+                          <span className="text-[9px] font-black uppercase tracking-tighter">{formatTime(msg.timestamp)}</span>
+                          {isMe && (
+                            <span className="material-symbols-outlined text-[12px] font-black">
+                              {msg.read ? 'done_all' : 'double_check'}
+                            </span>
+                          )}
                         </div>
                       </div>
-                    )}
-                    <div className={`flex items-center gap-1.5 mt-1.5 justify-end ${isMe ? 'text-background-dark/30' : 'text-slate-600'}`}>
-                      <span className="text-[9px] font-black uppercase tracking-tighter">{formatTime(msg.timestamp)}</span>
-                      {isMe && (
-                        <span className="material-symbols-outlined text-[12px] font-black">
-                          {msg.read ? 'done_all' : 'double_check'}
-                        </span>
-                      )}
                     </div>
                   </div>
                 </div>
-              </div>
-            </div>
-          );
-        }) : (
-          <div className="h-full flex flex-col items-center justify-center opacity-30">
+              );
+            }}
+          />
+        ) : (
+          <div className="h-full flex flex-col items-center justify-center opacity-30 pb-24">
             <div className="size-20 bg-white/5 rounded-[2rem] border border-white/10 flex items-center justify-center mb-6">
               <span className="material-symbols-outlined text-4xl text-slate-500">forum</span>
             </div>
