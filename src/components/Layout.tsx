@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { FlocLogo } from './FlocLogo';
+import { FlocLogo } from '@/components/FlocLogo';
 import { PowerMenuItem } from './PowerMenuItem';
 
 export const Layout: React.FC = () => {
