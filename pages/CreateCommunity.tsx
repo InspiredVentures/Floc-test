@@ -32,6 +32,38 @@ const CreateCommunity: React.FC<Props> = ({ onBack, onComplete }) => {
   const toast = useToast();
   const [currentStep, setCurrentStep] = useState(0);
   const [isMinting, setIsMinting] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  const handleGenerateImage = async () => {
+    setIsGenerating(true);
+    try {
+      const response = await fetch('/api/generate-community-image', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: formData.title,
+          category: formData.category,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate image');
+      }
+
+      const data = await response.json();
+      if (data.image) {
+        setFormData(prev => ({ ...prev, image: data.image }));
+        toast.success('Cover image generated!');
+      }
+    } catch (error) {
+      console.error('Error generating image:', error);
+      toast.error('Failed to generate image.');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
 
   // Type-safe form data
   const [formData, setFormData] = useState<Omit<Community, 'id' | 'memberCount' | 'upcomingTrips' | 'meta' | 'accessType' | 'isManaged' | 'unreadCount'> & { image: string, entryQuestions: string[], enabledFeatures: string[] }>({
@@ -146,13 +178,27 @@ const CreateCommunity: React.FC<Props> = ({ onBack, onComplete }) => {
           <div className="space-y-6 animate-in slide-in-from-right duration-500">
             <div className="space-y-2">
               <label className="text-slate-400 text-xs font-bold uppercase tracking-widest">Cover Image URL</label>
-              <input
-                type="text"
-                className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white font-bold focus:border-primary outline-none transition-all placeholder:text-slate-600"
-                placeholder="https://..."
-                value={formData.image}
-                onChange={e => setFormData({ ...formData, image: e.target.value })}
-              />
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  className="flex-1 bg-white/5 border border-white/10 rounded-2xl p-4 text-white font-bold focus:border-primary outline-none transition-all placeholder:text-slate-600"
+                  placeholder="https://..."
+                  value={formData.image}
+                  onChange={e => setFormData({ ...formData, image: e.target.value })}
+                />
+                <button
+                  onClick={handleGenerateImage}
+                  disabled={isGenerating || !formData.category}
+                  className="bg-primary/10 text-primary border border-primary/20 rounded-2xl px-4 font-black text-xs uppercase tracking-widest hover:bg-primary/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap flex items-center gap-2"
+                >
+                  {isGenerating ? (
+                    <span className="size-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></span>
+                  ) : (
+                    <span className="material-symbols-outlined text-sm">auto_awesome</span>
+                  )}
+                  {isGenerating ? 'Generating' : 'Generate'}
+                </button>
+              </div>
               <p className="text-[10px] text-slate-500">Leave empty for a random Unsplash image.</p>
             </div>
             {formData.image && (
