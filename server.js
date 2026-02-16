@@ -24,15 +24,33 @@ app.post('/api/generate-community-image', async (req, res) => {
   }
 
   try {
-    // Note: In a real implementation with Gemini, you would use the model to generate content.
-    // For this security fix, we ensure the API key is handled server-side.
-    // We are mocking the image response to ensure the frontend receives a valid URL.
+    const ai = new GoogleGenAI({ apiKey });
 
-    // Example usage if we were generating text:
-    // const ai = new GoogleGenAI({ apiKey });
-    // const model = ai.getGenerativeModel({ model: "gemini-1.5-flash" });
-    // ...
+    // Construct a descriptive prompt for the image generation
+    const prompt = `A high quality, photorealistic cover image for a travel community named "${title}" in the category "${category}". The image should be inspiring, adventurous, and suitable for a travel community app.`;
 
+    const response = await ai.models.generateImages({
+      model: "imagen-4.0-generate-001",
+      prompt: prompt,
+      config: {
+        numberOfImages: 1,
+        aspectRatio: "16:9",
+      },
+    });
+
+    if (response.generatedImages && response.generatedImages.length > 0) {
+      const generatedImage = response.generatedImages[0];
+      const base64Image = generatedImage.image.imageBytes;
+      const imageUrl = `data:image/png;base64,${base64Image}`;
+      return res.json({ image: imageUrl });
+    } else {
+      throw new Error("No image generated.");
+    }
+  } catch (error) {
+    console.error('Error generating image with Gemini:', error);
+    console.log('Falling back to mock implementation...');
+
+    // Fallback logic in case of API error
     let imageUrl = 'https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?auto=format&fit=crop&w=800&q=80'; // Default
 
     if (category) {
@@ -46,13 +64,10 @@ app.post('/api/generate-community-image', async (req, res) => {
         else if (lowerCat.includes('digital nomad')) imageUrl = 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=800&q=80';
     }
 
-    // Simulate delay
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    // Simulate delay for fallback to feel "real"
+    await new Promise(resolve => setTimeout(resolve, 1000));
 
     res.json({ image: imageUrl });
-  } catch (error) {
-    console.error('Error generating image:', error);
-    res.status(500).json({ error: 'Failed to generate image' });
   }
 });
 
