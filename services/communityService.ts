@@ -4,6 +4,39 @@ import { CommunityPost, Member, Community, CommunityEvent, CommunityResource } f
 
 const isUUID = (str: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
 
+const MOCK_COMMUNITY_INDEX_KEY = 'floc_mock_community_index';
+
+// Helper function to get mock community IDs
+const _getMockCommunities = (): string[] => {
+    // If index exists, use it
+    if (localStorage.getItem(MOCK_COMMUNITY_INDEX_KEY)) {
+        return JSON.parse(localStorage.getItem(MOCK_COMMUNITY_INDEX_KEY) || '[]');
+    }
+
+    // Fallback/Migration: Scan keys once and build index
+    const communityIds: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key?.startsWith('mock_posts_')) {
+            const communityId = key.replace('mock_posts_', '');
+            communityIds.push(communityId);
+        }
+    }
+
+    // Save the built index for next time
+    localStorage.setItem(MOCK_COMMUNITY_INDEX_KEY, JSON.stringify(communityIds));
+    return communityIds;
+};
+
+// Helper function to update the mock community index
+const _ensureMockCommunityIndex = (communityId: string) => {
+    // Get existing index (with migration fallback)
+    const existingIndex = _getMockCommunities();
+    if (!existingIndex.includes(communityId)) {
+        localStorage.setItem(MOCK_COMMUNITY_INDEX_KEY, JSON.stringify([...existingIndex, communityId]));
+    }
+};
+
 export const communityService = {
     // --- Posts ---
 
@@ -104,13 +137,11 @@ export const communityService = {
         // For prototype: Aggregate all mock posts from localStorage
         let allPosts: CommunityPost[] = [];
 
-        // 1. Scan localStorage for mock posts
-        for (let i = 0; i < localStorage.length; i++) {
-            const key = localStorage.key(i);
-            if (key?.startsWith('mock_posts_')) {
-                const communityPosts = JSON.parse(localStorage.getItem(key) || '[]');
-                allPosts = [...allPosts, ...communityPosts];
-            }
+        // 1. Scan localStorage for mock posts using index
+        const mockCommunityIds = _getMockCommunities();
+        for (const communityId of mockCommunityIds) {
+            const communityPosts = JSON.parse(localStorage.getItem(`mock_posts_${communityId}`) || '[]');
+            allPosts = [...allPosts, ...communityPosts];
         }
 
         // 2. Fetch real posts if we have Supabase connected (optional for now)
@@ -173,6 +204,7 @@ export const communityService = {
 
             const existing = JSON.parse(localStorage.getItem(`mock_posts_${communityId}`) || '[]');
             localStorage.setItem(`mock_posts_${communityId}`, JSON.stringify([newPost, ...existing]));
+            _ensureMockCommunityIndex(communityId);
 
             return newPost;
         }
@@ -309,17 +341,16 @@ export const communityService = {
             // This is expensive but necessary for persistence across reloads
             // For a prototype, maybe we skip persistence or try a few known keys?
             // Let's try to find it.
-            for (let i = 0; i < localStorage.length; i++) {
-                const key = localStorage.key(i);
-                if (key?.startsWith('mock_posts_')) {
-                    const posts = JSON.parse(localStorage.getItem(key) || '[]');
-                    const postIndex = posts.findIndex((p: any) => p.id === postId);
-                    if (postIndex !== -1) {
-                        if (!posts[postIndex].comments) posts[postIndex].comments = [];
-                        posts[postIndex].comments.push(newComment);
-                        localStorage.setItem(key, JSON.stringify(posts));
-                        break;
-                    }
+            const mockCommunityIds = _getMockCommunities();
+            for (const communityId of mockCommunityIds) {
+                const key = `mock_posts_${communityId}`;
+                const posts = JSON.parse(localStorage.getItem(key) || '[]');
+                const postIndex = posts.findIndex((p: any) => p.id === postId);
+                if (postIndex !== -1) {
+                    if (!posts[postIndex].comments) posts[postIndex].comments = [];
+                    posts[postIndex].comments.push(newComment);
+                    localStorage.setItem(key, JSON.stringify(posts));
+                    break;
                 }
             }
 
