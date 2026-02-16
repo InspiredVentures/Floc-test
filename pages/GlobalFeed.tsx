@@ -17,6 +17,10 @@ const GlobalFeed: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'pulse' | 'vibes' | 'following'>('pulse');
   const [searchQuery, setSearchQuery] = useState('');
 
+  const onSelectCommunity = (community: Community) => {
+    navigate(`/community/${community.id}`);
+  };
+
   // Search/Filter logic for the Feed component could be lifted up here if needed,
   // but for simplicity we'll just pass the initial list.
   // In a real app, Feed would fetch its own data or accept a filtered list.
@@ -73,6 +77,24 @@ const GlobalFeed: React.FC = () => {
       </header>
 
       <main className="p-6 pb-32 max-w-2xl mx-auto w-full">
+        <div className="flex overflow-x-auto pb-4 mb-4 gap-4 scrollbar-hide">
+          <div className="flex flex-col items-center gap-2 shrink-0">
+             <div className="size-16 rounded-[1.5rem] p-1 border-2 border-dashed border-slate-300 flex items-center justify-center cursor-pointer hover:border-primary/50 transition-colors">
+                <span className="material-symbols-outlined text-slate-400">add</span>
+             </div>
+             <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest text-center w-16">Add Pulse</span>
+          </div>
+          {TRIBES.map((tribe, i) => (
+            <div key={i} className="flex flex-col items-center gap-2 shrink-0 cursor-pointer group" onClick={() => onSelectCommunity({ id: tribe.toLowerCase(), title: tribe, meta: "Community", description: "", image: "", memberCount: "800", category: "Trending", upcomingTrips: [], accessType: 'free' })}>
+              <div className="size-16 rounded-[1.5rem] p-1 bg-gradient-to-tr from-primary to-orange-400 group-hover:scale-105 transition-transform">
+                 <div className="w-full h-full bg-white rounded-[1.2rem] flex items-center justify-center overflow-hidden">
+                    <img src={`https://picsum.photos/seed/${tribe}/200/200`} alt={tribe} className="w-full h-full object-cover" />
+                 </div>
+              </div>
+              <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest text-center w-16 truncate">{tribe}</span>
+            </div>
+          ))}
+        </div>
         {/* Feed Component */}
         <Feed context="global" initialPosts={filteredPosts} />
       </main>
