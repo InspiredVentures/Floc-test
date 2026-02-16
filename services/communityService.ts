@@ -429,7 +429,14 @@ export const communityService = {
     async getMembers(communityId: string): Promise<Member[]> {
         const { data: members, error } = await supabase
             .from('community_members')
-            .select('*')
+            .select(`
+                *,
+                user:profiles!user_id (
+                    full_name,
+                    avatar_url,
+                    location
+                )
+            `)
             .eq('community_id', communityId);
 
         if (error) {
@@ -439,16 +446,8 @@ export const communityService = {
 
         if (!members || members.length === 0) return [];
 
-        const userIds = members.map((m: any) => m.user_id);
-        const { data: profiles } = await supabase
-            .from('profiles')
-            .select('id, full_name, avatar_url, location')
-            .in('id', userIds);
-
-        const profileMap = new Map(profiles?.map((p: any) => [p.id, p]));
-
         return members.map((m: any) => {
-            const profile = profileMap.get(m.user_id);
+            const profile = m.user;
             return {
                 id: m.user_id || m.id,
                 name: profile?.full_name || m.user_name || 'Member', // Prefer profile, fallback to stored
