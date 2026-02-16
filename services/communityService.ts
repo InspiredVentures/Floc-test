@@ -552,7 +552,6 @@ export const communityService = {
             .from('trip_suggestions')
             .select(`
                 *,
-                suggestion_votes (user_id, vote_type),
                 suggestion_comments (
                     id,
                     user_name,
@@ -569,11 +568,22 @@ export const communityService = {
             return [];
         }
 
+        const userVotesMap = new Map<string, string>();
+        if (currentUserId && data && data.length > 0) {
+            const suggestionIds = data.map((s: any) => s.id);
+            const { data: votes } = await supabase
+                .from('suggestion_votes')
+                .select('suggestion_id, vote_type')
+                .eq('user_id', currentUserId)
+                .in('suggestion_id', suggestionIds);
+
+            if (votes) {
+                votes.forEach((v: any) => userVotesMap.set(v.suggestion_id, v.vote_type));
+            }
+        }
+
         return data.map((sug: any) => {
-            const votes = sug.suggestion_votes || [];
-            const userVote = currentUserId
-                ? votes.find((v: any) => v.user_id === currentUserId)
-                : null;
+            const myVote = userVotesMap.get(sug.id) || null;
 
             const comments = (sug.suggestion_comments || []).map((c: any) => ({
                 id: c.id,
@@ -598,7 +608,7 @@ export const communityService = {
                 suggestedBy: sug.user_name || 'Member',
                 avatar: sug.user_avatar || 'https://picsum.photos/seed/default/100/100',
                 votes: sug.votes_count || 0,
-                myVote: userVote ? userVote.vote_type : null,
+                myVote: myVote,
                 timestamp: new Date(sug.created_at).toLocaleDateString(),
                 comments
             };
