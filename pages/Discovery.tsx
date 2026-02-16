@@ -2,6 +2,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { MOCK_TRIPS } from '../constants';
 import { Trip, Community } from '../types';
+import { DISCOVERY_CATEGORIES as CATEGORIES } from '../constants/community';
 import { GoogleGenAI } from "@google/genai";
 
 interface Props {
@@ -46,16 +47,6 @@ const MOCK_COMMUNITIES: Community[] = [
     upcomingTrips: [],
     accessType: 'free'
   }
-];
-
-const CATEGORIES = [
-  { id: 'all', label: 'All', icon: 'grid_view' },
-  { id: 'Photography', label: 'Photography', icon: 'photo_camera' },
-  { id: 'Adventure', label: 'Adventure', icon: 'landscape' },
-  { id: 'Eco-Travel', label: 'Sustainability', icon: 'eco' },
-  { id: 'Expedition', label: 'Expedition', icon: 'explore' },
-  { id: 'Wellness', label: 'Wellness', icon: 'spa' },
-  { id: 'Cultural', label: 'Cultural', icon: 'museum' }
 ];
 
 const FlocLogo = ({ className = "size-8" }: { className?: string }) => (

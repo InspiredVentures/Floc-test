@@ -26,6 +26,18 @@ export enum AppView {
   IMPACT = 'IMPACT'
 }
 
+export interface Category {
+  id: string;
+  label: string;
+  icon?: string;
+}
+
+export interface Theme {
+  id: string;
+  label: string;
+  url: string;
+}
+
 export interface Community {
   id: string;
   title: string;

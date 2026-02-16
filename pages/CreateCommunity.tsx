@@ -1,20 +1,12 @@
 
 import React, { useState } from 'react';
 import { GoogleGenAI } from "@google/genai";
+import { CREATE_COMMUNITY_CATEGORIES as CATEGORIES, COMMUNITY_THEMES as THEMES } from '../constants/community';
 
 interface Props {
   onBack: () => void;
   onComplete: () => void;
 }
-
-const CATEGORIES = ['Photography', 'Eco-Travel', 'Expedition', 'Culinary', 'Wellness', 'Digital Nomad'];
-
-const THEMES = [
-  { id: 'nature', label: 'Nature', url: 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&w=400&q=80' },
-  { id: 'city', label: 'Urban', url: 'https://images.unsplash.com/photo-1449156001933-468b7bb2596a?auto=format&fit=crop&w=400&q=80' },
-  { id: 'ocean', label: 'Ocean', url: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=400&q=80' },
-  { id: 'mountain', label: 'Alpine', url: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=400&q=80' },
-];
 
 const CreateCommunity: React.FC<Props> = ({ onBack, onComplete }) => {
   const [step, setStep] = useState(1);

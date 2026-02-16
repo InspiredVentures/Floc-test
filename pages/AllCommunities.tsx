@@ -1,14 +1,13 @@
 
 import React, { useState } from 'react';
 import { Trip, Community } from '../types';
+import { ALL_COMMUNITIES_CATEGORIES as CATEGORIES } from '../constants/community';
 
 interface Props {
   onBack: () => void;
   onSelectTrip: (trip: Trip) => void;
   onSelectCommunity: (community: Community) => void;
 }
-
-const CATEGORIES = ['All', 'Adventure', 'Wellness', 'Eco-Travel', 'Culinary', 'Expedition', 'Social'];
 
 const AllCommunities: React.FC<Props> = ({ onBack, onSelectTrip, onSelectCommunity }) => {
   const [activeCategory, setActiveCategory] = useState('All');
