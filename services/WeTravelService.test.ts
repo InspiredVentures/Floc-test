@@ -20,19 +20,8 @@ describe('WeTravelService', () => {
         expect(trips).toEqual(MOCK_TRIPS);
     });
 
-    it('should return mock trips if API key is missing even if USE_MOCK=false', async () => {
-        vi.stubEnv('VITE_USE_MOCK', 'false');
-        vi.stubEnv('VITE_WETRAVEL_API_KEY', ''); // Empty or undefined
-
-        const { WeTravelService } = await import('./WeTravelService');
-
-        const trips = await WeTravelService.getAllTrips();
-        expect(trips).toEqual(MOCK_TRIPS);
-    });
-
     it('should fall back to mock trips if API call fails', async () => {
         vi.stubEnv('VITE_USE_MOCK', 'false');
-        vi.stubEnv('VITE_WETRAVEL_API_KEY', 'dummy-key');
 
         // Mock fetch to fail
         global.fetch = vi.fn().mockRejectedValue(new Error('Network error'));
@@ -53,7 +42,6 @@ describe('WeTravelService', () => {
 
     it('should return API data if API call succeeds', async () => {
         vi.stubEnv('VITE_USE_MOCK', 'false');
-        vi.stubEnv('VITE_WETRAVEL_API_KEY', 'dummy-key');
 
         const mockApiResponse = {
             trips: [
