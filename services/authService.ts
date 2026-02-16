@@ -12,6 +12,24 @@ export const authService = {
         return { data, error };
     },
 
+    async signInWithGoogle() {
+        const { data, error } = await supabase.auth.signInWithOAuth({
+            provider: 'google',
+            options: {
+                redirectTo: `${window.location.origin}/onboarding`
+            }
+        });
+        return { data, error };
+    },
+
+    async signInWithProtocol() {
+        // Placeholder for future implementation
+        return {
+            data: null,
+            error: { message: "Protocol authentication is currently unavailable." }
+        };
+    },
+
     async signOut() {
         const { error } = await supabase.auth.signOut();
         return { error };
