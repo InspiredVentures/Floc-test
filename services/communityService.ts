@@ -562,7 +562,7 @@ export const communityService = {
             .from('community_members')
             .select('community_id')
             .eq('user_id', userId)
-            .eq('status', 'approved');
+            .eq('status', 'approved'); // Filter by status 'approved' in DB for performance
 
         if (error) {
             console.error('[CommunityService] Error fetching user community IDs:', error);
