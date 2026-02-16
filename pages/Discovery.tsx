@@ -2,7 +2,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Trip, Community } from '../types';
-import { FlocLogo } from '../src/components/FlocLogo';
+import { FlocLogo } from '../components/FlocLogo';
 import { CommunityResultCard } from '../components/CommunityResultCard';
 import { useUser } from '../contexts/UserContext';
 import BackToTop from '../components/BackToTop';
