@@ -85,8 +85,6 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                     const storedMockUser = localStorage.getItem('mock_user');
                     const storedMockProfile = localStorage.getItem('mock_profile');
                     if (storedMockUser && storedMockProfile) {
-                        console.log('[UserContext] Restoring Mock User from LocalStorage');
-                        // alert("DEBUG: Restoring Mock Session!"); 
                         setUser(JSON.parse(storedMockUser));
                         setProfile(JSON.parse(storedMockProfile));
 
@@ -259,10 +257,6 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
         fetchCommunities();
     }, []);
-
-    // Save communities to localStorage isn't needed if we sync with DB, 
-    // but for now we might keep it or remove it. Removing it to avoid confusion/stale data.
-    // React.useEffect(() => { ... }, [communities]);
 
     // Save following to localStorage whenever it changes
     React.useEffect(() => {

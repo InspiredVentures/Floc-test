@@ -29,6 +29,13 @@ const Login: React.FC = () => {
       return;
     }
 
+  const performLogin = async (method: 'google' | 'protocol') => {
+    setError(null);
+    if (!isSupabaseConfigured) {
+      setError("Application is missing API Keys. Please check your .env file and restart the server.");
+      return;
+    }
+
     setLoginMethod(method);
     setIsLoggingIn(true);
 
@@ -37,19 +44,16 @@ const Login: React.FC = () => {
       if (method === 'google') {
         result = await authService.signInWithGoogle();
       } else {
-        // Protocol maps to Anonymous/Mock
+        // Fallback or explicit handling for protocol
         result = await authService.signInWithProtocol();
-        // Add artificial delay for Protocol to match UI experience
-        await new Promise(resolve => setTimeout(resolve, 1000));
       }
 
       if (result.error) throw result.error;
+      // Note: Google login will redirect the browser.
 
-      // For Protocol (Anonymous), we might need manual redirect if auth state change doesn't trigger fast enough
       if (method === 'protocol') {
-        navigate('/dashboard');
+        setTimeout(() => navigate('/dashboard'), 500);
       }
-
     } catch (err: any) {
       console.error('Login failed:', err);
       setError(err.message || 'Authentication failed. Please try again.');
@@ -76,7 +80,9 @@ const Login: React.FC = () => {
     } catch (err: any) {
       console.error('Login failed:', err);
       if (err.message && err.message.includes('rate limit')) {
-        setError('Email rate limit exceeded. Please wait a bit or use Development Login.');
+        setError(import.meta.env.DEV
+          ? 'Email rate limit exceeded. Please wait a bit or use Development Login.'
+          : 'Email rate limit exceeded. Please try again later.');
       } else {
         setError(err.message || 'Failed to send magic link. Please check your Supabase config.');
       }
@@ -85,6 +91,8 @@ const Login: React.FC = () => {
   };
 
   const handleDevLogin = async () => {
+    if (import.meta.env.PROD) return;
+
     setLoginMethod('dev');
     setIsLoggingIn(true);
 
@@ -266,30 +274,32 @@ const Login: React.FC = () => {
             </div>
           )}
 
-          <div className="pt-4 border-t border-primary/5">
-            <button
-              onClick={handleDevLogin}
-              disabled={isLoggingIn}
-              className="w-full py-3 bg-primary/5 border border-primary/10 rounded-xl text-primary font-heading tracking-wider hover:bg-primary/10 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
-            >
-              {isLoggingIn && loginMethod === 'dev' ? (
-                <span className="size-4 border-2 border-primary/20 border-t-primary rounded-full animate-spin" />
-              ) : null}
-              DEVELOPMENT LOGIN (TRY MASTER)
-            </button>
+          {import.meta.env.DEV && (
+            <div className="pt-4 border-t border-primary/5">
+              <button
+                onClick={handleDevLogin}
+                disabled={isLoggingIn}
+                className="w-full py-3 bg-primary/5 border border-primary/10 rounded-xl text-primary font-heading tracking-wider hover:bg-primary/10 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {isLoggingIn && loginMethod === 'dev' ? (
+                  <span className="size-4 border-2 border-primary/20 border-t-primary rounded-full animate-spin" />
+                ) : null}
+                DEVELOPMENT LOGIN (TRY MASTER)
+              </button>
 
-            <button
-              onClick={() => {
-                // Force Offline Mode
-                debugLogin();
-                alert("Entered Offline Mode. Data will persist locally only.");
-                navigate('/dashboard');
-              }}
-              className="w-full mt-2 py-2 text-xs text-primary/40 hover:text-primary transition-colors"
-            >
-              Use Offline Mode (Force Persistence)
-            </button>
-          </div>
+              <button
+                onClick={() => {
+                  // Force Offline Mode
+                  debugLogin();
+                  alert("Entered Offline Mode. Data will persist locally only.");
+                  navigate('/dashboard');
+                }}
+                className="w-full mt-2 py-2 text-xs text-primary/40 hover:text-primary transition-colors"
+              >
+                Use Offline Mode (Force Persistence)
+              </button>
+            </div>
+          )}
         </div>
 
         <p className="mt-8 text-primary/30 text-sm text-center">

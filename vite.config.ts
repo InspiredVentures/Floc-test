@@ -12,9 +12,13 @@ export default defineConfig(({ mode }) => {
       host: '0.0.0.0',
       proxy: {
         '/api/wetravel': {
-          target: 'https://app.wetravel.com',
+          target: 'http://localhost:3001',
           changeOrigin: true,
-          rewrite: (path) => path.replace(/^\/api\/wetravel/, '/api/v1'),
+          secure: false
+        },
+        '/api/generate-community-image': {
+          target: 'http://localhost:3001',
+          changeOrigin: true,
           secure: false
         },
         '/api/generate-community-image': {

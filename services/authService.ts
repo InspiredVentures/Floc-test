@@ -12,10 +12,48 @@ export const authService = {
         return { data, error };
     },
 
-    async signInWithProtocol() {
-        // Map Protocol to Anonymous Login for now as per feature implementation
-        const { data, error } = await supabase.auth.signInAnonymously();
+    async signInWithGoogle() {
+        const { data, error } = await supabase.auth.signInWithOAuth({
+            provider: 'google',
+            options: {
+                redirectTo: `${window.location.origin}/onboarding`
+            }
+        });
         return { data, error };
+    },
+
+    async signInWithProtocol() {
+        // Simulate protocol handshake
+        await new Promise(resolve => setTimeout(resolve, 1500));
+
+        try {
+            // 1. Authenticate anonymously as a Protocol Node
+            const { data, error } = await supabase.auth.signInAnonymously();
+
+            if (error) {
+                return { data: null, error };
+            }
+
+            // 2. Assign Protocol Identity (Metadata)
+            if (data?.user) {
+                const { error: updateError } = await supabase.auth.updateUser({
+                    data: {
+                        full_name: 'Protocol Node',
+                        avatar_url: 'https://img.icons8.com/fluency/96/security-shield-green.png',
+                        is_protocol_user: true
+                    }
+                });
+
+                if (updateError) {
+                    console.warn('Failed to update protocol user metadata:', updateError);
+                    // Continue anyway, as we are authenticated
+                }
+            }
+
+            return { data, error: null };
+        } catch (err: any) {
+             return { data: null, error: err };
+        }
     },
 
     async signOut() {

@@ -5,6 +5,13 @@ import { useUser } from '../contexts/UserContext';
 import { Feed } from '../components/Feed';
 import { MOCK_GLOBAL_POSTS } from '../constants';
 
+const SEARCHABLE_POSTS = MOCK_GLOBAL_POSTS.map(post => ({
+  original: post,
+  searchContent: post.content.toLowerCase(),
+  searchAuthor: post.author.toLowerCase(),
+  searchCommunity: post.communityName?.toLowerCase() || ''
+}));
+
 const GlobalFeed: React.FC = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'pulse' | 'vibes' | 'following'>('pulse');
@@ -17,11 +24,11 @@ const GlobalFeed: React.FC = () => {
   const filteredPosts = useMemo(() => {
     if (!searchQuery) return MOCK_GLOBAL_POSTS;
     const q = searchQuery.toLowerCase();
-    return MOCK_GLOBAL_POSTS.filter(p =>
-      p.content.toLowerCase().includes(q) ||
-      p.author.toLowerCase().includes(q) ||
-      p.communityName?.toLowerCase().includes(q)
-    );
+    return SEARCHABLE_POSTS.filter(p =>
+      p.searchContent.includes(q) ||
+      p.searchAuthor.includes(q) ||
+      p.searchCommunity.includes(q)
+    ).map(p => p.original);
   }, [searchQuery]);
 
   return (
