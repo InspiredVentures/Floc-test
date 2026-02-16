@@ -9,6 +9,7 @@ import { CreateSuggestionModal } from '../components/CreateSuggestionModal';
 import { ChatInterface } from '../components/ChatInterface';
 import { Feed } from '../components/Feed';
 import { SEO } from '../components/SEO';
+import { TRIP_CONTENT, ItineraryDay } from '../data/trips_itineraries';
 
 interface Props {
   trip: Trip;
@@ -20,16 +21,16 @@ interface Props {
 
 const TripDetails: React.FC<Props> = ({ trip, onBack, onBook, onOpenChat, isBooking }) => {
   const navigate = useNavigate();
-  const { user } = useUser();
+  const { user, bookedTripIds } = useUser();
   const { success } = useToast();
   /* State */
-  const [activeView, setActiveView] = useState<'group' | 'chat' | 'docs' | 'lab'>('group');
+  const [activeView, setActiveView] = useState<'group' | 'chat' | 'docs' | 'lab' | 'itinerary'>('group');
   const [showSuggestModal, setShowSuggestModal] = useState(false);
   const [suggestions, setSuggestions] = useState<TripSuggestion[]>([]);
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
 
   // Logic to determine if user has access (booked)
-  const isBooked = user?.bookedTrips?.includes(trip.id);
+  const isBooked = bookedTripIds?.includes(trip.id);
 
   /* Effects */
   useEffect(() => {
@@ -91,6 +92,15 @@ const TripDetails: React.FC<Props> = ({ trip, onBack, onBook, onOpenChat, isBook
         return { ...s, comments: [...(s.comments || []), newComment] };
       }));
     }
+  };
+
+  const handlePulseProgress = (day: ItineraryDay) => {
+    navigate('/global-feed', {
+      state: {
+        initialContent: `Just completed Day ${day.day}: ${day.title} in ${trip.destination}! 🌍✨`,
+        communityId: trip.communityId
+      }
+    });
   };
 
   return (
@@ -161,6 +171,12 @@ const TripDetails: React.FC<Props> = ({ trip, onBack, onBook, onOpenChat, isBook
               Chat
             </button>
           )}
+
+          <button onClick={() => setActiveView('itinerary')} className={`flex-1 min-w-[80px] flex items-center justify-center gap-2 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all ${activeView === 'itinerary' ? 'bg-primary text-white shadow-lg' : 'text-primary/40 hover:bg-primary/5'}`}>
+            <span className="material-symbols-outlined text-sm">map</span>
+            <span className="hidden sm:inline">Route</span>
+            <span className="sm:hidden">Route</span>
+          </button>
 
           <button onClick={() => setActiveView('docs')} className={`flex-1 min-w-[80px] flex items-center justify-center gap-2 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all ${activeView === 'docs' ? 'bg-primary text-white shadow-lg' : 'text-primary/40 hover:bg-primary/5'}`}>
             <span className="material-symbols-outlined text-sm">description</span>
@@ -259,6 +275,44 @@ const TripDetails: React.FC<Props> = ({ trip, onBack, onBook, onOpenChat, isBook
               type="trip"
               embedded={true}
             />
+          </div>
+        )}
+
+        {activeView === 'itinerary' && (
+          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div>
+              <h3 className="text-primary text-xl font-heading font-black italic uppercase tracking-tighter">Daily Route</h3>
+              <p className="text-primary/60 text-[10px] font-bold uppercase tracking-widest mt-1">
+                Share your journey milestones
+              </p>
+            </div>
+
+            <div className="grid gap-4">
+              {TRIP_CONTENT[trip.id]?.itinerary.map((day, idx) => (
+                <div key={idx} className="bg-white p-5 rounded-3xl border border-primary/5 flex items-start gap-4">
+                  <div className="size-12 rounded-2xl flex items-center justify-center bg-primary/5 text-primary shrink-0 font-black text-xs uppercase tracking-widest border border-primary/10">
+                    Day {day.day}
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="text-primary font-black uppercase italic text-sm mb-1">{day.title}</h4>
+                    <p className="text-primary/60 text-[10px] leading-relaxed line-clamp-2">{day.desc}</p>
+
+                    {isBooked && (
+                      <button
+                        onClick={() => handlePulseProgress(day)}
+                        className="mt-3 flex items-center gap-2 bg-accent/10 hover:bg-accent/20 text-accent px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-colors"
+                      >
+                        <span className="material-symbols-outlined text-sm">share</span>
+                        Share Progress
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+              {!TRIP_CONTENT[trip.id] && (
+                <div className="text-center py-10 text-primary/40 text-xs">No itinerary details available.</div>
+              )}
+            </div>
           </div>
         )}
 

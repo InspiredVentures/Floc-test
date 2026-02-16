@@ -8,16 +8,17 @@ import { Skeleton } from './Skeleton';
 interface FeedProps {
     communityId?: string; // Optional: if null, shows Global Feed
     limit?: number;
+    initialContent?: string;
 }
 
-export const Feed: React.FC<FeedProps> = ({ communityId, limit }) => {
+export const Feed: React.FC<FeedProps> = ({ communityId, limit, initialContent }) => {
     const { user, profile } = useUser();
 
     const [posts, setPosts] = useState<CommunityPost[]>([]);
     const [isLoadingPosts, setIsLoadingPosts] = useState(true);
 
     // Create Post State
-    const [newPostContent, setNewPostContent] = useState('');
+    const [newPostContent, setNewPostContent] = useState(initialContent || '');
     const [newPostImage, setNewPostImage] = useState('');
     const [isPosting, setIsPosting] = useState(false);
     const [showImageInput, setShowImageInput] = useState(false);
