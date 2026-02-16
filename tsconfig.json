@@ -30,13 +30,9 @@
     "src",
     "pages",
     "components",
-    "contexts",
-    "lib",
-    "services",
-    "types.ts",
-    "App.tsx",
-    "index.tsx",
-    "test"
+    "vitest.setup.ts",
+    "*.tsx",
+    "*.ts"
   ],
   "exclude": [
     "node_modules",

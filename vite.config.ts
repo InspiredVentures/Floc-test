@@ -13,9 +13,13 @@ export default defineConfig(({ mode }) => {
       host: '0.0.0.0',
       proxy: {
         '/api/wetravel': {
-          target: 'https://app.wetravel.com',
+          target: 'http://localhost:3001',
           changeOrigin: true,
-          rewrite: (path) => path.replace(/^\/api\/wetravel/, '/api/v1'),
+          secure: false
+        },
+        '/api/generate-community-image': {
+          target: 'http://localhost:3001',
+          changeOrigin: true,
           secure: false
         }
       }
@@ -44,10 +48,6 @@ export default defineConfig(({ mode }) => {
         }
       }),
     ],
-    define: {
-      'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
-      'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY)
-    },
     build: {
       rollupOptions: {
         output: {
@@ -67,7 +67,7 @@ export default defineConfig(({ mode }) => {
     test: {
       globals: true,
       environment: 'jsdom',
-      setupFiles: './test/setup.ts',
+      setupFiles: './setupTests.ts',
     }
   };
 });
