@@ -15,6 +15,8 @@ const CATEGORY_KEYWORDS: Record<string, string[]> = {
   'Creative': ['photography', 'camera', 'photo', 'guide', 'skill', 'storyteller', 'content'],
 };
 
+const MAX_CHARS = 500;
+
 const JoinRequest: React.FC<Props> = ({ community, onBack, onSent }) => {
   const [message, setMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
@@ -92,10 +94,11 @@ const JoinRequest: React.FC<Props> = ({ community, onBack, onSent }) => {
                 rows={6}
                 placeholder="Hi! I'm Alex and I've been trekking for 5 years. I'd love to share my stories and learn from this group..."
                 className="w-full bg-white/5 border border-white/10 rounded-3xl px-6 py-5 text-white placeholder:text-slate-600 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all resize-none leading-relaxed text-sm"
+                maxLength={MAX_CHARS}
                 required
               />
               <div className="absolute bottom-4 right-6 text-[10px] font-bold text-slate-600 uppercase tracking-widest">
-                {message.length} characters
+                {message.length} / {MAX_CHARS} characters
               </div>
             </div>
 
