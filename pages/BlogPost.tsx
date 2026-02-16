@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { Calendar, User, ArrowLeft, Share2 } from 'lucide-react';
 import WebsiteNav from '../components/WebsiteNav';
 import { JOURNAL_POSTS } from '../data/journal_posts';
+import { sanitizeHTML } from '../lib/sanitizer';
 
 const BlogPost: React.FC = () => {
     const { slug } = useParams();
@@ -80,7 +81,7 @@ const BlogPost: React.FC = () => {
             <main className="py-20 container mx-auto px-6 max-w-3xl">
                 <article
                     className="prose prose-lg prose-p:text-primary/70 prose-headings:font-heading prose-headings:font-bold prose-headings:text-primary prose-a:text-accent max-w-none"
-                    dangerouslySetInnerHTML={{ __html: post.content }}
+                    dangerouslySetInnerHTML={{ __html: sanitizeHTML(post.content) }}
                 />
 
                 {/* Share / Footer */}
