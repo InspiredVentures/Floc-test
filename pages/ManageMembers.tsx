@@ -1,6 +1,8 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useUser } from '../contexts/UserContext';
 import { useToast } from '../contexts/ToastContext';
+import { communityService } from '../services/communityService';
+import { Member } from '../types';
 
 interface Props {
   onBack: () => void;
@@ -21,16 +23,6 @@ const PERMISSIONS: Permission[] = [
   { id: 'manage', icon: 'group_add', label: 'Manage Roster', description: 'Approve applicants and adjust member roles.' },
   { id: 'delete', icon: 'delete_forever', label: 'Dissolve Community', description: 'Permanently remove the community from the network.' },
 ];
-
-interface Member {
-  id: string;
-  name: string;
-  role: UserRole;
-  avatar: string;
-  location: string;
-  joinedDate: string;
-  customPermissions?: string[];
-}
 
 interface PendingMember {
   id: string;
@@ -106,7 +98,7 @@ const MOCK_PENDING: PendingMember[] = [
 ];
 
 const ManageMembers: React.FC<Props> = ({ onBack }) => {
-  const { communities, approveMember, declineMember, removeMember, updateMemberRole, user } = useUser();
+  const { communities, user } = useUser();
   const { success, error, info } = useToast();
   const [activeTab, setActiveTab] = useState<'joined' | 'pending' | 'declined' | 'invites' | 'activity'>('joined');
   const [searchQuery, setSearchQuery] = useState('');
@@ -124,7 +116,23 @@ const ManageMembers: React.FC<Props> = ({ onBack }) => {
   // For demo, we manage the first managed community found
   const community = communities.find(c => c.isManaged) || communities[0];
 
-  const allMembers = useMemo(() => community?.members || [], [community]);
+  // Local state for members to avoid relying on UserContext/global state which is being optimized
+  const [membersList, setMembersList] = useState<Member[]>([]);
+  const [isLoadingMembers, setIsLoadingMembers] = useState(true);
+
+  useEffect(() => {
+    const loadMembers = async () => {
+      if (community?.id) {
+        setIsLoadingMembers(true);
+        const fetched = await communityService.getMembers(community.id);
+        setMembersList(fetched);
+        setIsLoadingMembers(false);
+      }
+    };
+    loadMembers();
+  }, [community?.id]);
+
+  const allMembers = useMemo(() => membersList, [membersList]);
 
   const members = useMemo(() => allMembers.filter(m => m.status === 'approved' || !m.status), [allMembers]);
   // Map standard members to PendingMember shape with defaults for missing fields
@@ -219,21 +227,29 @@ const ManageMembers: React.FC<Props> = ({ onBack }) => {
     );
   }, [searchQuery, declinedMembers]);
 
-  const handleSaveMember = () => {
+  const handleSaveMember = async () => {
     if (editingMember && tempRole && community) {
       const oldRole = editingMember.role;
-      updateMemberRole(community.id, editingMember.id, tempRole, tempPerms);
+      const successResult = await communityService.updateMemberRole(community.id, editingMember.id, tempRole, tempPerms);
 
-      // Log activity
-      if (oldRole !== tempRole) {
-        logActivity('roleChanged', editingMember.name, `Changed role from ${oldRole} to ${tempRole}`);
-        success(`Updated ${editingMember.name}'s role to ${tempRole}`);
+      if (successResult) {
+        setMembersList(prev => prev.map(m =>
+          m.id === editingMember.id ? { ...m, role: tempRole, customPermissions: tempPerms } : m
+        ));
+
+        // Log activity
+        if (oldRole !== tempRole) {
+          logActivity('roleChanged', editingMember.name, `Changed role from ${oldRole} to ${tempRole}`);
+          success(`Updated ${editingMember.name}'s role to ${tempRole}`);
+        } else {
+          logActivity('permissionUpdated', editingMember.name, 'Updated permissions');
+          success(`Updated permissions for ${editingMember.name}`);
+        }
+
+        setEditingMember(null);
       } else {
-        logActivity('permissionUpdated', editingMember.name, 'Updated permissions');
-        success(`Updated permissions for ${editingMember.name}`);
+        error("Failed to update role");
       }
-
-      setEditingMember(null);
     }
   };
 
@@ -248,28 +264,37 @@ const ManageMembers: React.FC<Props> = ({ onBack }) => {
     setTempPerms(ROLE_DEFAULTS[role].permissions);
   };
 
-  const handleActionRequest = (id: string, action: 'approve' | 'decline') => {
+  const handleActionRequest = async (id: string, action: 'approve' | 'decline') => {
     if (!community) return;
     const member = pendingMembers.find(m => m.id === id);
     if (!member) return;
 
     if (action === 'approve') {
-      approveMember(community.id, id);
-      logActivity('approved', member.name, 'Approved to join the tribe');
-      success(`Welcome to the tribe, ${member.name}!`);
+      const isSuccess = await communityService.approveMember(community.id, id);
+      if (isSuccess) {
+        setMembersList(prev => prev.map(m => m.id === id ? { ...m, status: 'approved' } : m));
+        logActivity('approved', member.name, 'Approved to join the tribe');
+        success(`Welcome to the tribe, ${member.name}!`);
+      }
     } else {
-      declineMember(community.id, id);
-      logActivity('declined', member.name, 'Join request declined');
-      info(`Declined join request for ${member.name}`);
+      const isSuccess = await communityService.declineMember(community.id, id);
+      if (isSuccess) {
+        setMembersList(prev => prev.map(m => m.id === id ? { ...m, status: 'rejected' } : m));
+        logActivity('declined', member.name, 'Join request declined');
+        info(`Declined join request for ${member.name}`);
+      }
     }
   };
 
-  const handleRemoveMember = (id: string, name: string) => {
+  const handleRemoveMember = async (id: string, name: string) => {
     if (community) {
       if (window.confirm(`Are you sure you want to remove ${name} from the tribe? They will be moved to the declined list.`)) {
-        removeMember(community.id, id);
-        logActivity('removed', name, 'Removed from the tribe');
-        success(`${name} has been removed from the tribe`);
+        const isSuccess = await communityService.removeMember(community.id, id);
+        if (isSuccess) {
+          setMembersList(prev => prev.map(m => m.id === id ? { ...m, status: 'rejected' } : m));
+          logActivity('removed', name, 'Removed from the tribe');
+          success(`${name} has been removed from the tribe`);
+        }
       }
     }
   };

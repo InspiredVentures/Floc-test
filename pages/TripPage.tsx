@@ -13,7 +13,7 @@ import { SEO } from '../components/SEO';
 const TripPage: React.FC = () => {
     const { id } = useParams(); // Keep one
     const navigate = useNavigate();
-    const { isBooked, bookTrip, isMember, joinCommunity } = useUser();
+    const { isBooked, isMember, joinCommunity } = useUser();
     const [trip, setTrip] = useState<Trip | null>(null);
     const [isJoining, setIsJoining] = useState(false);
     const [activeSection, setActiveSection] = useState('overview');
@@ -173,16 +173,6 @@ const TripPage: React.FC = () => {
                                     </div>
                                 </div>
                                 <p className="text-[11px] font-bold text-primary/30 uppercase tracking-widest italic">Includes all meals, transfers & local support.</p>
-
-                                {/* DEV ONLY: Simulation Button */}
-                                {!isBooked(trip.id) && (
-                                    <button
-                                        onClick={() => bookTrip(trip.id)}
-                                        className="w-full bg-red-100 text-red-600 py-2 rounded-lg text-xs font-bold uppercase tracking-widest hover:bg-red-200 transition-colors border border-red-200"
-                                    >
-                                        [Dev] Simulate Successful Webhook
-                                    </button>
-                                )}
                             </div>
 
                             <div className="space-y-8 py-8 border-y border-primary/5">

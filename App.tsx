@@ -99,12 +99,10 @@ const TripDetailsWrapper = () => {
   React.useEffect(() => {
     const loadTrip = async () => {
       if (!id) return;
-      console.log('[TripDetails] Loading trip with ID:', id);
       setLoading(true);
       setError(null);
       try {
         const fetchedTrip = await supabaseService.getTrip(id);
-        console.log('[TripDetails] Fetched trip:', fetchedTrip);
         setTrip(fetchedTrip);
       } catch (err) {
         console.error('[TripDetails] Error loading trip:', err);
