@@ -2,22 +2,22 @@ import express from 'express';
 import cors from 'cors';
 import { GoogleGenAI } from '@google/genai';
 import dotenv from 'dotenv';
+import { fileURLToPath } from 'url';
 
 dotenv.config({ path: '.env.local' });
 
-const app = express();
+export const app = express();
 app.use(cors());
 app.use(express.json());
 
-const apiKey = process.env.GEMINI_API_KEY;
-
 // Log API Key status (not the key itself)
-if (!apiKey) {
+if (!process.env.GEMINI_API_KEY) {
   console.warn('Warning: GEMINI_API_KEY is not set in environment variables.');
 }
 
 app.post('/api/generate-community-image', async (req, res) => {
   const { title, category } = req.body;
+  const apiKey = process.env.GEMINI_API_KEY;
 
   if (!apiKey) {
     return res.status(500).json({ error: 'Server configuration error: API Key missing' });
@@ -56,7 +56,9 @@ app.post('/api/generate-community-image', async (req, res) => {
   }
 });
 
-const PORT = 3001;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  const PORT = 3001;
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+  });
+}
