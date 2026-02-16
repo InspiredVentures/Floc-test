@@ -1,10 +1,11 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import { fileURLToPath } from 'url';
 
 dotenv.config({ path: '.env.local' });
 
-const app = express();
+export const app = express();
 app.use(cors());
 app.use(express.json());
 
@@ -12,7 +13,7 @@ const apiKey = process.env.GEMINI_API_KEY;
 const weTravelApiKey = process.env.WETRAVEL_API_KEY;
 
 // Log API Key status (not the key itself)
-if (!apiKey) {
+if (!process.env.GEMINI_API_KEY) {
   console.warn('Warning: GEMINI_API_KEY is not set in environment variables.');
 }
 if (!weTravelApiKey) {
@@ -81,6 +82,7 @@ app.post('/api/wetravel/bookings', async (req, res) => {
 
 app.post('/api/generate-community-image', async (req, res) => {
   const { title, category } = req.body;
+  const apiKey = process.env.GEMINI_API_KEY;
 
   if (!apiKey) {
     return res.status(500).json({ error: 'Server configuration error: API Key missing' });
