@@ -8,14 +8,7 @@ import { useUser } from '../contexts/UserContext';
 import BackToTop from '../components/BackToTop';
 import { Skeleton } from '../components/Skeleton';
 import { motion } from 'framer-motion';
-
-const CATEGORIES = [
-  { id: 'all', label: 'All', icon: 'grid_view' },
-  { id: 'my-tribes', label: 'My Groups', icon: 'groups' },
-  { id: 'Planning', label: 'Planning', icon: 'campaign' },
-  { id: 'Confirmed', label: 'Confirmed', icon: 'check_circle' },
-  { id: 'Global', label: 'Global', icon: 'public' }
-];
+import { DISCOVERY_FILTERS } from '../constants';
 
 const Discovery: React.FC = () => {
   const navigate = useNavigate();
@@ -100,7 +93,7 @@ const Discovery: React.FC = () => {
       <main className="mt-8 px-6">
         <div className="max-w-7xl mx-auto">
           <div className="flex overflow-x-auto hide-scrollbar gap-2 py-4 mb-8">
-            {CATEGORIES.map(cat => (
+            {DISCOVERY_FILTERS.map(cat => (
               <button
                 key={cat.id}
                 onClick={() => setActiveFilter(cat.id)}

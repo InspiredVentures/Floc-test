@@ -2,14 +2,13 @@
 import React, { useState, useMemo } from 'react';
 import { Trip, Community } from '../types';
 import { useUser } from '../contexts/UserContext';
+import { COMMUNITY_FILTERS } from '../constants';
 
 interface Props {
   onBack: () => void;
   onSelectTrip: (trip: Trip) => void;
   onSelectCommunity: (community: Community) => void;
 }
-
-const CATEGORIES = ['All', 'Planning', 'Confirmed', 'Global'];
 
 const AllCommunities: React.FC<Props> = ({ onBack, onSelectTrip, onSelectCommunity }) => {
   const { communities } = useUser();
@@ -34,7 +33,7 @@ const AllCommunities: React.FC<Props> = ({ onBack, onSelectTrip, onSelectCommuni
 
       <div className="p-4">
         <div className="flex overflow-x-auto no-scrollbar gap-2 mb-8">
-          {CATEGORIES.map(cat => (
+          {COMMUNITY_FILTERS.map(cat => (
             <button
               key={cat}
               onClick={() => setActiveCategory(cat)}
