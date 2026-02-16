@@ -5,37 +5,38 @@ import { MOCK_TRIPS } from '../constants';
 
 const isUUID = (str: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
 
-const MOCK_COMMUNITY_INDEX_KEY = 'floc_mock_community_index';
+const MOCK_POSTS_STORE_KEY = 'floc_mock_posts_store';
 
-// Helper function to get mock community IDs
-const _getMockCommunities = (): string[] => {
-    // If index exists, use it
-    if (localStorage.getItem(MOCK_COMMUNITY_INDEX_KEY)) {
-        return JSON.parse(localStorage.getItem(MOCK_COMMUNITY_INDEX_KEY) || '[]');
+const _getMockPostsStore = (): Record<string, CommunityPost[]> => {
+    const existingStore = localStorage.getItem(MOCK_POSTS_STORE_KEY);
+    if (existingStore) {
+        return JSON.parse(existingStore);
     }
 
-    // Fallback/Migration: Scan keys once and build index
-    const communityIds: string[] = [];
+    // Migration: Scan keys once and build store
+    const store: Record<string, CommunityPost[]> = {};
+    const keysToDelete: string[] = [];
     for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
-        if (key?.startsWith('mock_posts_')) {
+        if (key && key.startsWith('mock_posts_')) {
+            keysToDelete.push(key);
             const communityId = key.replace('mock_posts_', '');
-            communityIds.push(communityId);
+            try {
+                const posts = JSON.parse(localStorage.getItem(key) || '[]');
+                store[communityId] = posts;
+            } catch (e) {
+                console.error('Error parsing mock posts for key:', key, e);
+            }
         }
     }
 
-    // Save the built index for next time
-    localStorage.setItem(MOCK_COMMUNITY_INDEX_KEY, JSON.stringify(communityIds));
-    return communityIds;
-};
+    localStorage.setItem(MOCK_POSTS_STORE_KEY, JSON.stringify(store));
 
-// Helper function to update the mock community index
-const _ensureMockCommunityIndex = (communityId: string) => {
-    // Get existing index (with migration fallback)
-    const existingIndex = _getMockCommunities();
-    if (!existingIndex.includes(communityId)) {
-        localStorage.setItem(MOCK_COMMUNITY_INDEX_KEY, JSON.stringify([...existingIndex, communityId]));
-    }
+    // Cleanup old keys to prevent re-migration of stale data
+    keysToDelete.forEach(key => localStorage.removeItem(key));
+    localStorage.removeItem('floc_mock_community_index');
+
+    return store;
 };
 
 export const communityService = {
@@ -98,7 +99,8 @@ export const communityService = {
     async getPosts(communityId: string, currentUserId?: string): Promise<CommunityPost[]> {
         if (!isUUID(communityId)) {
             // Mock Data Support for Non-UUID Community IDs
-            const mockPosts = JSON.parse(localStorage.getItem(`mock_posts_${communityId}`) || '[]');
+            const store = _getMockPostsStore();
+            const mockPosts = store[communityId] || [];
             // Merge with static constant mock posts if needed, or just use local storage
             // For now, let's just use local storage + maybe seed it if empty?
             if (mockPosts.length === 0) {
@@ -167,11 +169,8 @@ export const communityService = {
         let allPosts: CommunityPost[] = [];
 
         // 1. Scan localStorage for mock posts using index
-        const mockCommunityIds = _getMockCommunities();
-        for (const communityId of mockCommunityIds) {
-            const communityPosts = JSON.parse(localStorage.getItem(`mock_posts_${communityId}`) || '[]');
-            allPosts = [...allPosts, ...communityPosts];
-        }
+        const store = _getMockPostsStore();
+        allPosts = Object.values(store).flat();
 
         // 2. Fetch real posts if we have Supabase connected (optional for now)
         if (currentUserId) {
@@ -231,9 +230,10 @@ export const communityService = {
                 communityId
             };
 
-            const existing = JSON.parse(localStorage.getItem(`mock_posts_${communityId}`) || '[]');
-            localStorage.setItem(`mock_posts_${communityId}`, JSON.stringify([newPost, ...existing]));
-            _ensureMockCommunityIndex(communityId);
+            const store = _getMockPostsStore();
+            const existing = store[communityId] || [];
+            store[communityId] = [newPost, ...existing];
+            localStorage.setItem(MOCK_POSTS_STORE_KEY, JSON.stringify(store));
 
             return newPost;
         }
@@ -275,11 +275,31 @@ export const communityService = {
     async toggleLike(postId: string, userId: string, currentLikes: number, currentlyLiked: boolean): Promise<boolean> {
         // Simple check: if postId starts with 'post-' it's likely a mock post
         if (postId.startsWith('post-')) {
-            // We can't easily update the specific local storage array without knowing the communityId, 
-            // but strictly speaking, the UI optimistically updates anyway. 
-            // To persist, we'd need to find which community it belongs to.
-            // For the sake of the prototype, optimistic UI is sufficient, or we scan keys.
-            // Let's rely on optimistic UI for now as it's purely visual in the session.
+            const store = _getMockPostsStore();
+            let found = false;
+
+            for (const communityId in store) {
+                const posts = store[communityId];
+                const postIndex = posts.findIndex((p: any) => p.id === postId);
+                if (postIndex !== -1) {
+                    const post = posts[postIndex];
+                    if (currentlyLiked) {
+                        // Unlike
+                        post.likes = Math.max(0, (post.likes || 0) - 1);
+                        post.hasLiked = false;
+                    } else {
+                        // Like
+                        post.likes = (post.likes || 0) + 1;
+                        post.hasLiked = true;
+                    }
+                    found = true;
+                    break;
+                }
+            }
+
+            if (found) {
+                localStorage.setItem(MOCK_POSTS_STORE_KEY, JSON.stringify(store));
+            }
             return true;
         }
 
@@ -366,21 +386,22 @@ export const communityService = {
                 time: 'Just now'
             };
 
-            // Attempt to persist if possible (scan keys)
-            // This is expensive but necessary for persistence across reloads
-            // For a prototype, maybe we skip persistence or try a few known keys?
-            // Let's try to find it.
-            const mockCommunityIds = _getMockCommunities();
-            for (const communityId of mockCommunityIds) {
-                const key = `mock_posts_${communityId}`;
-                const posts = JSON.parse(localStorage.getItem(key) || '[]');
+            const store = _getMockPostsStore();
+            let found = false;
+
+            for (const communityId in store) {
+                const posts = store[communityId];
                 const postIndex = posts.findIndex((p: any) => p.id === postId);
                 if (postIndex !== -1) {
                     if (!posts[postIndex].comments) posts[postIndex].comments = [];
                     posts[postIndex].comments.push(newComment);
-                    localStorage.setItem(key, JSON.stringify(posts));
+                    found = true;
                     break;
                 }
+            }
+
+            if (found) {
+                localStorage.setItem(MOCK_POSTS_STORE_KEY, JSON.stringify(store));
             }
 
             return newComment;

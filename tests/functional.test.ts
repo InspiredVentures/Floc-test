@@ -43,67 +43,56 @@ describe('Functional Verification: communityService Optimization', () => {
     mockStorage.clear();
   });
 
-  it('getGlobalFeed should return mock posts correctly', async () => {
-    // Setup mock posts
+  it('getGlobalFeed should migrate legacy mock posts to store', async () => {
+    // Setup legacy mock posts
     const posts = [{ id: 'p1', content: 'hello', communityId: 'c1', created_at: new Date().toISOString() }];
     localStorage.setItem('mock_posts_c1', JSON.stringify(posts));
-    localStorage.setItem('floc_mock_community_index', JSON.stringify(['c1']));
 
+    // Call getGlobalFeed (triggers migration)
     const feed = await communityService.getGlobalFeed();
     expect(feed.length).toBe(1);
     expect(feed[0].id).toBe('p1');
+
+    // Verify store created
+    const store = JSON.parse(localStorage.getItem('floc_mock_posts_store') || '{}');
+    expect(store['c1']).toBeDefined();
+    expect(store['c1'][0].id).toBe('p1');
+
+    // Verify legacy key deleted
+    expect(localStorage.getItem('mock_posts_c1')).toBeNull();
   });
 
-  it('getGlobalFeed should fallback to scan and create index if index is missing', async () => {
-    // Setup mock posts BUT NO INDEX
-    const posts = [{ id: 'p2', content: 'world', communityId: 'c2', created_at: new Date().toISOString() }];
-    localStorage.setItem('mock_posts_c2', JSON.stringify(posts));
-    // localStorage.setItem('floc_mock_community_index', ...); // MISSING
-
-    // This call should trigger the fallback scan
-    const feed = await communityService.getGlobalFeed();
-    expect(feed.length).toBe(1);
-    expect(feed[0].id).toBe('p2');
-
-    // Verify index was created
-    const index = JSON.parse(localStorage.getItem('floc_mock_community_index') || '[]');
-    expect(index).toContain('c2');
-    expect(index.length).toBe(1);
-  });
-
-  it('createPost should update the index', async () => {
+  it('createPost should update the store', async () => {
     // Start with empty storage
     const newPost = await communityService.createPost('c3', 'Test post', 'u1', 'User', 'avatar');
 
     // Verify post created
     expect(newPost).not.toBeNull();
-    const posts = JSON.parse(localStorage.getItem('mock_posts_c3') || '[]');
-    expect(posts.length).toBe(1);
 
-    // Verify index updated
-    const index = JSON.parse(localStorage.getItem('floc_mock_community_index') || '[]');
-    expect(index).toContain('c3');
+    // Verify store updated
+    const store = JSON.parse(localStorage.getItem('floc_mock_posts_store') || '{}');
+    expect(store['c3']).toBeDefined();
+    expect(store['c3'].length).toBe(1);
+    expect(store['c3'][0].id).toBe(newPost?.id);
   });
 
-  it('createPost should migrate existing mock posts to index if index is missing', async () => {
-    // Setup legacy mock posts (no index)
+  it('createPost should migrate existing mock posts to store before adding new one', async () => {
+    // Setup legacy mock posts
     const existingPosts = [{ id: 'old_p', content: 'legacy', communityId: 'old_c', created_at: new Date().toISOString() }];
     localStorage.setItem('mock_posts_old_c', JSON.stringify(existingPosts));
 
     // Create a NEW post in a NEW community
     await communityService.createPost('new_c', 'New post', 'u1', 'User', 'avatar');
 
-    // Verify index contains BOTH
-    const index = JSON.parse(localStorage.getItem('floc_mock_community_index') || '[]');
-    expect(index).toContain('old_c');
-    expect(index).toContain('new_c');
-    expect(index.length).toBe(2);
+    // Verify store contains BOTH
+    const store = JSON.parse(localStorage.getItem('floc_mock_posts_store') || '{}');
+    expect(store['old_c']).toBeDefined();
+    expect(store['new_c']).toBeDefined();
 
-    // Verify getGlobalFeed returns BOTH
-    const feed = await communityService.getGlobalFeed();
-    const feedIds = feed.map(p => p.id);
-    expect(feedIds).toContain('old_p');
-    // new post id starts with post-...
-    expect(feedIds.some(id => id.startsWith('post-'))).toBe(true);
+    expect(store['old_c'][0].id).toBe('old_p');
+    expect(store['new_c'][0].content).toBe('New post');
+
+    // Verify legacy key deleted
+    expect(localStorage.getItem('mock_posts_old_c')).toBeNull();
   });
 });
