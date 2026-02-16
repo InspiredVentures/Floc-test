@@ -9,12 +9,49 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const apiKey = process.env.GEMINI_API_KEY;
+const apiKey = process.env.GEMINI_API_KEY || process.env.VITE_API_KEY;
 
 // Log API Key status (not the key itself)
 if (!apiKey) {
-  console.warn('Warning: GEMINI_API_KEY is not set in environment variables.');
+  console.warn('Warning: GEMINI_API_KEY (or VITE_API_KEY) is not set in environment variables.');
 }
+
+app.post('/api/polish-text', async (req, res) => {
+  const { text } = req.body;
+
+  if (!apiKey) {
+    return res.status(500).json({ error: 'Server configuration error: API Key missing' });
+  }
+
+  if (!text || !text.trim()) {
+    return res.json({ polishedText: text || '' });
+  }
+
+  try {
+    const ai = new GoogleGenAI({ apiKey });
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-1.5-flash',
+      contents: [
+        {
+          role: 'user',
+          parts: [
+            { text: `Polish the following text for a social media post. Make it engaging, correct grammar, and keep it authentic: "${text}"` }
+          ]
+        }
+      ]
+    });
+
+    if (response && response.text) {
+      res.json({ polishedText: response.text() });
+    } else {
+      res.json({ polishedText: text });
+    }
+  } catch (error) {
+    console.error("AI Polish error:", error);
+    res.json({ polishedText: text });
+  }
+});
 
 app.post('/api/generate-community-image', async (req, res) => {
   const { title, category } = req.body;

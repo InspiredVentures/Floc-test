@@ -1,44 +1,21 @@
-import { GoogleGenAI } from "@google/genai";
-
 class AIService {
-  private genAI: GoogleGenAI | null = null;
-  private apiKey: string;
-
-  constructor() {
-    this.apiKey = import.meta.env.VITE_API_KEY || '';
-  }
-
-  private getClient() {
-    if (!this.genAI) {
-      this.genAI = new GoogleGenAI({ apiKey: this.apiKey });
-    }
-    return this.genAI;
-  }
-
   async polishText(text: string): Promise<string> {
     if (!text.trim()) return text;
     try {
-      const client = this.getClient();
-
-      // Using gemini-1.5-flash as a stable default model
-      const response = await client.models.generateContent({
-        model: 'gemini-1.5-flash',
-        contents: [
-            {
-                role: 'user',
-                parts: [
-                    { text: `Polish the following text for a social media post. Make it engaging, correct grammar, and keep it authentic: "${text}"` }
-                ]
-            }
-        ]
+      const response = await fetch('/api/polish-text', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ text }),
       });
 
-      // Handle the response
-      if (response && response.text) {
-          return response.text();
+      if (!response.ok) {
+        throw new Error(`Server returned ${response.status} ${response.statusText}`);
       }
 
-      return text;
+      const data = await response.json();
+      return data.polishedText || text;
     } catch (error) {
       console.error("AI Polish error:", error);
       return text;

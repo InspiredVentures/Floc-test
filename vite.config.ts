@@ -21,6 +21,11 @@ export default defineConfig(({ mode }) => {
           target: 'http://localhost:3001',
           changeOrigin: true,
           secure: false
+        },
+        '/api/polish-text': {
+          target: 'http://localhost:3001',
+          changeOrigin: true,
+          secure: false
         }
       }
     },
