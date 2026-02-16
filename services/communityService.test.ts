@@ -1,18 +1,23 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-import { describe, it, expect, mock, beforeEach } from "bun:test";
+const mocks = vi.hoisted(() => {
+    const mockEq = vi.fn();
+    const mockSelect = vi.fn(() => ({ eq: mockEq }));
+    const mockFrom = vi.fn(() => ({
+        select: mockSelect,
+    }));
+    return {
+        mockEq,
+        mockSelect,
+        mockFrom
+    };
+});
 
-// Mock supabase
-const mockEq = mock();
-const mockSelect = mock(() => ({ eq: mockEq }));
-const mockFrom = mock(() => ({
-    select: mockSelect,
-}));
-
-mock.module("../lib/supabase", () => ({
+vi.mock("../lib/supabase", () => ({
     supabase: {
-        from: mockFrom,
-        auth: { getUser: mock() },
-        storage: { from: mock() }
+        from: mocks.mockFrom,
+        auth: { getUser: vi.fn() },
+        storage: { from: vi.fn() }
     }
 }));
 
@@ -20,13 +25,12 @@ import { communityService } from "./communityService";
 
 describe("getUserCommunityIds", () => {
     beforeEach(() => {
-        mockSelect.mockClear();
-        mockEq.mockClear();
+        vi.clearAllMocks();
 
-        // Mock chainable eq
-        mockEq.mockImplementation(() => {
+        // Default mock implementation
+        mocks.mockEq.mockImplementation(() => {
             return {
-                eq: mockEq,
+                eq: mocks.mockEq, // Allow chaining if needed
                 then: (resolve: any) => resolve({ data: [], error: null })
             };
         });
@@ -38,8 +42,8 @@ describe("getUserCommunityIds", () => {
         await communityService.getUserCommunityIds(userId);
 
         // Verify .eq('status', 'approved') was called
-        const calls = mockEq.mock.calls;
-        const statusCall = calls.find(call => call[0] === 'status' && call[1] === 'approved');
+        const calls = mocks.mockEq.mock.calls;
+        const statusCall = calls.find((call: any[]) => call[0] === 'status' && call[1] === 'approved');
 
         expect(statusCall).toBeTruthy();
     });
