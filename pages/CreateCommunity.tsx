@@ -2,7 +2,9 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '../contexts/UserContext';
 import { useToast } from '../contexts/ToastContext';
+import { aiService } from '../services/aiService';
 import { Community } from '../types';
+import { CATEGORIES, FEATURE_MODULES } from '../constants/community';
 
 interface Props {
   onBack?: () => void;
@@ -17,21 +19,13 @@ const STEPS = [
   { id: 'launch', label: 'Launch', icon: 'rocket_launch' },
 ];
 
-const CATEGORIES = ['Adventure', 'Eco-Travel', 'Wellness', 'Photography', 'Cultural', 'Trip', 'Digital Nomad'];
-
-const FEATURE_MODULES = [
-  { id: 'chat', label: 'Community Chat', icon: 'forum', desc: 'Real-time discussion channels' },
-  { id: 'events', label: 'Events Calendar', icon: 'event', desc: 'Schedule meetups & trips' },
-  { id: 'shop', label: 'Marketplace', icon: 'storefront', desc: 'Sell gear & merch' },
-  { id: 'voting', label: 'Governance', icon: 'how_to_vote', desc: 'Member voting rights' },
-];
-
 const CreateCommunity: React.FC<Props> = ({ onBack, onComplete }) => {
   const navigate = useNavigate();
   const { createCommunity } = useUser();
   const toast = useToast();
   const [currentStep, setCurrentStep] = useState(0);
   const [isMinting, setIsMinting] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   // Type-safe form data
   const [formData, setFormData] = useState<Omit<Community, 'id' | 'memberCount' | 'upcomingTrips' | 'meta' | 'accessType' | 'isManaged' | 'unreadCount'> & { image: string, entryQuestions: string[], enabledFeatures: string[] }>({
@@ -59,6 +53,25 @@ const CreateCommunity: React.FC<Props> = ({ onBack, onComplete }) => {
     } else {
       if (onBack) onBack();
       else navigate(-1);
+    }
+  };
+
+  const handleGenerateImage = async () => {
+    if (!formData.title || !formData.category) {
+      toast.error("Please enter a community name and category first.");
+      return;
+    }
+
+    setIsGenerating(true);
+    try {
+      const imageUrl = await aiService.generateCommunityImage(formData.title, formData.category);
+      setFormData(prev => ({ ...prev, image: imageUrl }));
+      toast.success("Cover image generated!");
+    } catch (error) {
+      console.error("Failed to generate image:", error);
+      toast.error("Failed to generate image. Try again.");
+    } finally {
+      setIsGenerating(false);
     }
   };
 
@@ -146,13 +159,27 @@ const CreateCommunity: React.FC<Props> = ({ onBack, onComplete }) => {
           <div className="space-y-6 animate-in slide-in-from-right duration-500">
             <div className="space-y-2">
               <label className="text-slate-400 text-xs font-bold uppercase tracking-widest">Cover Image URL</label>
-              <input
-                type="text"
-                className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white font-bold focus:border-primary outline-none transition-all placeholder:text-slate-600"
-                placeholder="https://..."
-                value={formData.image}
-                onChange={e => setFormData({ ...formData, image: e.target.value })}
-              />
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  className="flex-1 bg-white/5 border border-white/10 rounded-2xl p-4 text-white font-bold focus:border-primary outline-none transition-all placeholder:text-slate-600"
+                  placeholder="https://..."
+                  value={formData.image}
+                  onChange={e => setFormData({ ...formData, image: e.target.value })}
+                />
+                <button
+                  onClick={handleGenerateImage}
+                  disabled={isGenerating || !formData.title || !formData.category}
+                  className="bg-white/5 hover:bg-white/10 text-primary border border-primary/20 px-4 rounded-2xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {isGenerating ? (
+                    <span className="animate-spin material-symbols-outlined text-sm">refresh</span>
+                  ) : (
+                    <span className="material-symbols-outlined text-sm">auto_awesome</span>
+                  )}
+                  <span className="text-xs font-bold uppercase tracking-widest hidden sm:inline">Generate</span>
+                </button>
+              </div>
               <p className="text-[10px] text-slate-500">Leave empty for a random Unsplash image.</p>
             </div>
             {formData.image && (
