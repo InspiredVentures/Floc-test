@@ -1,9 +1,23 @@
 
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CommunityPost } from '../types';
+import { CommunityPost, Community } from '../types';
 import { useUser } from '../contexts/UserContext';
 import { Feed } from '../components/Feed';
+
+// OPTIMIZATION: Moved getPostCommunity outside component to prevent recreation on every render.
+// This function transforms a post into a community object representation.
+export const getPostCommunity = (post: CommunityPost): Community => ({
+  id: post.communityName?.replace(/\s+/g, '-').toLowerCase() || 'tribe',
+  title: post.communityName || 'Tribe',
+  meta: "Community • Global Pulse",
+  description: `The collective home for ${post.communityName}. Focused on meaningful global ventures.`,
+  image: post.image || post.authorAvatar,
+  memberCount: "1.2k",
+  category: "Exploration",
+  upcomingTrips: [],
+  accessType: 'free'
+});
 
 export const MOCK_GLOBAL_POSTS: CommunityPost[] = [
   {
