@@ -55,7 +55,7 @@ export default defineConfig(({ mode }) => {
               if (id.includes('react') || id.includes('react-dom') || id.includes('react-router-dom')) {
                 return 'react-vendor';
               }
-              if (id.includes('framer-motion') || id.includes('recharts') || id.includes('lucide-react')) {
+              if (id.includes('framer-motion') || id.includes('recharts')) {
                 return 'ui-vendor';
               }
               if (id.includes('@supabase')) {
