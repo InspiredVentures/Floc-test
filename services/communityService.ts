@@ -1,14 +1,27 @@
 
 import { supabase } from '../lib/supabase';
-import { CommunityPost, Member, Community, CommunityEvent, CommunityResource } from '../types';
+import { CommunityPost, Member, Community, CommunityEvent, CommunityResource, Trip } from '../types';
 
 const isUUID = (str: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+
+// Helper to map DB trip to frontend Trip type
+const mapTrip = (t: any): Trip => ({
+    id: t.id,
+    title: t.title,
+    destination: t.destination,
+    dates: t.dates,
+    price: t.price,
+    image: t.image,
+    status: t.status,
+    membersCount: t.members_count,
+    communityId: t.community_id,
+    wetravelId: t.wetravel_id
+});
 
 export const communityService = {
     // --- Posts ---
 
     async uploadImage(file: File): Promise<string | null> {
-        // ... (unchanged)
         const { data: { user } } = await supabase.auth.getUser();
 
 
@@ -1235,5 +1248,28 @@ export const communityService = {
             icon: data.type.toLowerCase().includes('pdf') ? 'picture_as_pdf' : 'link',
             downloadCount: 0
         };
+    },
+
+    // --- Trips ---
+
+    async getCommunityTrips(communityId: string): Promise<Trip[]> {
+        if (!isUUID(communityId)) {
+            // Mock Trips Support
+            const allMockTrips = JSON.parse(localStorage.getItem('mock_trips') || '[]');
+            return allMockTrips.filter((t: any) => t.communityId === communityId);
+        }
+
+        const { data, error } = await supabase
+            .from('trips')
+            .select('*')
+            .eq('community_id', communityId)
+            .order('created_at', { ascending: false });
+
+        if (error) {
+            console.error('Error fetching trips for community:', error);
+            return [];
+        }
+
+        return data ? data.map(mapTrip) : [];
     },
 };

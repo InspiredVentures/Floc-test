@@ -25,6 +25,16 @@ const CommunityVentures: React.FC<Props> = ({ community, onBack, onSelectTrip })
     const [budgetFilter, setBudgetFilter] = useState<'all' | 'Eco' | 'Mid' | 'Luxury'>('all');
     const [sortBy, setSortBy] = useState<'votes' | 'recent' | 'discussed'>('votes');
 
+    // Trips State
+    const [trips, setTrips] = useState<Trip[]>(() => {
+        // If we have full trip data (e.g. image is present), use it initially
+        if (community.upcomingTrips && community.upcomingTrips.length > 0 && community.upcomingTrips[0].image) {
+            return community.upcomingTrips;
+        }
+        return [];
+    });
+    const [isLoadingTrips, setIsLoadingTrips] = useState(false);
+
     // Keep suggestions in a ref to use in callbacks without triggering re-renders or recreating callbacks
     const suggestionsRef = useRef(suggestions);
     useEffect(() => {
@@ -34,6 +44,7 @@ const CommunityVentures: React.FC<Props> = ({ community, onBack, onSelectTrip })
     useEffect(() => {
         if (community.id) {
             loadSuggestions();
+            loadTrips();
         }
     }, [community.id, user?.id]);
 
@@ -43,6 +54,17 @@ const CommunityVentures: React.FC<Props> = ({ community, onBack, onSelectTrip })
         const fetchedSuggestions = await communityService.getSuggestions(community.id, currentUserId);
         setSuggestions(fetchedSuggestions);
         setIsLoadingSuggestions(false);
+    };
+
+    const loadTrips = async () => {
+        // If we already have trips populated from props (and they look complete), we might skip?
+        // But refreshing is safer.
+        setIsLoadingTrips(true);
+        const fetchedTrips = await communityService.getCommunityTrips(community.id);
+        if (fetchedTrips && fetchedTrips.length > 0) {
+            setTrips(fetchedTrips);
+        }
+        setIsLoadingTrips(false);
     };
 
     const handleVote = useCallback(async (id: string, dir: 'up' | 'down') => {
@@ -195,34 +217,38 @@ const CommunityVentures: React.FC<Props> = ({ community, onBack, onSelectTrip })
                 </div>
 
                 {/* Confirmed Trips Section */}
-                {community.upcomingTrips.length > 0 && (
+                {(isLoadingTrips || trips.length > 0) && (
                     <div>
                         <div className="flex items-center gap-2 mb-4 px-2">
                             <span className="material-symbols-outlined text-primary">verified</span>
                             <h3 className="text-primary text-sm font-black uppercase tracking-widest">Locked & Loaded (Confirmed)</h3>
                         </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {(community.upcomingTrips || []).map(trip => (
-                                <div
-                                    key={trip.id}
-                                    onClick={() => onSelectTrip(trip)}
-                                    className="bg-white border border-primary/5 rounded-2xl overflow-hidden hover:border-primary/30 transition-all active:scale-98 shadow-sm cursor-pointer group flex"
-                                >
-                                    <div className="w-32 relative">
-                                        <img src={trip.image} className="w-full h-full object-cover" alt="" />
-                                        <div className="absolute inset-0 bg-black/10"></div>
-                                    </div>
-                                    <div className="flex-1 p-5 flex flex-col justify-center">
-                                        <div className="bg-green-100 text-green-700 text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md self-start mb-2 border border-green-200">Confirmed</div>
-                                        <h3 className="text-primary font-bold text-lg leading-tight mb-2 group-hover:text-accent transition-colors">{trip.title}</h3>
-                                        <div className="flex flex-col gap-1 text-[10px] text-slate-500 font-bold uppercase tracking-widest">
-                                            <span className="flex items-center gap-1"><span className="material-symbols-outlined text-sm">calendar_today</span> {trip.dates}</span>
-                                            <span className="flex items-center gap-1 text-primary"><span className="material-symbols-outlined text-sm">payments</span> {trip.price}</span>
+                        {isLoadingTrips && trips.length === 0 ? (
+                             <div className="py-10 text-center text-slate-500 text-xs">Loading trips...</div>
+                        ) : (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {(trips || []).map(trip => (
+                                    <div
+                                        key={trip.id}
+                                        onClick={() => onSelectTrip(trip)}
+                                        className="bg-white border border-primary/5 rounded-2xl overflow-hidden hover:border-primary/30 transition-all active:scale-98 shadow-sm cursor-pointer group flex"
+                                    >
+                                        <div className="w-32 relative">
+                                            <img src={trip.image} className="w-full h-full object-cover" alt="" />
+                                            <div className="absolute inset-0 bg-black/10"></div>
+                                        </div>
+                                        <div className="flex-1 p-5 flex flex-col justify-center">
+                                            <div className="bg-green-100 text-green-700 text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md self-start mb-2 border border-green-200">Confirmed</div>
+                                            <h3 className="text-primary font-bold text-lg leading-tight mb-2 group-hover:text-accent transition-colors">{trip.title}</h3>
+                                            <div className="flex flex-col gap-1 text-[10px] text-slate-500 font-bold uppercase tracking-widest">
+                                                <span className="flex items-center gap-1"><span className="material-symbols-outlined text-sm">calendar_today</span> {trip.dates}</span>
+                                                <span className="flex items-center gap-1 text-primary"><span className="material-symbols-outlined text-sm">payments</span> {trip.price}</span>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            ))}
-                        </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 )}
 
