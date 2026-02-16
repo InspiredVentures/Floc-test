@@ -9,6 +9,7 @@ import { StatCard } from '../components/StatCard';
 import { ActionTile } from '../components/ActionTile';
 import { ActivityChart } from '../components/ActivityChart';
 import { Feed } from '../components/Feed';
+import { calculateCommunityMetrics } from '../lib/dashboardUtils';
 
 interface Props {
   communities: Community[];
@@ -53,20 +54,7 @@ const Dashboard: React.FC<Props> = ({
   const unreadCount = notifications.filter(n => !n.isRead).length;
 
   // 3. Dynamic Stats
-  const memberCount = parseInt(activeCommunity?.memberCount || '0');
-  const healthScore = activeCommunity ? Math.min(98, 50 + Math.floor(memberCount * 1.5)) : 0;
-  const weeklyGrowth = (memberCount > 0 ? (2 / memberCount) * 100 : 0).toFixed(1);
-
-  // Mock Data for Area Chart
-  const activityData = [
-    { name: 'Mon', active: Math.floor(memberCount * 0.2) },
-    { name: 'Tue', active: Math.floor(memberCount * 0.25) },
-    { name: 'Wed', active: Math.floor(memberCount * 0.15) },
-    { name: 'Thu', active: Math.floor(memberCount * 0.35) },
-    { name: 'Fri', active: Math.floor(memberCount * 0.5) },
-    { name: 'Sat', active: Math.floor(memberCount * 0.7) },
-    { name: 'Sun', active: Math.floor(memberCount * 0.6) },
-  ];
+  const { memberCount, healthScore, weeklyGrowth, activityData } = calculateCommunityMetrics(activeCommunity);
 
   return (
     <div className="min-h-screen bg-background flex flex-col relative overflow-hidden font-sans text-[#14532D]">

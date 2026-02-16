@@ -12,8 +12,7 @@ export const supabaseService = {
             .from('communities')
             .select(`
                 *,
-                upcomingTrips:trips(*),
-                members:community_members(*)
+                upcomingTrips:trips(id, title)
             `)
             .order('created_at', { ascending: false });
 
@@ -21,24 +20,6 @@ export const supabaseService = {
             console.error('[SupabaseService] Error fetching communities:', error);
             return [];
         }
-
-
-
-        // Collect all user IDs to fetch profiles efficiently
-        const allUserIds = new Set<string>();
-        data.forEach((c: any) => {
-            (c.members || []).forEach((m: any) => {
-                if (m.user_id) allUserIds.add(m.user_id);
-            });
-        });
-
-        // Fetch profiles
-        const { data: profiles } = await supabase
-            .from('profiles')
-            .select('id, full_name, avatar_url, location')
-            .in('id', Array.from(allUserIds));
-
-        const profileMap = new Map(profiles?.map((p: any) => [p.id, p]));
 
         return data.map((c: any) => ({
             id: c.id,
@@ -51,18 +32,7 @@ export const supabaseService = {
             accessType: c.access_type,
             isManaged: c.is_managed,
             upcomingTrips: c.upcomingTrips || [],
-            members: (c.members || []).map((m: any) => {
-                const profile = profileMap.get(m.user_id);
-                return {
-                    id: m.user_id,
-                    name: profile?.full_name || m.user_name || 'Member',
-                    role: m.role,
-                    avatar: profile?.avatar_url || m.user_avatar || 'https://picsum.photos/seed/default/100/100',
-                    location: profile?.location || 'Unknown',
-                    joinedDate: m.joined_at,
-                    status: m.status
-                };
-            }),
+            members: [], // Members not fetched for list view performance
             unreadCount: 0,
             entryQuestions: c.entry_questions,
             enabledFeatures: c.enabled_features
@@ -122,12 +92,29 @@ export const supabaseService = {
         // 1. Try Supabase if real user
         if (userId && userId !== 'dev-user-id') {
             try {
-                // We need to map the Trip object to DB schema (snake_case)
-                // This is complex b/c of mapTrip reversal.
-                // For now, let's just support Mock Mode mainly.
-                console.warn('Real DB creation for trips not fully mapped yet. Falling back to LocalStorage.');
+                const { data, error } = await supabase
+                    .from('trips')
+                    .insert({
+                        title: trip.title,
+                        destination: trip.destination,
+                        dates: trip.dates,
+                        price: trip.price,
+                        image: trip.image,
+                        status: trip.status,
+                        members_count: trip.membersCount,
+                        community_id: trip.communityId,
+                        wetravel_id: trip.wetravelId
+                    })
+                    .select()
+                    .single();
+
+                if (error) {
+                    console.error('Error creating trip in DB:', error);
+                } else if (data) {
+                    return mapTrip(data);
+                }
             } catch (e) {
-                console.error(e);
+                console.error('Exception creating trip in DB:', e);
             }
         }
 

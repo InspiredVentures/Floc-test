@@ -1,10 +1,73 @@
 
 import { supabase } from '../lib/supabase';
-import { CommunityPost, Member, Community, CommunityEvent, CommunityResource } from '../types';
+import { CommunityPost, Member, Community, CommunityEvent, CommunityResource, Trip } from '../types';
+import { MOCK_TRIPS } from '../constants';
 
 const isUUID = (str: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
 
+const MOCK_POSTS_STORE_KEY = 'floc_mock_posts_store';
+
+const _getMockPostsStore = (): Record<string, CommunityPost[]> => {
+    const existingStore = localStorage.getItem(MOCK_POSTS_STORE_KEY);
+    if (existingStore) {
+        return JSON.parse(existingStore);
+    }
+
+    // Migration: Scan keys once and build store
+    const store: Record<string, CommunityPost[]> = {};
+    const keysToDelete: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('mock_posts_')) {
+            keysToDelete.push(key);
+            const communityId = key.replace('mock_posts_', '');
+            try {
+                const posts = JSON.parse(localStorage.getItem(key) || '[]');
+                store[communityId] = posts;
+            } catch (e) {
+                console.error('Error parsing mock posts for key:', key, e);
+            }
+        }
+    }
+
+    localStorage.setItem(MOCK_POSTS_STORE_KEY, JSON.stringify(store));
+
+    // Cleanup old keys to prevent re-migration of stale data
+    keysToDelete.forEach(key => localStorage.removeItem(key));
+    localStorage.removeItem('floc_mock_community_index');
+
+    return store;
+};
+
 export const communityService = {
+    // --- Trips ---
+
+    async getCommunityTrips(communityId: string): Promise<Trip[]> {
+        if (!isUUID(communityId)) {
+            // Mock Data Support
+            const storedMockTrips = JSON.parse(localStorage.getItem('mock_trips') || '[]');
+            const allMockTrips = [...MOCK_TRIPS, ...storedMockTrips];
+
+            // Deduplicate by ID
+            const uniqueTrips = Array.from(new Map(allMockTrips.map(item => [item.id, item])).values());
+
+            return uniqueTrips.filter((t: any) => t.communityId === communityId);
+        }
+
+        const { data, error } = await supabase
+            .from('trips')
+            .select('*')
+            .eq('community_id', communityId)
+            .order('created_at', { ascending: false });
+
+        if (error) {
+            console.error('Error fetching community trips:', error);
+            return [];
+        }
+
+        return data.map(mapTrip);
+    },
+
     // --- Posts ---
 
     async uploadImage(file: File): Promise<string | null> {
@@ -36,7 +99,8 @@ export const communityService = {
     async getPosts(communityId: string, currentUserId?: string): Promise<CommunityPost[]> {
         if (!isUUID(communityId)) {
             // Mock Data Support for Non-UUID Community IDs
-            const mockPosts = JSON.parse(localStorage.getItem(`mock_posts_${communityId}`) || '[]');
+            const store = _getMockPostsStore();
+            const mockPosts = store[communityId] || [];
             // Merge with static constant mock posts if needed, or just use local storage
             // For now, let's just use local storage + maybe seed it if empty?
             if (mockPosts.length === 0) {
@@ -104,14 +168,9 @@ export const communityService = {
         // For prototype: Aggregate all mock posts from localStorage
         let allPosts: CommunityPost[] = [];
 
-        // 1. Scan localStorage for mock posts
-        for (let i = 0; i < localStorage.length; i++) {
-            const key = localStorage.key(i);
-            if (key?.startsWith('mock_posts_')) {
-                const communityPosts = JSON.parse(localStorage.getItem(key) || '[]');
-                allPosts = [...allPosts, ...communityPosts];
-            }
-        }
+        // 1. Scan localStorage for mock posts using index
+        const store = _getMockPostsStore();
+        allPosts = Object.values(store).flat();
 
         // 2. Fetch real posts if we have Supabase connected (optional for now)
         if (currentUserId) {
@@ -171,8 +230,10 @@ export const communityService = {
                 communityId
             };
 
-            const existing = JSON.parse(localStorage.getItem(`mock_posts_${communityId}`) || '[]');
-            localStorage.setItem(`mock_posts_${communityId}`, JSON.stringify([newPost, ...existing]));
+            const store = _getMockPostsStore();
+            const existing = store[communityId] || [];
+            store[communityId] = [newPost, ...existing];
+            localStorage.setItem(MOCK_POSTS_STORE_KEY, JSON.stringify(store));
 
             return newPost;
         }
@@ -214,11 +275,31 @@ export const communityService = {
     async toggleLike(postId: string, userId: string, currentLikes: number, currentlyLiked: boolean): Promise<boolean> {
         // Simple check: if postId starts with 'post-' it's likely a mock post
         if (postId.startsWith('post-')) {
-            // We can't easily update the specific local storage array without knowing the communityId, 
-            // but strictly speaking, the UI optimistically updates anyway. 
-            // To persist, we'd need to find which community it belongs to.
-            // For the sake of the prototype, optimistic UI is sufficient, or we scan keys.
-            // Let's rely on optimistic UI for now as it's purely visual in the session.
+            const store = _getMockPostsStore();
+            let found = false;
+
+            for (const communityId in store) {
+                const posts = store[communityId];
+                const postIndex = posts.findIndex((p: any) => p.id === postId);
+                if (postIndex !== -1) {
+                    const post = posts[postIndex];
+                    if (currentlyLiked) {
+                        // Unlike
+                        post.likes = Math.max(0, (post.likes || 0) - 1);
+                        post.hasLiked = false;
+                    } else {
+                        // Like
+                        post.likes = (post.likes || 0) + 1;
+                        post.hasLiked = true;
+                    }
+                    found = true;
+                    break;
+                }
+            }
+
+            if (found) {
+                localStorage.setItem(MOCK_POSTS_STORE_KEY, JSON.stringify(store));
+            }
             return true;
         }
 
@@ -247,6 +328,46 @@ export const communityService = {
         return true;
     },
 
+    async createJoinRequest(communityId: string, userId: string, userDetails: { name: string, avatar: string }, answer: string, category: string): Promise<boolean> {
+        if (!isUUID(communityId)) {
+            // Mock Request
+            console.log('[CommunityService] Mock join request for:', communityId);
+            const newRequest = {
+                id: userId,
+                name: userDetails.name,
+                avatar: userDetails.avatar,
+                reason: answer,
+                timestamp: new Date().toISOString(),
+                category
+            };
+            // Simulate storage
+            const existing = localStorage.getItem('floc_pending_requests');
+            const pendingRequests = existing ? JSON.parse(existing) : [];
+            localStorage.setItem('floc_pending_requests', JSON.stringify([newRequest, ...pendingRequests]));
+            return true;
+        }
+
+        const { error } = await supabase
+            .from('community_members')
+            .insert({
+                community_id: communityId,
+                user_id: userId,
+                role: 'Member',
+                joined_at: new Date().toISOString(),
+                user_name: userDetails.name,
+                user_avatar: userDetails.avatar,
+                status: 'pending',
+                answer: answer,
+                category: category
+            });
+
+        if (error) {
+            console.error('Error creating join request:', error);
+            return false;
+        }
+        return true;
+    },
+
     async addComment(postId: string, userId: string, userName: string, userAvatar: string, content: string): Promise<any | null> {
         if (postId.startsWith('post-')) {
             // Mock Comment on Mock Post
@@ -265,22 +386,22 @@ export const communityService = {
                 time: 'Just now'
             };
 
-            // Attempt to persist if possible (scan keys)
-            // This is expensive but necessary for persistence across reloads
-            // For a prototype, maybe we skip persistence or try a few known keys?
-            // Let's try to find it.
-            for (let i = 0; i < localStorage.length; i++) {
-                const key = localStorage.key(i);
-                if (key?.startsWith('mock_posts_')) {
-                    const posts = JSON.parse(localStorage.getItem(key) || '[]');
-                    const postIndex = posts.findIndex((p: any) => p.id === postId);
-                    if (postIndex !== -1) {
-                        if (!posts[postIndex].comments) posts[postIndex].comments = [];
-                        posts[postIndex].comments.push(newComment);
-                        localStorage.setItem(key, JSON.stringify(posts));
-                        break;
-                    }
+            const store = _getMockPostsStore();
+            let found = false;
+
+            for (const communityId in store) {
+                const posts = store[communityId];
+                const postIndex = posts.findIndex((p: any) => p.id === postId);
+                if (postIndex !== -1) {
+                    if (!posts[postIndex].comments) posts[postIndex].comments = [];
+                    posts[postIndex].comments.push(newComment);
+                    found = true;
+                    break;
                 }
+            }
+
+            if (found) {
+                localStorage.setItem(MOCK_POSTS_STORE_KEY, JSON.stringify(store));
             }
 
             return newComment;
@@ -356,9 +477,28 @@ export const communityService = {
     },
 
     async getMembers(communityId: string): Promise<Member[]> {
+        if (!isUUID(communityId)) {
+            // Mock Data Support for Members
+            // Check localStorage for any persisted members for this mock community
+            // This is primarily for 'createCommunity' flow where we add the creator
+            // We might need to implement a 'mock_members' storage similar to trips
+
+            // For now, return empty or try to parse from a known key if needed
+            // But since MOCK_COMMUNITIES doesn't explicitly store members in a separate key
+            // (UserContext handled it in-memory/state), we might just return empty to prevent errors.
+            return [];
+        }
+
         const { data: members, error } = await supabase
             .from('community_members')
-            .select('*')
+            .select(`
+                *,
+                user:profiles!user_id (
+                    full_name,
+                    avatar_url,
+                    location
+                )
+            `)
             .eq('community_id', communityId);
 
         if (error) {
@@ -368,16 +508,8 @@ export const communityService = {
 
         if (!members || members.length === 0) return [];
 
-        const userIds = members.map((m: any) => m.user_id);
-        const { data: profiles } = await supabase
-            .from('profiles')
-            .select('id, full_name, avatar_url, location')
-            .in('id', userIds);
-
-        const profileMap = new Map(profiles?.map((p: any) => [p.id, p]));
-
         return members.map((m: any) => {
-            const profile = profileMap.get(m.user_id);
+            const profile = m.user;
             return {
                 id: m.user_id || m.id,
                 name: profile?.full_name || m.user_name || 'Member', // Prefer profile, fallback to stored
@@ -431,7 +563,8 @@ export const communityService = {
         return true;
     },
 
-    async updateMemberRole(communityId: string, userId: string, role: string): Promise<boolean> {
+    async updateMemberRole(communityId: string, userId: string, role: string, permissions: string[] = []): Promise<boolean> {
+        // TODO: Persist permissions when DB schema supports it (e.g. custom_permissions column)
         const { error } = await supabase
             .from('community_members')
             .update({ role })
@@ -450,19 +583,12 @@ export const communityService = {
             .from('community_members')
             .select('community_id')
             .eq('user_id', userId)
-            //.eq('status', 'approved'); // TEMPORARY: Comment out status check to see if that is the issue
-            ;
+            .eq('status', 'approved'); // Filter by status 'approved' in DB for performance
 
         if (error) {
             console.error('[CommunityService] Error fetching user community IDs:', error);
             return [];
         }
-
-
-
-        // Filter in memory for now to be safe
-        const approved = data?.filter((r: any) => r.status === 'approved' || true).map((row: any) => row.community_id) || [];
-        // Note: I restored the 'true' to allow all statuses for debugging purposes
 
         return data.map((row: any) => row.community_id);
     },
@@ -512,7 +638,6 @@ export const communityService = {
             .from('trip_suggestions')
             .select(`
                 *,
-                suggestion_votes (user_id, vote_type),
                 suggestion_comments (
                     id,
                     user_name,
@@ -529,11 +654,22 @@ export const communityService = {
             return [];
         }
 
+        const userVotesMap = new Map<string, string>();
+        if (currentUserId && data && data.length > 0) {
+            const suggestionIds = data.map((s: any) => s.id);
+            const { data: votes } = await supabase
+                .from('suggestion_votes')
+                .select('suggestion_id, vote_type')
+                .eq('user_id', currentUserId)
+                .in('suggestion_id', suggestionIds);
+
+            if (votes) {
+                votes.forEach((v: any) => userVotesMap.set(v.suggestion_id, v.vote_type));
+            }
+        }
+
         return data.map((sug: any) => {
-            const votes = sug.suggestion_votes || [];
-            const userVote = currentUserId
-                ? votes.find((v: any) => v.user_id === currentUserId)
-                : null;
+            const myVote = userVotesMap.get(sug.id) || null;
 
             const comments = (sug.suggestion_comments || []).map((c: any) => ({
                 id: c.id,
@@ -558,7 +694,7 @@ export const communityService = {
                 suggestedBy: sug.user_name || 'Member',
                 avatar: sug.user_avatar || 'https://picsum.photos/seed/default/100/100',
                 votes: sug.votes_count || 0,
-                myVote: userVote ? userVote.vote_type : null,
+                myVote: myVote,
                 timestamp: new Date(sug.created_at).toLocaleDateString(),
                 comments
             };
@@ -972,14 +1108,23 @@ export const communityService = {
             ];
         }
 
-        const { data, error } = await supabase
+        let query = supabase
             .from('community_events')
             .select(`
                 *,
-                rsvps:event_rsvps(user_id)
+                rsvps:event_rsvps(count)
+                ${currentUserId ? ', my_rsvp:event_rsvps(user_id)' : ''}
             `)
             .eq('community_id', communityId)
             .order('date_time', { ascending: true });
+
+        if (currentUserId) {
+            // Filter to check if current user has RSVPed
+            // This filters the nested resource, not the parent event
+            query = query.eq('my_rsvp.user_id', currentUserId);
+        }
+
+        const { data, error } = await query;
 
         if (error) {
             console.error('Error fetching events:', error);
@@ -988,8 +1133,10 @@ export const communityService = {
 
         return data.map((event: any) => {
             const dateObj = new Date(event.date_time);
-            const rsvps = event.rsvps || [];
-            const isAttending = currentUserId ? rsvps.some((r: any) => r.user_id === currentUserId) : false;
+            // rsvps is now an array containing the count object: [{ count: N }]
+            const attendees = event.rsvps?.[0]?.count || 0;
+            // my_rsvp will be an array with one element if the user RSVPed, or empty if not
+            const isAttending = event.my_rsvp ? event.my_rsvp.length > 0 : false;
 
             return {
                 id: event.id,
@@ -998,7 +1145,7 @@ export const communityService = {
                 date: dateObj.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }),
                 time: dateObj.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' }),
                 location: event.location,
-                attendees: rsvps.length,
+                attendees,
                 image: event.image_url || 'https://images.unsplash.com/photo-1543269865-cbf427effbad?auto=format&fit=crop&w=800&q=80',
                 month: dateObj.toLocaleDateString(undefined, { month: 'short' }).toUpperCase(),
                 day: dateObj.getDate().toString(),
@@ -1197,3 +1344,17 @@ export const communityService = {
         };
     },
 };
+
+// Helper to map DB trip to frontend Trip type
+const mapTrip = (t: any): Trip => ({
+    id: t.id,
+    title: t.title,
+    destination: t.destination,
+    dates: t.dates,
+    price: t.price,
+    image: t.image,
+    status: t.status,
+    membersCount: t.members_count,
+    communityId: t.community_id,
+    wetravelId: t.wetravel_id
+});
