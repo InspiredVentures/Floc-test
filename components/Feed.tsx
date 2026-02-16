@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useUser } from '../contexts/UserContext';
 import { communityService } from '../services/communityService';
+import { aiService } from '../services/aiService';
 import { CommunityPost } from '../types';
 import { PostCard } from './PostCard';
 import { Skeleton } from './Skeleton';
@@ -20,6 +21,7 @@ export const Feed: React.FC<FeedProps> = ({ communityId, limit }) => {
     const [newPostContent, setNewPostContent] = useState('');
     const [newPostImage, setNewPostImage] = useState('');
     const [isPosting, setIsPosting] = useState(false);
+    const [isPolishing, setIsPolishing] = useState(false);
     const [showImageInput, setShowImageInput] = useState(false);
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
@@ -63,6 +65,19 @@ export const Feed: React.FC<FeedProps> = ({ communityId, limit }) => {
             setPreviewUrl(url);
             setNewPostImage(''); // Clear URL input if file is selected
             setShowImageInput(true); // Show the preview area
+        }
+    };
+
+    const handleAiPolish = async () => {
+        if (!newPostContent.trim()) return;
+        setIsPolishing(true);
+        try {
+            const polished = await aiService.polishText(newPostContent);
+            setNewPostContent(polished);
+        } catch (error) {
+            console.error('Failed to polish text', error);
+        } finally {
+            setIsPolishing(false);
         }
     };
 
@@ -283,10 +298,19 @@ export const Feed: React.FC<FeedProps> = ({ communityId, limit }) => {
                                     >
                                         <span className="material-symbols-outlined text-lg">sentiment_satisfied</span>
                                     </button>
+                                    <button
+                                        type="button"
+                                        onClick={handleAiPolish}
+                                        disabled={isPolishing || !newPostContent.trim()}
+                                        className={`hover:text-primary transition-colors ${isPolishing ? 'text-primary animate-pulse' : ''} disabled:opacity-50`}
+                                        title="Polish with AI"
+                                    >
+                                        <span className="material-symbols-outlined text-lg">auto_awesome</span>
+                                    </button>
                                 </div>
                                 <button
                                     type="submit"
-                                    disabled={(!newPostContent.trim() && !selectedFile && !newPostImage) || isPosting}
+                                    disabled={(!newPostContent.trim() && !selectedFile && !newPostImage) || isPosting || isPolishing}
                                     className="bg-primary text-white px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest disabled:opacity-50"
                                 >
                                     {isPosting ? 'Posting...' : 'Post'}
