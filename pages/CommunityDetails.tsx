@@ -180,6 +180,10 @@ const MOCK_COMMUNITY_POSTS: TribePost[] = [
   }
 ];
 
+const COMMUNITY_TABS = ['feed', 'ventures', 'lab', 'about'] as const;
+const CONTRIBUTOR_IDS = [1, 2, 3, 4];
+const TRIP_STYLES = ['Adventure', 'Wellness', 'Photography', 'Cultural'];
+
 const CommunityDetails: React.FC<Props> = ({ community, onBack, onSelectTrip, onJoin, onOpenChat }) => {
   const [activeTab, setActiveTab] = useState<'feed' | 'ventures' | 'lab' | 'about'>('feed');
   const [isJoined, setIsJoined] = useState(false);
@@ -322,7 +326,7 @@ const CommunityDetails: React.FC<Props> = ({ community, onBack, onSelectTrip, on
       </div>
 
       <div className="flex px-4 mt-8 border-b border-white/5 overflow-x-auto hide-scrollbar whitespace-nowrap">
-        {(['feed', 'ventures', 'lab', 'about'] as const).map((tab) => (
+        {COMMUNITY_TABS.map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -438,7 +442,7 @@ const CommunityDetails: React.FC<Props> = ({ community, onBack, onSelectTrip, on
             <section>
               <h2 className="text-white text-lg font-black tracking-tight mb-4">Top Contributors</h2>
               <div className="grid grid-cols-4 gap-4">
-                {[1,2,3,4].map(i => (
+                {CONTRIBUTOR_IDS.map(i => (
                   <div key={i} className="flex flex-col items-center gap-2">
                     <div className="relative">
                       <img src={`https://picsum.photos/seed/member${i}/100/100`} className="size-14 rounded-full border-2 border-primary/20" alt="" />
@@ -495,7 +499,7 @@ const CommunityDetails: React.FC<Props> = ({ community, onBack, onSelectTrip, on
                 <div>
                   <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-2 px-1">Trip Style</label>
                   <div className="flex gap-2 overflow-x-auto hide-scrollbar pb-1">
-                    {['Adventure', 'Wellness', 'Photography', 'Cultural'].map(style => (
+                    {TRIP_STYLES.map(style => (
                       <button key={style} type="button" onClick={() => setSugStyle(style)} className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase border transition-all shrink-0 ${sugStyle === style ? 'bg-primary border-primary text-background-dark' : 'bg-white/5 border-white/10 text-slate-500'}`}>
                         {style}
                       </button>
