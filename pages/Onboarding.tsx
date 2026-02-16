@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FlocLogo } from '../src/components/FlocLogo';
+import { FlocLogo } from '../components/FlocLogo';
 import { useUser } from '../contexts/UserContext';
 import { supabase } from '../lib/supabase';
 
