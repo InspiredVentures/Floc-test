@@ -12,8 +12,7 @@ export const supabaseService = {
             .from('communities')
             .select(`
                 *,
-                upcomingTrips:trips(*),
-                members:community_members(*)
+                upcomingTrips:trips(id, title)
             `)
             .order('created_at', { ascending: false });
 
@@ -21,24 +20,6 @@ export const supabaseService = {
             console.error('[SupabaseService] Error fetching communities:', error);
             return [];
         }
-
-
-
-        // Collect all user IDs to fetch profiles efficiently
-        const allUserIds = new Set<string>();
-        data.forEach((c: any) => {
-            (c.members || []).forEach((m: any) => {
-                if (m.user_id) allUserIds.add(m.user_id);
-            });
-        });
-
-        // Fetch profiles
-        const { data: profiles } = await supabase
-            .from('profiles')
-            .select('id, full_name, avatar_url, location')
-            .in('id', Array.from(allUserIds));
-
-        const profileMap = new Map(profiles?.map((p: any) => [p.id, p]));
 
         return data.map((c: any) => ({
             id: c.id,
@@ -51,20 +32,7 @@ export const supabaseService = {
             accessType: c.access_type,
             isManaged: c.is_managed,
             upcomingTrips: c.upcomingTrips || [],
-            members: (c.members || []).map((m: any) => {
-                const profile = profileMap.get(m.user_id);
-                return {
-                    id: m.user_id,
-                    name: profile?.full_name || m.user_name || 'Member',
-                    role: m.role,
-                    avatar: profile?.avatar_url || m.user_avatar || 'https://picsum.photos/seed/default/100/100',
-                    location: profile?.location || 'Unknown',
-                    joinedDate: m.joined_at,
-                    status: m.status,
-                    answer: m.answer,
-                    category: m.category
-                };
-            }),
+            members: [], // Members not fetched for list view performance
             unreadCount: 0,
             entryQuestions: c.entry_questions,
             enabledFeatures: c.enabled_features
