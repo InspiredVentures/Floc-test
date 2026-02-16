@@ -1,9 +1,9 @@
 
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CommunityPost, Community } from '../types';
 import { useUser } from '../contexts/UserContext';
 import { Feed } from '../components/Feed';
+import { MOCK_GLOBAL_POSTS } from '../constants';
 
 // OPTIMIZATION: Moved getPostCommunity outside component to prevent recreation on every render.
 // This function transforms a post into a community object representation.
@@ -80,6 +80,12 @@ export const MOCK_GLOBAL_POSTS: CommunityPost[] = [
     timestamp: Date.now() - 7200000
   }
 ];
+const SEARCHABLE_POSTS = MOCK_GLOBAL_POSTS.map(post => ({
+  original: post,
+  searchContent: post.content.toLowerCase(),
+  searchAuthor: post.author.toLowerCase(),
+  searchCommunity: post.communityName?.toLowerCase() || ''
+}));
 
 const GlobalFeed: React.FC = () => {
   const navigate = useNavigate();
@@ -93,11 +99,11 @@ const GlobalFeed: React.FC = () => {
   const filteredPosts = useMemo(() => {
     if (!searchQuery) return MOCK_GLOBAL_POSTS;
     const q = searchQuery.toLowerCase();
-    return MOCK_GLOBAL_POSTS.filter(p =>
-      p.content.toLowerCase().includes(q) ||
-      p.author.toLowerCase().includes(q) ||
-      p.communityName?.toLowerCase().includes(q)
-    );
+    return SEARCHABLE_POSTS.filter(p =>
+      p.searchContent.includes(q) ||
+      p.searchAuthor.includes(q) ||
+      p.searchCommunity.includes(q)
+    ).map(p => p.original);
   }, [searchQuery]);
 
   return (
