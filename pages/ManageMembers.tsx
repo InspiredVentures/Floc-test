@@ -133,9 +133,9 @@ const ManageMembers: React.FC<Props> = ({ onBack }) => {
       id: m.id,
       name: m.name,
       avatar: m.avatar,
-      reason: "Applying to join", // Placeholder until DB schema update
+      reason: m.answer || "Applying to join",
       timestamp: new Date(m.joinedDate).toLocaleDateString(),
-      category: 'General'
+      category: m.category || 'General'
     })),
     [allMembers]);
 

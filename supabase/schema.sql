@@ -260,3 +260,6 @@ create policy "Authenticated users can upload" on storage.objects for insert wit
 
 
 
+
+ALTER TABLE public.community_members ADD COLUMN IF NOT EXISTS answer text;
+ALTER TABLE public.community_members ADD COLUMN IF NOT EXISTS category text;

@@ -1,6 +1,8 @@
 
 import React, { useState } from 'react';
 import { Community } from '../types';
+import { useUser } from '../contexts/UserContext';
+import { communityService } from '../services/communityService';
 
 interface Props {
   community: Community;
@@ -16,6 +18,7 @@ const CATEGORY_KEYWORDS: Record<string, string[]> = {
 };
 
 const JoinRequest: React.FC<Props> = ({ community, onBack, onSent }) => {
+  const { user, profile } = useUser();
   const [message, setMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
 
@@ -27,29 +30,38 @@ const JoinRequest: React.FC<Props> = ({ community, onBack, onSent }) => {
     return 'Social'; // Default
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user) return;
+
     setIsSending(true);
 
-    // Simulate API delay
-    setTimeout(() => {
-      // Create the request object
-      const newRequest = {
-        id: `req-${Date.now()}`,
-        name: "Alex Sterling", // Current user
-        avatar: "https://picsum.photos/seed/alex/100/100",
-        reason: message,
-        timestamp: "Just now",
-        category: detectCategory(message)
-      };
+    const category = detectCategory(message);
+    const userDetails = {
+      name: profile?.display_name || user.email?.split('@')[0] || 'User',
+      avatar: profile?.avatar_url || 'https://picsum.photos/seed/default/100/100'
+    };
 
-      // Persist to localStorage for ManageMembers to pick up
-      const existing = localStorage.getItem('floc_pending_requests');
-      const pendingRequests = existing ? JSON.parse(existing) : [];
-      localStorage.setItem('floc_pending_requests', JSON.stringify([newRequest, ...pendingRequests]));
+    try {
+        const success = await communityService.createJoinRequest(
+            community.id,
+            user.id,
+            userDetails,
+            message,
+            category
+        );
 
-      onSent();
-    }, 1200);
+        if (success) {
+            onSent();
+        } else {
+            console.error("Failed to submit request (service returned false)");
+            // Ideally show a toast here, but for now console error is better than silent failure
+        }
+    } catch (error) {
+        console.error("Failed to submit request", error);
+    } finally {
+        setIsSending(false);
+    }
   };
 
   return (
