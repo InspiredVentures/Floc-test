@@ -74,16 +74,7 @@ const OnboardingWrapper = () => {
 };
 
 const DiscoveryWrapper = () => {
-  const navigate = useNavigate();
-  return (
-    <Discovery
-      onSelectTrip={(trip) => navigate(`/trip/${trip.id}`)}
-      onSelectCommunity={(comm) => navigate(`/community/${comm.id}`)}
-      onOpenNotifications={() => navigate('/notifications')}
-      onSeeAll={() => navigate('/communities')}
-      onCreateCommunity={() => navigate('/create-community')}
-    />
-  );
+  return <Discovery />;
 };
 
 const AllCommunitiesWrapper = () => {
@@ -318,15 +309,7 @@ const DashboardWrapper = () => {
 };
 
 const MyCommunitiesWrapper = () => {
-  const navigate = useNavigate();
-  return (
-    <MyCommunities
-      onSelectCommunity={(comm) => navigate(`/community/${comm.id}`)}
-      onOpenNotifications={() => navigate('/notifications')}
-      onManage={(comm) => navigate('/dashboard', { state: { communityId: comm?.id } })}
-      onLaunch={() => navigate('/create-community')}
-    />
-  );
+  return <MyCommunities />;
 };
 
 const ChatRoomWrapper = () => {
@@ -433,7 +416,7 @@ const App: React.FC = () => {
             <Route path="/messages" element={<Messages />} />
             <Route path="/messages/:username" element={<MessageThread />} />
             <Route path="/chat/:type/:id" element={<ChatRoomWrapper />} />
-            <Route path="/notifications" element={<Notifications />} />
+            <Route path="/notifications" element={<NotificationsWrapper />} />
             <Route path="/settings" element={<Settings onBack={() => window.history.back()} />} />
             <Route path="/booking-success" element={<BookingSuccess onDone={() => window.location.href = '/my-communities'} />} />
 

@@ -33,7 +33,11 @@ const ValueStep = ({ num, text }: { num: string; text: string }) => (
   </div>
 );
 
-const Onboarding: React.FC = () => {
+interface Props {
+  onComplete?: () => void;
+}
+
+const Onboarding: React.FC<Props> = ({ onComplete }) => {
   const navigate = useNavigate();
   const { user, refreshProfile } = useUser();
   const [step, setStep] = useState(1);
@@ -73,7 +77,11 @@ const Onboarding: React.FC = () => {
       if (error) throw error;
 
       await refreshProfile();
-      navigate('/discovery');
+      if (onComplete) {
+        onComplete();
+      } else {
+        navigate('/discovery');
+      }
     } catch (err) {
       console.error('Error saving profile:', err);
       alert('Failed to save profile. Please try again.');

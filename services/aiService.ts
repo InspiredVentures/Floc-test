@@ -35,7 +35,7 @@ class AIService {
 
       // Handle the response
       if (response && response.text) {
-          return response.text();
+          return response.text;
       }
 
       return text;

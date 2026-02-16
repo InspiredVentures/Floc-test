@@ -11,7 +11,7 @@ const Login: React.FC = () => {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
-  const [loginMethod, setLoginMethod] = useState<'email' | 'google' | 'protocol' | null>(null);
+  const [loginMethod, setLoginMethod] = useState<'email' | 'google' | 'protocol' | 'dev' | null>(null);
   const [magicLinkSent, setMagicLinkSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { debugLogin } = useUser();
