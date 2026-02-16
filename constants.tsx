@@ -91,6 +91,17 @@ const STATIC_TRIPS: Trip[] = [
     status: 'PLANNING',
     membersCount: 14,
     communityId: 'morocco-planning'
+  },
+  {
+    id: 'paris-photography',
+    title: 'Parisian Street Photography',
+    destination: 'Paris',
+    dates: 'July 15 - 20, 2026',
+    price: '€1,200',
+    image: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?auto=format&fit=crop&w=800&q=80',
+    status: 'PLANNING',
+    membersCount: 12,
+    communityId: 'c1'
   }
 ];
 
@@ -112,6 +123,20 @@ export const MOCK_COMMUNITIES: Community[] = [
     category: "Global",
     upcomingTrips: [],
     accessType: 'free'
+  },
+  // PARISIAN FLÂNEURS
+  {
+    id: 'c1',
+    title: "Parisian Flâneurs",
+    meta: "Photography • 1.2k members",
+    description: "A community for photography enthusiasts in Paris. Join us for photowalks and workshops.",
+    image: "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?auto=format&fit=crop&w=800&q=80",
+    memberCount: "1.2k",
+    category: "Photography",
+    upcomingTrips: MOCK_TRIPS.filter(t => t.id === 'paris-photography'),
+    accessType: 'free',
+    unreadCount: 3,
+    isManaged: false
   },
   // UGANDA
   {
