@@ -1,12 +1,34 @@
 
 import { GoogleGenerativeAI } from 'https://esm.sh/@google/generative-ai'
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+const getCorsHeaders = (origin: string | null) => {
+  // Define allowed origins
+  const allowedOrigins = [
+    'http://localhost:3000',
+    'http://localhost:5173',
+  ]
+
+  // Also allow origins from environment variable
+  const envAllowedOrigins = Deno.env.get('ALLOWED_ORIGINS')?.split(',') || []
+  const allAllowedOrigins = [...allowedOrigins, ...envAllowedOrigins]
+
+  // Default to the first allowed origin if no match
+  let responseOrigin = allAllowedOrigins[0]
+
+  if (origin && allAllowedOrigins.includes(origin)) {
+    responseOrigin = origin
+  }
+
+  return {
+    'Access-Control-Allow-Origin': responseOrigin,
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  }
 }
 
 Deno.serve(async (req) => {
+  const origin = req.headers.get('Origin')
+  const corsHeaders = getCorsHeaders(origin)
+
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
