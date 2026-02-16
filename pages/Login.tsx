@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FlocLogo } from '../components/FlocLogo';
+import { FlocLogo } from '../src/components/FlocLogo';
 
 import { authService } from '../services/authService';
 import { isSupabaseConfigured, supabase } from '../lib/supabase';
