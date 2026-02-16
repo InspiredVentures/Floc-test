@@ -27,7 +27,16 @@
     "noEmit": true
   },
   "include": [
-    "src"
+    "src",
+    "pages",
+    "components",
+    "contexts",
+    "lib",
+    "services",
+    "types.ts",
+    "App.tsx",
+    "index.tsx",
+    "test"
   ],
   "exclude": [
     "node_modules",
