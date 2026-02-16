@@ -11,7 +11,8 @@
     ],
     "skipLibCheck": true,
     "types": [
-      "node"
+      "node",
+      "vite/client"
     ],
     "moduleResolution": "bundler",
     "isolatedModules": true,
@@ -27,7 +28,19 @@
     "noEmit": true
   },
   "include": [
-    "src"
+    "src",
+    "components",
+    "contexts",
+    "data",
+    "lib",
+    "pages",
+    "services",
+    "App.tsx",
+    "index.tsx",
+    "constants.tsx",
+    "types.ts",
+    "vite.config.ts",
+    "vite-env.d.ts"
   ],
   "exclude": [
     "node_modules",

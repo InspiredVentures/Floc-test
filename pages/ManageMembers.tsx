@@ -38,7 +38,7 @@ interface PendingMember {
   avatar: string;
   reason: string;
   timestamp: string;
-  category: 'Eco' | 'Adventure' | 'Social' | 'Creative';
+  category: string;
 }
 
 interface Invitation {
