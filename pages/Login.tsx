@@ -1,7 +1,7 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FlocLogo } from '../components/FlocLogo';
+import { FlocLogo } from '../src/components/FlocLogo';
 
 import { authService } from '../services/authService';
 import { isSupabaseConfigured, supabase } from '../lib/supabase';
@@ -14,7 +14,20 @@ const Login: React.FC = () => {
   const [loginMethod, setLoginMethod] = useState<'email' | 'google' | 'protocol' | null>(null);
   const [magicLinkSent, setMagicLinkSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { debugLogin } = useUser();
+  const { user, debugLogin } = useUser();
+
+  useEffect(() => {
+    if (user) {
+      navigate('/dashboard');
+    }
+  }, [user, navigate]);
+
+  const performLogin = async (method: 'google' | 'protocol') => {
+    setError(null);
+    if (!isSupabaseConfigured) {
+      setError("Application is missing API Keys. Please check your .env file and restart the server.");
+      return;
+    }
 
   const performLogin = async (method: 'google' | 'protocol') => {
     setError(null);
@@ -223,7 +236,7 @@ const Login: React.FC = () => {
             <button
               type="submit"
               disabled={isLoggingIn}
-              className="w-full h-16 bg-primary text-white font-black rounded-2xl shadow-xl shadow-primary/20 active:scale-[0.98] transition-all flex items-center justify-center gap-3 group relative overflow-hidden hover:bg-primary/90"
+              className="w-full h-16 bg-primary text-white font-black rounded-2xl shadow-xl shadow-primary/20 active:scale-[0.98] transition-all flex items-center justify-center gap-3 group relative overflow-hidden hover:bg-primary/5"
             >
               {isLoggingIn && loginMethod === 'email' ? (
                 <div className="size-6 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
