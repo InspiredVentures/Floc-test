@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useUser } from '../contexts/UserContext';
 import { useToast } from '../contexts/ToastContext';
 import { Community } from '../types';
+import { AccessCard } from '../components/AccessCard';
 
 interface Props {
   onBack?: () => void;
@@ -207,8 +208,12 @@ const CreateCommunity: React.FC<Props> = ({ onBack, onComplete }) => {
               {FEATURE_MODULES.map(feature => {
                 const isEnabled = formData.enabledFeatures.includes(feature.id);
                 return (
-                  <button
+                  <AccessCard
                     key={feature.id}
+                    active={isEnabled}
+                    title={feature.label.toUpperCase()}
+                    desc={feature.desc}
+                    icon={feature.icon}
                     onClick={() => {
                       if (isEnabled) {
                         setFormData({ ...formData, enabledFeatures: formData.enabledFeatures.filter(f => f !== feature.id) });
@@ -216,19 +221,11 @@ const CreateCommunity: React.FC<Props> = ({ onBack, onComplete }) => {
                         setFormData({ ...formData, enabledFeatures: [...formData.enabledFeatures, feature.id] });
                       }
                     }}
-                    className={`flex items-center gap-4 p-4 rounded-2xl border transition-all text-left group ${isEnabled ? 'bg-primary/10 border-primary text-white' : 'bg-white/5 border-white/5 text-slate-500 hover:border-white/20'}`}
                   >
-                    <div className={`size-10 rounded-xl flex items-center justify-center transition-colors ${isEnabled ? 'bg-primary text-background-dark' : 'bg-background-dark text-slate-500 group-hover:text-white'}`}>
-                      <span className="material-symbols-outlined">{feature.icon}</span>
+                    <div className={`size-6 rounded-full border flex items-center justify-center transition-all ${isEnabled ? 'bg-background-dark border-background-dark text-primary' : 'border-slate-600 group-hover:border-slate-400'}`}>
+                      {isEnabled && <span className="material-symbols-outlined text-sm font-black">check</span>}
                     </div>
-                    <div className="flex-1">
-                      <h4 className={`font-black uppercase tracking-widest text-[10px] ${isEnabled ? 'text-primary' : 'text-slate-300 group-hover:text-white'}`}>{feature.label}</h4>
-                      <p className="text-[10px] font-medium opacity-70">{feature.desc}</p>
-                    </div>
-                    <div className={`size-6 rounded-full border flex items-center justify-center transition-all ${isEnabled ? 'bg-primary border-primary' : 'border-slate-600 group-hover:border-slate-400'}`}>
-                      {isEnabled && <span className="material-symbols-outlined text-background-dark text-sm font-black">check</span>}
-                    </div>
-                  </button>
+                  </AccessCard>
                 );
               })}
             </div>
