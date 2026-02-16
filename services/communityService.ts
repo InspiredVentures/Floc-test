@@ -1,6 +1,7 @@
 
 import { supabase } from '../lib/supabase';
-import { CommunityPost, Member, Community, CommunityEvent, CommunityResource } from '../types';
+import { CommunityPost, Member, Community, CommunityEvent, CommunityResource, Trip } from '../types';
+import { MOCK_TRIPS } from '../constants';
 
 const isUUID = (str: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
 
@@ -38,6 +39,34 @@ const _ensureMockCommunityIndex = (communityId: string) => {
 };
 
 export const communityService = {
+    // --- Trips ---
+
+    async getCommunityTrips(communityId: string): Promise<Trip[]> {
+        if (!isUUID(communityId)) {
+            // Mock Data Support
+            const storedMockTrips = JSON.parse(localStorage.getItem('mock_trips') || '[]');
+            const allMockTrips = [...MOCK_TRIPS, ...storedMockTrips];
+
+            // Deduplicate by ID
+            const uniqueTrips = Array.from(new Map(allMockTrips.map(item => [item.id, item])).values());
+
+            return uniqueTrips.filter((t: any) => t.communityId === communityId);
+        }
+
+        const { data, error } = await supabase
+            .from('trips')
+            .select('*')
+            .eq('community_id', communityId)
+            .order('created_at', { ascending: false });
+
+        if (error) {
+            console.error('Error fetching community trips:', error);
+            return [];
+        }
+
+        return data.map(mapTrip);
+    },
+
     // --- Posts ---
 
     async uploadImage(file: File): Promise<string | null> {
@@ -427,6 +456,18 @@ export const communityService = {
     },
 
     async getMembers(communityId: string): Promise<Member[]> {
+        if (!isUUID(communityId)) {
+            // Mock Data Support for Members
+            // Check localStorage for any persisted members for this mock community
+            // This is primarily for 'createCommunity' flow where we add the creator
+            // We might need to implement a 'mock_members' storage similar to trips
+
+            // For now, return empty or try to parse from a known key if needed
+            // But since MOCK_COMMUNITIES doesn't explicitly store members in a separate key
+            // (UserContext handled it in-memory/state), we might just return empty to prevent errors.
+            return [];
+        }
+
         const { data: members, error } = await supabase
             .from('community_members')
             .select(`
@@ -501,7 +542,8 @@ export const communityService = {
         return true;
     },
 
-    async updateMemberRole(communityId: string, userId: string, role: string): Promise<boolean> {
+    async updateMemberRole(communityId: string, userId: string, role: string, permissions: string[] = []): Promise<boolean> {
+        // TODO: Persist permissions when DB schema supports it (e.g. custom_permissions column)
         const { error } = await supabase
             .from('community_members')
             .update({ role })
@@ -1271,3 +1313,17 @@ export const communityService = {
         };
     },
 };
+
+// Helper to map DB trip to frontend Trip type
+const mapTrip = (t: any): Trip => ({
+    id: t.id,
+    title: t.title,
+    destination: t.destination,
+    dates: t.dates,
+    price: t.price,
+    image: t.image,
+    status: t.status,
+    membersCount: t.members_count,
+    communityId: t.community_id,
+    wetravelId: t.wetravel_id
+});
