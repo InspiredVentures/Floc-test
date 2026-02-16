@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useUser } from '../contexts/UserContext';
 import { useToast } from '../contexts/ToastContext';
 import { Community } from '../types';
+import { COMMUNITY_TOPICS } from '../constants';
 
 interface Props {
   onBack?: () => void;
@@ -16,8 +17,6 @@ const STEPS = [
   { id: 'features', label: 'Modules', icon: 'extension' },
   { id: 'launch', label: 'Launch', icon: 'rocket_launch' },
 ];
-
-const CATEGORIES = ['Adventure', 'Eco-Travel', 'Wellness', 'Photography', 'Cultural', 'Trip', 'Digital Nomad'];
 
 const FEATURE_MODULES = [
   { id: 'chat', label: 'Community Chat', icon: 'forum', desc: 'Real-time discussion channels' },
@@ -119,7 +118,7 @@ const CreateCommunity: React.FC<Props> = ({ onBack, onComplete }) => {
             <div className="space-y-2">
               <label className="text-slate-400 text-xs font-bold uppercase tracking-widest">Category</label>
               <div className="flex flex-wrap gap-2">
-                {CATEGORIES.map(cat => (
+                {COMMUNITY_TOPICS.map(cat => (
                   <button
                     key={cat}
                     onClick={() => setFormData({ ...formData, category: cat })}
