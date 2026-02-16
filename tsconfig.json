@@ -30,7 +30,10 @@
   "include": [
     "src",
     "pages",
-    "test"
+    "components",
+    "vitest.setup.ts",
+    "*.tsx",
+    "*.ts"
   ],
   "exclude": [
     "node_modules",

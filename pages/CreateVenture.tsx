@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
 import { useLocation } from 'react-router-dom';
+import { AccessCard } from '../components/AccessCard';
 
 interface Props {
   onBack: () => void;
@@ -73,21 +74,21 @@ const CreateVenture: React.FC<Props> = ({ onBack, onComplete }) => {
           <div className="animate-in fade-in slide-in-from-right-4 duration-500 space-y-8">
             <h2 className="text-3xl font-black text-white leading-tight">Choose the <span className="text-primary italic">Vibe.</span></h2>
             <div className="grid grid-cols-1 gap-4">
-              <VibeOption
+              <AccessCard
                 active={budget === 'eco'}
                 title="Conscious & Raw"
                 desc="Back to basics, maximum local impact."
                 icon="eco"
                 onClick={() => setBudget('eco')}
               />
-              <VibeOption
+              <AccessCard
                 active={budget === 'mid'}
                 title="Comfort Seekers"
                 desc="Boutique eco-stays with local charm."
                 icon="hotel"
                 onClick={() => setBudget('mid')}
               />
-              <VibeOption
+              <AccessCard
                 active={budget === 'luxury'}
                 title="Impact Luxury"
                 desc="High-end villas with net-zero footprint."
@@ -139,20 +140,5 @@ const CreateVenture: React.FC<Props> = ({ onBack, onComplete }) => {
     </div>
   );
 };
-
-const VibeOption = ({ active, title, desc, icon, onClick }: { active: boolean, title: string, desc: string, icon: string, onClick: () => void }) => (
-  <button
-    onClick={onClick}
-    className={`p-5 rounded-3xl border text-left flex gap-4 transition-all ${active ? 'bg-primary border-primary shadow-xl shadow-primary/10' : 'bg-white/5 border-white/10'}`}
-  >
-    <div className={`size-12 rounded-2xl flex items-center justify-center shrink-0 ${active ? 'bg-background-dark text-primary' : 'bg-white/5 text-slate-500'}`}>
-      <span className="material-symbols-outlined">{icon}</span>
-    </div>
-    <div>
-      <h4 className={`font-black text-sm mb-1 ${active ? 'text-background-dark' : 'text-white'}`}>{title}</h4>
-      <p className={`text-[11px] leading-tight ${active ? 'text-background-dark/70 font-medium' : 'text-slate-500'}`}>{desc}</p>
-    </div>
-  </button>
-);
 
 export default CreateVenture;

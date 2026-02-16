@@ -3,18 +3,18 @@ import { TripSuggestion } from '../types';
 
 interface TripSuggestionCardProps {
     suggestion: TripSuggestion;
-    onVote: (dir: 'up' | 'down') => void;
-    onAddComment: (text: string) => void;
+    onVote: (id: string, dir: 'up' | 'down') => void;
+    onAddComment: (id: string, text: string) => void;
 }
 
-export const TripSuggestionCard: React.FC<TripSuggestionCardProps> = ({ suggestion, onVote, onAddComment }) => {
+export const TripSuggestionCard = React.memo<TripSuggestionCardProps>(({ suggestion, onVote, onAddComment }) => {
     const [showComments, setShowComments] = useState(false);
     const [commentText, setCommentText] = useState('');
 
     const handleCommentSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (commentText.trim()) {
-            onAddComment(commentText);
+            onAddComment(suggestion.id, commentText);
             setCommentText('');
         }
     };
@@ -23,11 +23,11 @@ export const TripSuggestionCard: React.FC<TripSuggestionCardProps> = ({ suggesti
         <div className="bg-white border border-primary/10 rounded-[2rem] overflow-hidden shadow-sm hover:shadow-xl hover:border-accent/30 transition-all duration-300 p-5 group">
             <div className="flex gap-4">
                 <div className="flex flex-col items-center bg-primary/5 rounded-2xl border border-primary/10 overflow-hidden shrink-0 h-fit">
-                    <button onClick={() => onVote('up')} className={`p-2 transition-all ${suggestion.myVote === 'up' ? 'text-accent' : 'text-primary/40 hover:text-primary'}`}>
+                    <button onClick={() => onVote(suggestion.id, 'up')} className={`p-2 transition-all ${suggestion.myVote === 'up' ? 'text-accent' : 'text-primary/40 hover:text-primary'}`}>
                         <span className="material-symbols-outlined font-black">keyboard_arrow_up</span>
                     </button>
                     <span className={`text-xs font-black ${suggestion.myVote === 'up' ? 'text-accent' : suggestion.myVote === 'down' ? 'text-red-400' : 'text-primary'}`}>{suggestion.votes}</span>
-                    <button onClick={() => onVote('down')} className={`p-2 transition-all ${suggestion.myVote === 'down' ? 'text-red-400' : 'text-primary/40 hover:text-primary'}`}>
+                    <button onClick={() => onVote(suggestion.id, 'down')} className={`p-2 transition-all ${suggestion.myVote === 'down' ? 'text-red-400' : 'text-primary/40 hover:text-primary'}`}>
                         <span className="material-symbols-outlined font-black">keyboard_arrow_down</span>
                     </button>
                 </div>
@@ -116,4 +116,4 @@ export const TripSuggestionCard: React.FC<TripSuggestionCardProps> = ({ suggesti
             )}
         </div>
     );
-};
+});

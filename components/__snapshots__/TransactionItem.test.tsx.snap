@@ -1,0 +1,29 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`TransactionItem > matches snapshot 1`] = `
+<div
+  class="bg-white/5 border border-white/5 p-5 rounded-3xl flex items-center justify-between group hover:bg-white/10 transition-all"
+>
+  <div
+    class="flex-1"
+  >
+    <h4
+      class="text-white font-black text-xs uppercase tracking-tight mb-1"
+    >
+      Snapshot Item
+    </h4>
+    <p
+      class="text-slate-600 text-[9px] font-bold"
+    >
+      Dec 31, 2023
+       •
+      Pending
+    </p>
+  </div>
+  <span
+    class="text-sm font-black text-emerald-400"
+  >
+    + $1,000.00
+  </span>
+</div>
+`;
