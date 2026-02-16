@@ -3,7 +3,6 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Trip, Community } from '../types';
 import { FlocLogo } from '../components/FlocLogo';
-import { CommunityResultCard } from '../components/CommunityResultCard';
 import { useUser } from '../contexts/UserContext';
 import BackToTop from '../components/BackToTop';
 import { Skeleton } from '../components/Skeleton';
@@ -14,7 +13,9 @@ const CATEGORIES = [
   { id: 'my-tribes', label: 'My Groups', icon: 'groups' },
   { id: 'Planning', label: 'Planning', icon: 'campaign' },
   { id: 'Confirmed', label: 'Confirmed', icon: 'check_circle' },
-  { id: 'Global', label: 'Global', icon: 'public' }
+  { id: 'Global', label: 'Global', icon: 'public' },
+  { id: 'Wellness', label: 'Wellness', icon: 'spa' },
+  { id: 'Cultural', label: 'Cultural', icon: 'museum' }
 ];
 
 const Discovery: React.FC = () => {
@@ -70,9 +71,7 @@ const Discovery: React.FC = () => {
       <header className={`sticky top-0 z-[40] px-6 transition-all duration-300 ${scrolled ? 'py-4 bg-white/80 backdrop-blur-xl border-b border-primary/5 shadow-2xl' : 'py-8'}`}>
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="size-8 bg-primary rounded-lg flex items-center justify-center text-white">
-              <span className="material-symbols-outlined text-xl font-black">eco</span>
-            </div>
+            <FlocLogo />
             <div className="flex flex-col pt-1">
               <h1 className="text-primary font-black text-xl tracking-tighter leading-none italic uppercase">Discovery</h1>
               <span className="text-accent text-[8px] uppercase tracking-[0.2em] font-black leading-none">by Inspired</span>
