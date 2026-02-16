@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "vitest";
 import { calculateCommunityMetrics } from "./dashboardUtils";
 import { Community } from "../types";
 
@@ -59,5 +59,43 @@ describe("calculateCommunityMetrics", () => {
     expect(metrics.memberCount).toBeNaN();
     expect(metrics.healthScore).toBeNaN();
     expect(metrics.weeklyGrowth).toBe("0.0");
+  });
+
+  it("should handle memberCount string with suffix", () => {
+    const mockCommunity = {
+      memberCount: "10 members"
+    } as Community;
+    const metrics = calculateCommunityMetrics(mockCommunity);
+    expect(metrics.memberCount).toBe(10);
+    // healthScore: 50 + floor(10 * 1.5) = 65
+    expect(metrics.healthScore).toBe(65);
+  });
+
+  it("should handle memberCount string with leading/trailing spaces", () => {
+    const mockCommunity = {
+      memberCount: "  20  "
+    } as Community;
+    const metrics = calculateCommunityMetrics(mockCommunity);
+    expect(metrics.memberCount).toBe(20);
+    // healthScore: 50 + floor(20 * 1.5) = 50 + 30 = 80
+    expect(metrics.healthScore).toBe(80);
+  });
+
+  it("should handle very large member count for healthScore cap", () => {
+    const mockCommunity = {
+      memberCount: "10000"
+    } as Community;
+    const metrics = calculateCommunityMetrics(mockCommunity);
+    expect(metrics.memberCount).toBe(10000);
+    expect(metrics.healthScore).toBe(98);
+  });
+
+  it("should handle empty string memberCount as zero", () => {
+    const mockCommunity = {
+      memberCount: ""
+    } as Community;
+    const metrics = calculateCommunityMetrics(mockCommunity);
+    expect(metrics.memberCount).toBe(0);
+    expect(metrics.healthScore).toBe(50);
   });
 });
