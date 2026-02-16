@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback, useMemo } from 'react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import { authService } from '../services/authService';
@@ -152,13 +152,13 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         };
     }, []);
 
-    const refreshProfile = async () => {
+    const refreshProfile = useCallback(async () => {
         const { user, profile } = await authService.getCurrentUser() || {};
         setUser(user || null);
         setProfile(profile as Profile || null);
-    };
+    }, []);
 
-    const debugLogin = () => {
+    const debugLogin = useCallback(() => {
         const mockUser: User = {
             id: 'dev-user-id',
             app_metadata: {},
@@ -183,7 +183,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         // PERSIST MOCK SESSION
         localStorage.setItem('mock_user', JSON.stringify(mockUser));
         localStorage.setItem('mock_profile', JSON.stringify(mockProfile));
-    };
+    }, []);
     // Helper to clear mock session on logout
     const clearMockSession = () => {
         localStorage.removeItem('mock_user');
@@ -420,7 +420,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
     }, [notifications]);
 
-    const addNotification = (data: Omit<AppNotification, 'id' | 'timestamp' | 'isRead'>) => {
+    const addNotification = useCallback((data: Omit<AppNotification, 'id' | 'timestamp' | 'isRead'>) => {
         const newNotification: AppNotification = {
             ...data,
             id: `notif-${Date.now()}`,
@@ -428,17 +428,17 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             isRead: false
         };
         setNotifications(prev => [newNotification, ...prev]);
-    };
+    }, []);
 
-    const markNotificationsAsRead = () => {
+    const markNotificationsAsRead = useCallback(() => {
         setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
-    };
+    }, []);
 
-    const deleteNotification = (id: string) => {
+    const deleteNotification = useCallback((id: string) => {
         setNotifications(prev => prev.filter(n => n.id !== id));
-    };
+    }, []);
 
-    const setTypingStatus = (conversationId: string, isTyping: boolean) => {
+    const setTypingStatus = useCallback((conversationId: string, isTyping: boolean) => {
         setConversations(prev => prev.map(conv => {
             if (conv.id === conversationId) {
                 return {
@@ -450,42 +450,70 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             }
             return conv;
         }));
-    };
+    }, []);
 
-    const updatePresence = (username: string, isOnline: boolean) => {
+    const updatePresence = useCallback((username: string, isOnline: boolean) => {
         setConversations(prev => prev.map(conv => ({
             ...conv,
             participantDetails: conv.participantDetails.map(p =>
                 p.username === username ? { ...p, isOnline } : p
             )
         })));
-    };
+    }, []);
 
-    const joinCommunity = async (id: string) => {
+    const joinCommunity = useCallback(async (id: string) => {
         if (joinedCommunityIds.includes(id)) return;
 
-        if (!user) {
+        if (!user || !profile) {
             console.error('Cannot join community: User not logged in');
             return;
         }
 
+        // Optimistic update
+        setJoinedCommunityIds(prev => [...prev, id]);
+        setCommunities(prev => prev.map(comm => {
+            if (comm.id !== id) return comm;
+            const newMember: Member = {
+                id: user.id,
+                name: profile.display_name || 'User',
+                avatar: profile.avatar_url || 'https://picsum.photos/seed/default/100/100',
+                role: 'Member',
+                location: profile.location || 'Just joined',
+                joinedDate: new Date().toISOString(),
+                status: 'approved'
+            };
+            return {
+                ...comm,
+                members: [...(comm.members || []), newMember],
+                memberCount: (parseInt(comm.memberCount || '0') + 1).toString()
+            };
+        }));
+
         const success = await communityService.joinCommunity(id, user.id, {
-            name: profile?.display_name || user.email?.split('@')[0] || 'Member',
-            avatar: profile?.avatar_url || 'https://picsum.photos/seed/default/100/100'
+            name: profile.display_name || user.email?.split('@')[0] || 'Member',
+            avatar: profile.avatar_url || 'https://picsum.photos/seed/default/100/100'
         });
 
-        if (success) {
-            setJoinedCommunityIds(prev => [...prev, id]);
-            // Also refresh communities list to update member count/list if needed?
-            // For now, simpler is better.
+        if (!success) {
+            console.error('Failed to join community on server');
+            // Revert optimistic update
+            setJoinedCommunityIds(prev => prev.filter(communityId => communityId !== id));
+            setCommunities(prev => prev.map(comm => {
+                if (comm.id !== id) return comm;
+                return {
+                    ...comm,
+                    members: (comm.members || []).filter(m => m.id !== user.id),
+                    memberCount: Math.max(0, parseInt(comm.memberCount || '1') - 1).toString()
+                };
+            }));
         }
-    };
+    }, [joinedCommunityIds, user, profile, setJoinedCommunityIds, setCommunities]);
 
-    const leaveCommunity = (id: string) => {
+    const leaveCommunity = useCallback((id: string) => {
         setJoinedCommunityIds(prev => prev.filter(communityId => communityId !== id));
-    };
+    }, []);
 
-    const createCommunity = async (data: Omit<Community, 'id' | 'memberCount' | 'upcomingTrips'>) => {
+    const createCommunity = useCallback(async (data: Omit<Community, 'id' | 'memberCount' | 'upcomingTrips'>) => {
         console.log('[UserContext] createCommunity called with data:', data);
 
         if (!user || !profile) {
@@ -595,33 +623,33 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         console.log('[UserContext] Local state updated with new community:', fullCommunity);
 
         return fullCommunity;
-    };
+    }, [user, profile]);
 
-    const bookTrip = (id: string) => {
+    const bookTrip = useCallback((id: string) => {
         if (!bookedTripIds.includes(id)) {
             setBookedTripIds(prev => [...prev, id]);
         }
-    };
+    }, [bookedTripIds]);
 
-    const followUser = (username: string) => {
+    const followUser = useCallback((username: string) => {
         if (!followingUsernames.includes(username)) {
             setFollowingUsernames(prev => [...prev, username]);
             console.log('[UserContext] Followed user:', username);
         }
-    };
+    }, [followingUsernames]);
 
-    const unfollowUser = (username: string) => {
+    const unfollowUser = useCallback((username: string) => {
         setFollowingUsernames(prev => prev.filter(u => u !== username));
         console.log('[UserContext] Unfollowed user:', username);
-    };
+    }, []);
 
-    const isFollowing = (username: string) => followingUsernames.includes(username);
+    const isFollowing = useCallback((username: string) => followingUsernames.includes(username), [followingUsernames]);
 
-    const getConversation = (participantUsername: string) => {
+    const getConversation = useCallback((participantUsername: string) => {
         return conversations.find(conv => conv.participants.includes(participantUsername));
-    };
+    }, [conversations]);
 
-    const sendMessage = (recipientId: string, recipientName: string, recipientAvatar: string, content: string, conversationId?: string, type: 'direct' | 'group' = 'direct') => {
+    const sendMessage = useCallback((recipientId: string, recipientName: string, recipientAvatar: string, content: string, conversationId?: string, type: 'direct' | 'group' = 'direct') => {
         const currentUser = user?.id || 'guest';
         const currentUserName = profile?.display_name || user?.email?.split('@')[0] || 'Guest';
         const currentUserAvatar = profile?.avatar_url || 'https://picsum.photos/seed/guest/100/100';
@@ -721,9 +749,9 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 });
             }, replyDelay);
         }
-    };
+    }, [user, profile, conversations, addNotification]);
 
-    const addMessage = (conversationId: string, senderId: string, senderName: string, senderAvatar: string, content: string) => {
+    const addMessage = useCallback((conversationId: string, senderId: string, senderName: string, senderAvatar: string, content: string) => {
         const newMessage: Message = {
             id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
             conversationId,
@@ -737,7 +765,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             status: 'read'
         };
         setMessages(prev => [...prev, newMessage]);
-    };
+    }, [user]);
 
     // Sync unread counts and last message when messages change
     React.useEffect(() => {
@@ -765,7 +793,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         });
     }, [messages]);
 
-    const markAsRead = (conversationId: string) => {
+    const markAsRead = useCallback((conversationId: string) => {
         // Mark all messages in conversation as read
         setMessages(prev => prev.map(msg => {
             if (msg.conversationId === conversationId && !msg.read && msg.senderId !== 'alex-sterling') {
@@ -773,16 +801,16 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             }
             return msg;
         }));
-    };
+    }, []);
 
-    const getTotalUnreadCount = () => {
+    const getTotalUnreadCount = useCallback(() => {
         return conversations.reduce((total, conv) => total + conv.unreadCount, 0);
-    };
+    }, [conversations]);
 
-    const isMember = (id: string) => joinedCommunityIds.includes(id);
-    const isBooked = (id: string) => bookedTripIds.includes(id);
+    const isMember = useCallback((id: string) => joinedCommunityIds.includes(id), [joinedCommunityIds]);
+    const isBooked = useCallback((id: string) => bookedTripIds.includes(id), [bookedTripIds]);
 
-    const approveMember = async (communityId: string, memberId: string) => {
+    const approveMember = useCallback(async (communityId: string, memberId: string) => {
         const success = await communityService.approveMember(communityId, memberId);
         if (success) {
             setCommunities(prev => prev.map(comm => {
@@ -821,9 +849,9 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 };
             }));
         }
-    };
+    }, []);
 
-    const declineMember = async (communityId: string, memberId: string) => {
+    const declineMember = useCallback(async (communityId: string, memberId: string) => {
         const success = await communityService.declineMember(communityId, memberId);
         if (success) {
             setCommunities(prev => prev.map(comm => {
@@ -843,9 +871,9 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 };
             }));
         }
-    };
+    }, []);
 
-    const removeMember = async (communityId: string, memberId: string) => {
+    const removeMember = useCallback(async (communityId: string, memberId: string) => {
         const success = await communityService.removeMember(communityId, memberId);
         if (success) {
             setCommunities(prev => prev.map(comm => {
@@ -876,7 +904,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
     };
 
-    const updateMemberRole = async (communityId: string, memberId: string, role: Member['role'], permissions?: string[]) => {
+    const updateMemberRole = useCallback(async (communityId: string, memberId: string, role: Member['role'], permissions?: string[]) => {
         const success = await communityService.updateMemberRole(communityId, memberId, role);
         if (success) {
             setCommunities(prev => prev.map(comm => {
@@ -889,15 +917,15 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 };
             }));
         }
-    };
+    }, []);
 
-    const updateCommunity = (id: string, updates: Partial<Community>) => {
+    const updateCommunity = useCallback((id: string, updates: Partial<Community>) => {
         setCommunities(prev => prev.map(comm =>
             comm.id === id ? { ...comm, ...updates } : comm
         ));
-    };
+    }, []);
 
-    const deleteCommunity = async (id: string) => {
+    const deleteCommunity = useCallback(async (id: string) => {
         // 1. Mock Mode
         const storedMock = localStorage.getItem('mock_communities');
         if (storedMock) {
@@ -932,71 +960,88 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             console.error("Failed to delete community", e);
             alert("Failed to dissolve community. See console.");
         }
-    };
+    }, []);
+
+    const contextValue = useMemo(() => ({
+        user,
+        profile,
+        isLoading,
+        refreshProfile,
+        joinedCommunityIds,
+        createCommunity,
+        joinCommunity,
+        bookedTripIds,
+        communities,
+        followingUsernames,
+        conversations,
+        messages,
+        notifications,
+        leaveCommunity,
+        bookTrip,
+        followUser,
+        unfollowUser,
+        isFollowing,
+        sendMessage,
+        addMessage,
+        markAsRead,
+        getConversation,
+        getTotalUnreadCount,
+        isMember,
+        isBooked,
+        approveMember,
+        declineMember,
+        removeMember,
+        updateMemberRole,
+        updateCommunity,
+        addNotification,
+        markNotificationsAsRead,
+        deleteNotification,
+        setTypingStatus,
+        updatePresence,
+        deleteCommunity,
+        debugLogin
+    }), [
+        user,
+        profile,
+        isLoading,
+        refreshProfile,
+        joinedCommunityIds,
+        createCommunity,
+        joinCommunity,
+        bookedTripIds,
+        communities,
+        followingUsernames,
+        conversations,
+        messages,
+        notifications,
+        leaveCommunity,
+        bookTrip,
+        followUser,
+        unfollowUser,
+        isFollowing,
+        sendMessage,
+        addMessage,
+        markAsRead,
+        getConversation,
+        getTotalUnreadCount,
+        isMember,
+        isBooked,
+        approveMember,
+        declineMember,
+        removeMember,
+        updateMemberRole,
+        updateCommunity,
+        addNotification,
+        markNotificationsAsRead,
+        deleteNotification,
+        setTypingStatus,
+        updatePresence,
+        deleteCommunity,
+        debugLogin
+    ]);
 
     return (
-        <UserContext.Provider value={{
-            user,
-            profile,
-            isLoading,
-            refreshProfile,
-            joinedCommunityIds,
-            createCommunity,
-            joinCommunity: (communityId: string) => {
-                if (!user || !profile) return false;
-                if (!joinedCommunityIds.includes(communityId)) {
-                    setJoinedCommunityIds(prev => [...prev, communityId]);
-                    setCommunities(prev => prev.map(comm => {
-                        if (comm.id !== communityId) return comm;
-                        const newMember: Member = {
-                            id: user.id,
-                            name: profile.display_name || 'User',
-                            avatar: profile.avatar_url || 'https://picsum.photos/seed/default/100/100',
-                            role: 'Member',
-                            location: profile.location || 'Just joined',
-                            joinedDate: new Date().toISOString()
-                        };
-                        return {
-                            ...comm,
-                            members: [...(comm.members || []), newMember],
-                            memberCount: (parseInt(comm.memberCount || '0') + 1).toString()
-                        };
-                    }));
-                    return true;
-                }
-                return false;
-            },
-            bookedTripIds,
-            communities,
-            followingUsernames,
-            conversations,
-            messages,
-            notifications,
-            leaveCommunity,
-            bookTrip,
-            followUser,
-            unfollowUser,
-            isFollowing,
-            sendMessage,
-            addMessage,
-            markAsRead,
-            getConversation,
-            getTotalUnreadCount,
-            isMember,
-            isBooked,
-            approveMember,
-            declineMember,
-            removeMember,
-            updateMemberRole,
-            updateCommunity,
-            addNotification,
-            markNotificationsAsRead,
-            deleteNotification,
-            setTypingStatus,
-            updatePresence,
-            deleteCommunity,
-            debugLogin
-        }}>
+        <UserContext.Provider value={contextValue}>
             {children}
         </UserContext.Provider>
     );
