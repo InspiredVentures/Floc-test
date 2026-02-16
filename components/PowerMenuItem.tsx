@@ -1,6 +1,14 @@
 import React from 'react';
 
-export const PowerMenuItem = ({ icon, title, desc, onClick, delay }: { icon: string, title: string, desc: string, onClick: () => void, delay: string }) => (
+interface PowerMenuItemProps {
+    icon: string;
+    title: string;
+    desc: string;
+    onClick: () => void;
+    delay: string;
+}
+
+export const PowerMenuItem = ({ icon, title, desc, onClick, delay }: PowerMenuItemProps) => (
     <button
         onClick={(e) => { e.stopPropagation(); onClick(); }}
         className={`w-full bg-white/5 border border-white/10 rounded-3xl p-5 flex items-center gap-4 text-left hover:bg-white/10 transition-all active:scale-[0.98] animate-in slide-in-from-bottom-4 duration-500 ${delay}`}
