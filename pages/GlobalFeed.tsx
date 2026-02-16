@@ -77,14 +77,33 @@ const GlobalFeed: React.FC = () => {
   // In a real app, Feed would fetch its own data or accept a filtered list.
 
   const filteredPosts = useMemo(() => {
-    if (!searchQuery) return MOCK_GLOBAL_POSTS;
-    const q = searchQuery.toLowerCase();
-    return MOCK_GLOBAL_POSTS.filter(p =>
-      p.content.toLowerCase().includes(q) ||
-      p.author.toLowerCase().includes(q) ||
-      p.communityName?.toLowerCase().includes(q)
-    );
-  }, [searchQuery]);
+    let list = [...MOCK_GLOBAL_POSTS];
+
+    // Filter by search query
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      list = list.filter(p =>
+        p.content.toLowerCase().includes(q) ||
+        p.author.toLowerCase().includes(q) ||
+        p.communityName?.toLowerCase().includes(q)
+      );
+    }
+
+    if (activeTab === 'pulse') {
+      return list.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+    } else {
+      // Optimized "Vibe Score" calculation
+      // Schwartzian transform to avoid re-calculating score on every comparison
+      const withScore = list.map(item => ({
+        item,
+        score: item.likes + (item.comments.length * 5) + (item.image || item.video ? 50 : 0)
+      }));
+
+      withScore.sort((a, b) => b.score - a.score);
+
+      return withScore.map(wrapper => wrapper.item);
+    }
+  }, [searchQuery, activeTab]);
 
   return (
     <div className="flex flex-col min-h-full bg-[#FCFBF5] text-[#14532D] font-body selection:bg-accent selection:text-white">

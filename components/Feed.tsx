@@ -8,9 +8,11 @@ import { Skeleton } from './Skeleton';
 interface FeedProps {
     communityId?: string; // Optional: if null, shows Global Feed
     limit?: number;
+    initialPosts?: CommunityPost[];
+    context?: string;
 }
 
-export const Feed: React.FC<FeedProps> = ({ communityId, limit }) => {
+export const Feed: React.FC<FeedProps> = ({ communityId, limit, initialPosts }) => {
     const { user, profile } = useUser();
 
     const [posts, setPosts] = useState<CommunityPost[]>([]);
@@ -28,8 +30,13 @@ export const Feed: React.FC<FeedProps> = ({ communityId, limit }) => {
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
-        loadPosts();
-    }, [communityId, user?.id]);
+        if (initialPosts) {
+            setPosts(initialPosts);
+            setIsLoadingPosts(false);
+        } else {
+            loadPosts();
+        }
+    }, [communityId, user?.id, initialPosts]);
 
     const loadPosts = async () => {
         if (!user) return;
