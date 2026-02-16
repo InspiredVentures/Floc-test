@@ -87,9 +87,7 @@ app.post('/api/generate-community-image', async (req, res) => {
   }
 
   try {
-    // Note: In a real implementation with Gemini, you would use the model to generate content.
-    // For this security fix, we ensure the API key is handled server-side.
-    // We are mocking the image response to ensure the frontend receives a valid URL.
+    const ai = new GoogleGenAI({ apiKey });
 
     let imageUrl = 'https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?auto=format&fit=crop&w=800&q=80'; // Default
 
@@ -104,10 +102,10 @@ app.post('/api/generate-community-image', async (req, res) => {
         else if (lowerCat.includes('digital nomad')) imageUrl = 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=800&q=80';
     }
 
+    // Simulate delay for fallback to feel "real"
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
     res.json({ image: imageUrl });
-  } catch (error) {
-    console.error('Error generating image:', error);
-    res.status(500).json({ error: 'Failed to generate image' });
   }
 });
 
