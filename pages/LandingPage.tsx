@@ -102,7 +102,7 @@ const LandingPage = () => {
             id: 'nepal',
             title: "Nepal Tiger Tracking",
             tags: "Nepal / 2026",
-            img: "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&q=80&w=800",
+            img: "/images/trips/nepal-tiger.jpg",
             desc: "Track tigers and leopards in Nepal, helping the Nepal Tiger Trust to support and protect the big cat populations in the Himalayan foothills."
         },
         {
@@ -123,7 +123,7 @@ const LandingPage = () => {
             id: 'bhutan',
             title: "Bhutanese Mindfulness",
             tags: "Bhutan / 2026",
-            img: "https://images.unsplash.com/photo-1580974844145-298a8570094d?auto=format&fit=crop&q=80&w=800",
+            img: "/images/trips/bhutan-tigers-nest.jpg",
             desc: "Immerse into a living Himalayan kingdom where tradition is preserved. Cross Dochula Pass and walk the ancient Trans-Bhutan Trail."
         },
         {
