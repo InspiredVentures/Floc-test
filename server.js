@@ -1,6 +1,5 @@
 import express from 'express';
 import cors from 'cors';
-import { GoogleGenAI } from '@google/genai';
 import dotenv from 'dotenv';
 
 dotenv.config({ path: '.env.local' });
@@ -27,11 +26,6 @@ app.post('/api/generate-community-image', async (req, res) => {
     // Note: In a real implementation with Gemini, you would use the model to generate content.
     // For this security fix, we ensure the API key is handled server-side.
     // We are mocking the image response to ensure the frontend receives a valid URL.
-
-    // Example usage if we were generating text:
-    // const ai = new GoogleGenAI({ apiKey });
-    // const model = ai.getGenerativeModel({ model: "gemini-1.5-flash" });
-    // ...
 
     let imageUrl = 'https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?auto=format&fit=crop&w=800&q=80'; // Default
 
