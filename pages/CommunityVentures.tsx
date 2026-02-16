@@ -25,6 +25,10 @@ const CommunityVentures: React.FC<Props> = ({ community, onBack, onSelectTrip })
     const [budgetFilter, setBudgetFilter] = useState<'all' | 'Eco' | 'Mid' | 'Luxury'>('all');
     const [sortBy, setSortBy] = useState<'votes' | 'recent' | 'discussed'>('votes');
 
+    // Confirmed Trips State (Optimized: Fetched independently)
+    const [trips, setTrips] = useState<Trip[]>([]);
+    const [isLoadingTrips, setIsLoadingTrips] = useState(true);
+
     // Keep suggestions in a ref to use in callbacks without triggering re-renders or recreating callbacks
     const suggestionsRef = useRef(suggestions);
     useEffect(() => {
@@ -34,6 +38,7 @@ const CommunityVentures: React.FC<Props> = ({ community, onBack, onSelectTrip })
     useEffect(() => {
         if (community.id) {
             loadSuggestions();
+            loadTrips();
         }
     }, [community.id, user?.id]);
 
@@ -43,6 +48,13 @@ const CommunityVentures: React.FC<Props> = ({ community, onBack, onSelectTrip })
         const fetchedSuggestions = await communityService.getSuggestions(community.id, currentUserId);
         setSuggestions(fetchedSuggestions);
         setIsLoadingSuggestions(false);
+    };
+
+    const loadTrips = async () => {
+        setIsLoadingTrips(true);
+        const fetchedTrips = await communityService.getCommunityTrips(community.id);
+        setTrips(fetchedTrips);
+        setIsLoadingTrips(false);
     };
 
     const handleVote = useCallback(async (id: string, dir: 'up' | 'down') => {
@@ -195,14 +207,14 @@ const CommunityVentures: React.FC<Props> = ({ community, onBack, onSelectTrip })
                 </div>
 
                 {/* Confirmed Trips Section */}
-                {community.upcomingTrips.length > 0 && (
+                {!isLoadingTrips && trips.length > 0 && (
                     <div>
                         <div className="flex items-center gap-2 mb-4 px-2">
                             <span className="material-symbols-outlined text-primary">verified</span>
                             <h3 className="text-primary text-sm font-black uppercase tracking-widest">Locked & Loaded (Confirmed)</h3>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {(community.upcomingTrips || []).map(trip => (
+                            {trips.map(trip => (
                                 <div
                                     key={trip.id}
                                     onClick={() => onSelectTrip(trip)}
