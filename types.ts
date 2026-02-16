@@ -117,6 +117,7 @@ export interface TripSuggestion {
   votes: number;
   myVote: 'up' | 'down' | null;
   timestamp: string;
+  comments?: CommunityComment[];
 }
 
 export interface Message {

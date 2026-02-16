@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Community, Trip } from '../types';
+import { Community, Trip, TripSuggestion } from '../types';
 import { useUser } from '../contexts/UserContext';
 import { communityService } from '../services/communityService';
 import { TripSuggestionCard } from '../components/TripSuggestionCard';
@@ -19,7 +19,7 @@ const CommunityVentures: React.FC<Props> = ({ community, onBack, onSelectTrip })
     const [showSuggestModal, setShowSuggestModal] = useState(false);
 
     // Venture Lab State
-    const [suggestions, setSuggestions] = useState<any[]>([]);
+    const [suggestions, setSuggestions] = useState<TripSuggestion[]>([]);
     const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
     const [isVoting, setIsVoting] = useState<string | null>(null);
     const [budgetFilter, setBudgetFilter] = useState<'all' | 'Eco' | 'Mid' | 'Luxury'>('all');
@@ -95,7 +95,7 @@ const CommunityVentures: React.FC<Props> = ({ community, onBack, onSelectTrip })
 
         setSuggestions(prev => prev.map(s => {
             if (s.id === suggestionId) {
-                return { ...s, comments: [tempComment, ...s.comments] };
+                return { ...s, comments: [tempComment, ...(s.comments || [])] };
             }
             return s;
         }));
@@ -115,7 +115,7 @@ const CommunityVentures: React.FC<Props> = ({ community, onBack, onSelectTrip })
                     if (s.id === suggestionId) {
                         return {
                             ...s,
-                            comments: s.comments.map(c => c.id === tempId ? newComment : c)
+                            comments: (s.comments || []).map(c => c.id === tempId ? newComment : c)
                         };
                     }
                     return s;
@@ -126,7 +126,7 @@ const CommunityVentures: React.FC<Props> = ({ community, onBack, onSelectTrip })
             // Revert
             setSuggestions(prev => prev.map(s => {
                 if (s.id === suggestionId) {
-                    return { ...s, comments: s.comments.filter(c => c.id !== tempId) };
+                    return { ...s, comments: (s.comments || []).filter(c => c.id !== tempId) };
                 }
                 return s;
             }));
