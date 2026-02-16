@@ -69,21 +69,11 @@ const PageLoader = () => (
 const LoginWrapper = () => <Login />;
 
 const OnboardingWrapper = () => {
-  const navigate = useNavigate();
-  return <Onboarding onComplete={() => navigate('/')} />;
+  return <Onboarding />;
 };
 
 const DiscoveryWrapper = () => {
-  const navigate = useNavigate();
-  return (
-    <Discovery
-      onSelectTrip={(trip) => navigate(`/trip/${trip.id}`)}
-      onSelectCommunity={(comm) => navigate(`/community/${comm.id}`)}
-      onOpenNotifications={() => navigate('/notifications')}
-      onSeeAll={() => navigate('/communities')}
-      onCreateCommunity={() => navigate('/create-community')}
-    />
-  );
+  return <Discovery />;
 };
 
 const AllCommunitiesWrapper = () => {
@@ -318,15 +308,7 @@ const DashboardWrapper = () => {
 };
 
 const MyCommunitiesWrapper = () => {
-  const navigate = useNavigate();
-  return (
-    <MyCommunities
-      onSelectCommunity={(comm) => navigate(`/community/${comm.id}`)}
-      onOpenNotifications={() => navigate('/notifications')}
-      onManage={(comm) => navigate('/dashboard', { state: { communityId: comm?.id } })}
-      onLaunch={() => navigate('/create-community')}
-    />
-  );
+  return <MyCommunities />;
 };
 
 const ChatRoomWrapper = () => {
