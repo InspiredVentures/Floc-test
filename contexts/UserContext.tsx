@@ -85,7 +85,6 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                     const storedMockUser = localStorage.getItem('mock_user');
                     const storedMockProfile = localStorage.getItem('mock_profile');
                     if (storedMockUser && storedMockProfile) {
-                        console.log('[UserContext] Restoring Mock User from LocalStorage');
                         // alert("DEBUG: Restoring Mock Session!"); 
                         setUser(JSON.parse(storedMockUser));
                         setProfile(JSON.parse(storedMockProfile));
