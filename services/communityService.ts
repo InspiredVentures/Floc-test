@@ -1087,6 +1087,18 @@ export const communityService = {
             ];
         }
 
+        let selectQuery = `
+            *,
+            rsvps:event_rsvps(count)
+        `;
+
+        if (currentUserId) {
+            selectQuery += `, my_rsvp:event_rsvps(user_id)`;
+        }
+
+        let query = supabase
+            .from('community_events')
+            .select(selectQuery)
         let query = supabase
             .from('community_events')
             .select(`
@@ -1112,6 +1124,12 @@ export const communityService = {
 
         return data.map((event: any) => {
             const dateObj = new Date(event.date_time);
+            // rsvps is now an array containing the count aggregate: [{ count: N }]
+            const attendeesCount = event.rsvps?.[0]?.count || 0;
+            // my_rsvp is filtered to current user: [{ user_id: ... }] or []
+            const isAttending = currentUserId
+                ? (event.my_rsvp && event.my_rsvp.length > 0)
+                : false;
             // rsvps is now an array containing the count object: [{ count: N }]
             const attendees = event.rsvps?.[0]?.count || 0;
             // my_rsvp will be an array with one element if the user RSVPed, or empty if not
@@ -1124,6 +1142,7 @@ export const communityService = {
                 date: dateObj.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }),
                 time: dateObj.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' }),
                 location: event.location,
+                attendees: attendeesCount,
                 attendees,
                 image: event.image_url || 'https://images.unsplash.com/photo-1543269865-cbf427effbad?auto=format&fit=crop&w=800&q=80',
                 month: dateObj.toLocaleDateString(undefined, { month: 'short' }).toUpperCase(),
