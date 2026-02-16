@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { Community, Trip } from '../types';
 import { useUser } from '../contexts/UserContext';
 import { communityService } from '../services/communityService';
@@ -25,6 +25,12 @@ const CommunityVentures: React.FC<Props> = ({ community, onBack, onSelectTrip })
     const [budgetFilter, setBudgetFilter] = useState<'all' | 'Eco' | 'Mid' | 'Luxury'>('all');
     const [sortBy, setSortBy] = useState<'votes' | 'recent' | 'discussed'>('votes');
 
+    // Keep suggestions in a ref to use in callbacks without triggering re-renders or recreating callbacks
+    const suggestionsRef = useRef(suggestions);
+    useEffect(() => {
+        suggestionsRef.current = suggestions;
+    }, [suggestions]);
+
     useEffect(() => {
         if (community.id) {
             loadSuggestions();
@@ -39,13 +45,13 @@ const CommunityVentures: React.FC<Props> = ({ community, onBack, onSelectTrip })
         setIsLoadingSuggestions(false);
     };
 
-    const handleVote = async (id: string, dir: 'up' | 'down') => {
+    const handleVote = useCallback(async (id: string, dir: 'up' | 'down') => {
         if (!user || isVoting) return;
 
         setIsVoting(id);
 
         // Optimistic Update
-        const previousSuggestions = [...suggestions];
+        const previousSuggestions = [...suggestionsRef.current];
         setSuggestions(prev => prev.map(s => {
             if (s.id === id) {
                 let newVotes = s.votes || 0;
@@ -78,9 +84,9 @@ const CommunityVentures: React.FC<Props> = ({ community, onBack, onSelectTrip })
         } finally {
             setIsVoting(null);
         }
-    };
+    }, [user, isVoting, errorToast]); // removed suggestions dependency
 
-    const handleAddCommentToSuggestion = async (suggestionId: string, text: string) => {
+    const handleAddCommentToSuggestion = useCallback(async (suggestionId: string, text: string) => {
         if (!user) return;
 
         // Optimistic Update
@@ -132,7 +138,7 @@ const CommunityVentures: React.FC<Props> = ({ community, onBack, onSelectTrip })
             }));
             errorToast('Failed to add comment.');
         }
-    };
+    }, [user, errorToast]); // removed suggestions dependency
 
     // Filter and sort suggestions based on user selections
     const filteredSuggestions = useMemo(() => {
@@ -262,8 +268,8 @@ const CommunityVentures: React.FC<Props> = ({ community, onBack, onSelectTrip })
                             <TripSuggestionCard
                                 key={sug.id}
                                 suggestion={sug}
-                                onVote={(dir) => handleVote(sug.id, dir)}
-                                onAddComment={(text) => handleAddCommentToSuggestion(sug.id, text)}
+                                onVote={handleVote}
+                                onAddComment={handleAddCommentToSuggestion}
                             />
                         ))}
                     </div>

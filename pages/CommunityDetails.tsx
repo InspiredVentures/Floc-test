@@ -18,6 +18,8 @@ interface Props {
   onManage?: () => void;
 }
 
+const PREVIEW_MEMBER_INDICES = [0, 1, 2, 3, 4];
+
 const CommunityDetails: React.FC<Props> = ({ community, onBack, onSelectTrip, onJoin, onOpenChat, onManage }) => {
   const { user, isMember, joinCommunity } = useUser();
   const { error: errorToast } = useToast();
@@ -232,7 +234,7 @@ const CommunityDetails: React.FC<Props> = ({ community, onBack, onSelectTrip, on
                 <button className="text-[10px] font-bold text-accent hover:underline">View All</button>
               </div>
               <div className="flex flex-col gap-3">
-                {[...Array(Math.min(Number(community.memberCount) || 5, 5))].map((_, i) => (
+                {PREVIEW_MEMBER_INDICES.slice(0, Math.min(Number(community.memberCount) || 5, 5)).map((i) => (
                   <div key={i} className="flex items-center justify-between hover:bg-slate-50 p-2 rounded-xl transition-colors -mx-2">
                     <div className="flex items-center gap-3">
                       <img

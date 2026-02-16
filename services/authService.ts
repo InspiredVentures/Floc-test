@@ -12,6 +12,12 @@ export const authService = {
         return { data, error };
     },
 
+    async signInWithProtocol() {
+        // Map Protocol to Anonymous Login for now as per feature implementation
+        const { data, error } = await supabase.auth.signInAnonymously();
+        return { data, error };
+    },
+
     async signOut() {
         const { error } = await supabase.auth.signOut();
         return { error };

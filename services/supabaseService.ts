@@ -60,7 +60,9 @@ export const supabaseService = {
                     avatar: profile?.avatar_url || m.user_avatar || 'https://picsum.photos/seed/default/100/100',
                     location: profile?.location || 'Unknown',
                     joinedDate: m.joined_at,
-                    status: m.status
+                    status: m.status,
+                    answer: m.answer,
+                    category: m.category
                 };
             }),
             unreadCount: 0,

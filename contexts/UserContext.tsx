@@ -26,6 +26,7 @@ interface UserContextType {
     unfollowUser: (username: string) => void;
     isFollowing: (username: string) => boolean;
     sendMessage: (recipientId: string, recipientName: string, recipientAvatar: string, content: string, conversationId?: string, type?: 'direct' | 'group') => void;
+    addMessage: (conversationId: string, senderId: string, senderName: string, senderAvatar: string, content: string) => void;
     markAsRead: (conversationId: string) => void;
     getConversation: (participantUsername: string) => Conversation | undefined;
     getTotalUnreadCount: () => number;
@@ -669,9 +670,8 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setMessages(prev => [...prev, newMessage]);
 
         // Simulate reply from other user for direct messages
-        if (type === 'direct' && recipientId !== currentUser) {
-            const isConcierge = recipientId === 'inspired-concierge';
-            const replyDelay = isConcierge ? 2000 : 3000; // Concierge is faster? or same
+        if (type === 'direct' && recipientId !== currentUser && recipientId !== 'inspired-concierge') {
+            const replyDelay = 3000;
 
             // Set typing status after a short delay
             setTimeout(() => {
@@ -702,9 +702,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                     return c;
                 }));
 
-                const replyContent = isConcierge
-                    ? "I'm looking into that for you. Is there anything specific regarding your upcoming venture I can help clarify?"
-                    : "Message delivered";
+                const replyContent = "Message delivered";
 
                 const reply: Message = {
                     id: `msg-reply-${Date.now()}`,
@@ -730,6 +728,22 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 });
             }, replyDelay);
         }
+    };
+
+    const addMessage = (conversationId: string, senderId: string, senderName: string, senderAvatar: string, content: string) => {
+        const newMessage: Message = {
+            id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+            conversationId,
+            senderId,
+            senderName,
+            senderAvatar,
+            recipientId: user?.id,
+            content,
+            timestamp: Date.now(),
+            read: false, // New message is unread
+            status: 'read'
+        };
+        setMessages(prev => [...prev, newMessage]);
     };
 
     // Sync unread counts and last message when messages change
@@ -971,6 +985,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             unfollowUser,
             isFollowing,
             sendMessage,
+            addMessage,
             markAsRead,
             getConversation,
             getTotalUnreadCount,

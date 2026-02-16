@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FlocLogo } from '../components/FlocLogo';
+import { FlocLogo } from '../src/components/FlocLogo';
 
 import { authService } from '../services/authService';
 import { isSupabaseConfigured, supabase } from '../lib/supabase';
@@ -23,26 +23,36 @@ const Login: React.FC = () => {
   }, [user, navigate]);
 
   const performLogin = async (method: 'google' | 'protocol') => {
+    setError(null);
+    if (!isSupabaseConfigured) {
+      setError("Application is missing API Keys. Please check your .env file and restart the server.");
+      return;
+    }
+
     setLoginMethod(method);
     setIsLoggingIn(true);
-    setError(null);
 
     try {
+      let result;
       if (method === 'google') {
-        const { error } = await authService.signInWithGoogle();
-        if (error) throw error;
-      } else if (method === 'protocol') {
-        // Map Protocol to Anonymous Login for now
-        const { error } = await authService.signInAnonymously();
-        if (error) throw error;
-        // Delay to match UI experience
-        setTimeout(() => {
-          navigate('/dashboard');
-        }, 1000);
+        result = await authService.signInWithGoogle();
+      } else {
+        // Protocol maps to Anonymous/Mock
+        result = await authService.signInWithProtocol();
+        // Add artificial delay for Protocol to match UI experience
+        await new Promise(resolve => setTimeout(resolve, 1000));
       }
+
+      if (result.error) throw result.error;
+
+      // For Protocol (Anonymous), we might need manual redirect if auth state change doesn't trigger fast enough
+      if (method === 'protocol') {
+        navigate('/dashboard');
+      }
+
     } catch (err: any) {
       console.error('Login failed:', err);
-      setError(err.message || 'Authentication failed');
+      setError(err.message || 'Authentication failed. Please try again.');
       setIsLoggingIn(false);
     }
   };
@@ -218,7 +228,7 @@ const Login: React.FC = () => {
             <button
               type="submit"
               disabled={isLoggingIn}
-              className="w-full h-16 bg-primary text-white font-black rounded-2xl shadow-xl shadow-primary/20 active:scale-[0.98] transition-all flex items-center justify-center gap-3 group relative overflow-hidden hover:bg-primary/90"
+              className="w-full h-16 bg-primary text-white font-black rounded-2xl shadow-xl shadow-primary/20 active:scale-[0.98] transition-all flex items-center justify-center gap-3 group relative overflow-hidden hover:bg-primary/5"
             >
               {isLoggingIn && loginMethod === 'email' ? (
                 <div className="size-6 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
