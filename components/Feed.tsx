@@ -2,19 +2,24 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useUser } from '../contexts/UserContext';
 import { communityService } from '../services/communityService';
 import { CommunityPost } from '../types';
+import { Virtuoso } from 'react-virtuoso';
 import { PostCard } from './PostCard';
 import { Skeleton } from './Skeleton';
 
 interface FeedProps {
     communityId?: string; // Optional: if null, shows Global Feed
     limit?: number;
+    posts?: CommunityPost[];
+    initialPosts?: CommunityPost[];
+    context?: string;
+    contextId?: string;
 }
 
-export const Feed: React.FC<FeedProps> = ({ communityId, limit }) => {
+export const Feed: React.FC<FeedProps> = ({ communityId, limit, posts: propPosts, initialPosts }) => {
     const { user, profile } = useUser();
 
-    const [posts, setPosts] = useState<CommunityPost[]>([]);
-    const [isLoadingPosts, setIsLoadingPosts] = useState(true);
+    const [posts, setPosts] = useState<CommunityPost[]>(propPosts || initialPosts || []);
+    const [isLoadingPosts, setIsLoadingPosts] = useState(!propPosts && !initialPosts);
 
     // Create Post State
     const [newPostContent, setNewPostContent] = useState('');
@@ -28,8 +33,13 @@ export const Feed: React.FC<FeedProps> = ({ communityId, limit }) => {
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
-        loadPosts();
-    }, [communityId, user?.id]);
+        if (propPosts || initialPosts) {
+            setPosts(propPosts || initialPosts || []);
+            setIsLoadingPosts(false);
+        } else {
+            loadPosts();
+        }
+    }, [communityId, user?.id, propPosts, initialPosts]);
 
     const loadPosts = async () => {
         if (!user) return;
@@ -313,14 +323,31 @@ export const Feed: React.FC<FeedProps> = ({ communityId, limit }) => {
                         </div>
                     ))}
                 </div>
-            ) : posts.map(post => (
-                <PostCard
-                    key={post.id}
-                    post={post}
-                    onLike={handleLike}
-                    onComment={handleCommentSubmit}
+            ) : limit ? (
+                posts.map(post => (
+                    <PostCard
+                        key={post.id}
+                        post={post}
+                        onLike={handleLike}
+                        onComment={handleCommentSubmit}
+                    />
+                ))
+            ) : (
+                <Virtuoso
+                    useWindowScroll
+                    data={posts}
+                    itemContent={(index, post) => (
+                        <div className="pb-6">
+                            <PostCard
+                                key={post.id}
+                                post={post}
+                                onLike={handleLike}
+                                onComment={handleCommentSubmit}
+                            />
+                        </div>
+                    )}
                 />
-            ))}
+            )}
 
             {!isLoadingPosts && posts.length === 0 && (
                 <div className="text-center py-10 text-slate-500 text-xs font-bold uppercase tracking-widest">
