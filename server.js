@@ -1,6 +1,5 @@
 import express from 'express';
 import cors from 'cors';
-import { GoogleGenAI } from '@google/genai';
 import dotenv from 'dotenv';
 
 dotenv.config({ path: '.env.local' });
@@ -10,11 +9,75 @@ app.use(cors());
 app.use(express.json());
 
 const apiKey = process.env.GEMINI_API_KEY;
+const weTravelApiKey = process.env.WETRAVEL_API_KEY;
 
 // Log API Key status (not the key itself)
 if (!apiKey) {
   console.warn('Warning: GEMINI_API_KEY is not set in environment variables.');
 }
+if (!weTravelApiKey) {
+  console.warn('Warning: WETRAVEL_API_KEY is not set in environment variables.');
+}
+
+// Helper for WeTravel API calls
+const fetchWeTravel = async (endpoint, options = {}) => {
+    if (!weTravelApiKey) {
+        throw new Error('WETRAVEL_API_KEY is missing');
+    }
+
+    const url = `https://app.wetravel.com/api/v1${endpoint}`;
+    const response = await fetch(url, {
+        ...options,
+        headers: {
+            ...options.headers,
+            'Authorization': `Bearer ${weTravelApiKey}`,
+            'Content-Type': 'application/json'
+        }
+    });
+
+    if (!response.ok) {
+        const text = await response.text();
+        throw new Error(`WeTravel API Error: ${response.status} - ${text}`);
+    }
+
+    return await response.json();
+};
+
+app.get('/api/wetravel/trips/:tripId', async (req, res) => {
+    try {
+        const data = await fetchWeTravel(`/trips/${req.params.tripId}`);
+        res.json(data);
+    } catch (error) {
+        console.error('WeTravel Fetch Error:', error.message);
+        if (error.message.includes('missing')) return res.status(500).json({ error: 'Server configuration error' });
+        res.status(500).json({ error: 'Failed to fetch trip' });
+    }
+});
+
+app.get('/api/wetravel/trips', async (req, res) => {
+    try {
+        const data = await fetchWeTravel('/trips');
+        res.json(data);
+    } catch (error) {
+        console.error('WeTravel Fetch All Error:', error.message);
+         if (error.message.includes('missing')) return res.status(500).json({ error: 'Server configuration error' });
+        res.status(500).json({ error: 'Failed to fetch trips' });
+    }
+});
+
+app.post('/api/wetravel/bookings', async (req, res) => {
+    try {
+        const data = await fetchWeTravel('/bookings', {
+            method: 'POST',
+            body: JSON.stringify(req.body)
+        });
+        res.json(data);
+    } catch (error) {
+        console.error('WeTravel Booking Error:', error.message);
+         if (error.message.includes('missing')) return res.status(500).json({ error: 'Server configuration error' });
+        res.status(500).json({ error: 'Booking failed' });
+    }
+});
 
 app.post('/api/generate-community-image', async (req, res) => {
   const { title, category } = req.body;
@@ -26,31 +89,6 @@ app.post('/api/generate-community-image', async (req, res) => {
   try {
     const ai = new GoogleGenAI({ apiKey });
 
-    // Construct a descriptive prompt for the image generation
-    const prompt = `A high quality, photorealistic cover image for a travel community named "${title}" in the category "${category}". The image should be inspiring, adventurous, and suitable for a travel community app.`;
-
-    const response = await ai.models.generateImages({
-      model: "imagen-4.0-generate-001",
-      prompt: prompt,
-      config: {
-        numberOfImages: 1,
-        aspectRatio: "16:9",
-      },
-    });
-
-    if (response.generatedImages && response.generatedImages.length > 0) {
-      const generatedImage = response.generatedImages[0];
-      const base64Image = generatedImage.image.imageBytes;
-      const imageUrl = `data:image/png;base64,${base64Image}`;
-      return res.json({ image: imageUrl });
-    } else {
-      throw new Error("No image generated.");
-    }
-  } catch (error) {
-    console.error('Error generating image with Gemini:', error);
-    console.log('Falling back to mock implementation...');
-
-    // Fallback logic in case of API error
     let imageUrl = 'https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?auto=format&fit=crop&w=800&q=80'; // Default
 
     if (category) {
