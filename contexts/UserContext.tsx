@@ -86,7 +86,6 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                     const storedMockProfile = localStorage.getItem('mock_profile');
                     if (storedMockUser && storedMockProfile) {
                         console.log('[UserContext] Restoring Mock User from LocalStorage');
-                        // alert("DEBUG: Restoring Mock Session!"); 
                         setUser(JSON.parse(storedMockUser));
                         setProfile(JSON.parse(storedMockProfile));
 
@@ -216,7 +215,6 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                     const parsed = JSON.parse(storedMock);
                     if (parsed && Array.isArray(parsed) && parsed.length > 0) {
                         console.log('[UserContext] Loaded mock communities from localStorage:', parsed.length);
-                        // alert(`DEBUG: Loaded ${parsed.length} communities from LocalStorage!`);
                         setCommunities(parsed);
                     } else {
                         console.log('[UserContext] LocalStorage check found empty array.');
@@ -527,8 +525,6 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 try {
                     localStorage.setItem('mock_communities', JSON.stringify(updated));
                     console.log('[UserContext] Saved mock communities to localStorage:', updated.length);
-                    // DEBUG ALERT to confirm save
-                    // alert(`DEBUG: Saved Community "${newCommunity.title}" to LocalStorage!`);
                 } catch (e) {
                     console.error('Failed to save to localStorage', e);
                     alert("Failed to save to LocalStorage!");
