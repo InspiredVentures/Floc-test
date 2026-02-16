@@ -16,13 +16,33 @@ const Login: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const { debugLogin } = useUser();
 
-  const performLogin = (method: 'google' | 'protocol') => {
+  const performLogin = async (method: 'google' | 'protocol') => {
+    setError(null);
+    if (!isSupabaseConfigured) {
+      setError("Application is missing API Keys. Please check your .env file and restart the server.");
+      return;
+    }
+
     setLoginMethod(method);
     setIsLoggingIn(true);
-    // Simulated auth delay for protocol verification
-    setTimeout(() => {
-      navigate('/onboarding');
-    }, 1800);
+
+    try {
+      let result;
+      if (method === 'google') {
+        result = await authService.signInWithGoogle();
+      } else {
+        // Fallback or explicit handling for protocol
+        result = await authService.signInWithProtocol();
+      }
+
+      if (result.error) throw result.error;
+      // Note: Google login will redirect the browser.
+      // Protocol login will currently throw error as unimplemented.
+    } catch (err: any) {
+      console.error('Login failed:', err);
+      setError(err.message || 'Authentication failed. Please try again.');
+      setIsLoggingIn(false);
+    }
   };
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
