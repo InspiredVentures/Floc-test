@@ -92,12 +92,29 @@ export const supabaseService = {
         // 1. Try Supabase if real user
         if (userId && userId !== 'dev-user-id') {
             try {
-                // We need to map the Trip object to DB schema (snake_case)
-                // This is complex b/c of mapTrip reversal.
-                // For now, let's just support Mock Mode mainly.
-                console.warn('Real DB creation for trips not fully mapped yet. Falling back to LocalStorage.');
+                const { data, error } = await supabase
+                    .from('trips')
+                    .insert({
+                        title: trip.title,
+                        destination: trip.destination,
+                        dates: trip.dates,
+                        price: trip.price,
+                        image: trip.image,
+                        status: trip.status,
+                        members_count: trip.membersCount,
+                        community_id: trip.communityId,
+                        wetravel_id: trip.wetravelId
+                    })
+                    .select()
+                    .single();
+
+                if (error) {
+                    console.error('Error creating trip in DB:', error);
+                } else if (data) {
+                    return mapTrip(data);
+                }
             } catch (e) {
-                console.error(e);
+                console.error('Exception creating trip in DB:', e);
             }
         }
 
