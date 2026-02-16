@@ -6,11 +6,20 @@
 - WeTravel API Key (Optional, for live booking)
 
 ## Environment Variables
-Create a `.env.production` file with the following:
+
+### Client-Side Variables (Public)
+These variables are safe to expose to the browser.
+Create a `.env.production` file:
 ```env
 VITE_SUPABASE_URL=your_supabase_url
 VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
-VITE_WETRAVEL_API_KEY=your_wetravel_api_key
+```
+
+### Server-Side Variables (Secret)
+**IMPORTANT:** These variables must NOT be exposed to the client. Configure them in your backend server environment or local `.env` file.
+```env
+WETRAVEL_API_KEY=your_wetravel_api_key
+GEMINI_API_KEY=your_gemini_api_key
 ```
 
 ## Build Instructions
