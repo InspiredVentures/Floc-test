@@ -35,7 +35,7 @@ export interface BookingResponse {
     error?: string;
 }
 
-const USE_MOCK = true; // Set to false when you have a WeTravel Partner API key
+const USE_MOCK = true; // Set to false when you have a WeTravel Partner API key configured on the server
 const API_BASE = '/api/wetravel'; // Use local proxy to avoid CORS
 
 export const WeTravelService = {
