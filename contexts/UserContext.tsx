@@ -253,10 +253,6 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         fetchCommunities();
     }, []);
 
-    // Save communities to localStorage isn't needed if we sync with DB, 
-    // but for now we might keep it or remove it. Removing it to avoid confusion/stale data.
-    // React.useEffect(() => { ... }, [communities]);
-
     // Save following to localStorage whenever it changes
     React.useEffect(() => {
         try {
