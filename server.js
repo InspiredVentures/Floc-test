@@ -109,6 +109,90 @@ app.post('/api/generate-community-image', async (req, res) => {
   }
 });
 
+// WeTravel Proxy Routes
+const WETRAVEL_API_BASE = 'https://app.wetravel.com/api/v1';
+
+app.get('/api/wetravel/trips/:tripId', async (req, res) => {
+    if (!weTravelApiKey) {
+        return res.status(500).json({ error: 'Server configuration error: WeTravel API Key missing' });
+    }
+
+    try {
+        const { tripId } = req.params;
+        const response = await fetch(`${WETRAVEL_API_BASE}/trips/${tripId}`, {
+            headers: {
+                'Authorization': `Bearer ${weTravelApiKey}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            return res.status(response.status).send(errorText);
+        }
+
+        const data = await response.json();
+        res.json(data);
+    } catch (error) {
+        console.error('WeTravel Proxy Error:', error);
+        res.status(500).json({ error: 'Failed to fetch trip from WeTravel' });
+    }
+});
+
+app.get('/api/wetravel/trips', async (req, res) => {
+    if (!weTravelApiKey) {
+        return res.status(500).json({ error: 'Server configuration error: WeTravel API Key missing' });
+    }
+
+    try {
+        const response = await fetch(`${WETRAVEL_API_BASE}/trips`, {
+            headers: {
+                'Authorization': `Bearer ${weTravelApiKey}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            return res.status(response.status).send(errorText);
+        }
+
+        const data = await response.json();
+        res.json(data);
+    } catch (error) {
+        console.error('WeTravel Proxy Error:', error);
+        res.status(500).json({ error: 'Failed to fetch trips from WeTravel' });
+    }
+});
+
+app.post('/api/wetravel/bookings', async (req, res) => {
+    if (!weTravelApiKey) {
+        return res.status(500).json({ error: 'Server configuration error: WeTravel API Key missing' });
+    }
+
+    try {
+        const response = await fetch(`${WETRAVEL_API_BASE}/bookings`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${weTravelApiKey}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(req.body)
+        });
+
+        if (!response.ok) {
+            const data = await response.json();
+            return res.status(response.status).json(data);
+        }
+
+        const data = await response.json();
+        res.json(data);
+    } catch (error) {
+        console.error('WeTravel Proxy Error:', error);
+        res.status(500).json({ error: 'Failed to create booking on WeTravel' });
+    }
+});
+
 const PORT = 3001;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
