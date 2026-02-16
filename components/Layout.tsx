@@ -1,7 +1,6 @@
 import React from 'react';
 import { ActionFunction, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
-import { FlocLogo } from '../src/components/FlocLogo';
 import { PageTransition } from './PageTransition';
 import { ErrorBoundary } from './ErrorBoundary';
 
