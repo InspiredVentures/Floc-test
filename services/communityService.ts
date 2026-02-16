@@ -247,6 +247,46 @@ export const communityService = {
         return true;
     },
 
+    async createJoinRequest(communityId: string, userId: string, userDetails: { name: string, avatar: string }, answer: string, category: string): Promise<boolean> {
+        if (!isUUID(communityId)) {
+            // Mock Request
+            console.log('[CommunityService] Mock join request for:', communityId);
+            const newRequest = {
+                id: userId,
+                name: userDetails.name,
+                avatar: userDetails.avatar,
+                reason: answer,
+                timestamp: new Date().toISOString(),
+                category
+            };
+            // Simulate storage
+            const existing = localStorage.getItem('floc_pending_requests');
+            const pendingRequests = existing ? JSON.parse(existing) : [];
+            localStorage.setItem('floc_pending_requests', JSON.stringify([newRequest, ...pendingRequests]));
+            return true;
+        }
+
+        const { error } = await supabase
+            .from('community_members')
+            .insert({
+                community_id: communityId,
+                user_id: userId,
+                role: 'Member',
+                joined_at: new Date().toISOString(),
+                user_name: userDetails.name,
+                user_avatar: userDetails.avatar,
+                status: 'pending',
+                answer: answer,
+                category: category
+            });
+
+        if (error) {
+            console.error('Error creating join request:', error);
+            return false;
+        }
+        return true;
+    },
+
     async addComment(postId: string, userId: string, userName: string, userAvatar: string, content: string): Promise<any | null> {
         if (postId.startsWith('post-')) {
             // Mock Comment on Mock Post

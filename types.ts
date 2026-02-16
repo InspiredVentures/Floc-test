@@ -37,6 +37,8 @@ export interface Member {
   status?: 'approved' | 'pending' | 'rejected' | 'banned';
   email?: string;
   isContactable?: boolean;
+  answer?: string;
+  category?: string;
 }
 
 export interface CommunityEvent {
