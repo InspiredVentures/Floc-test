@@ -751,7 +751,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         });
     }, [messages]);
 
-    const markAsRead = (conversationId: string) => {
+    const markAsRead = React.useCallback((conversationId: string) => {
         // Mark all messages in conversation as read
         setMessages(prev => prev.map(msg => {
             if (msg.conversationId === conversationId && !msg.read && msg.senderId !== 'alex-sterling') {
@@ -759,7 +759,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             }
             return msg;
         }));
-    };
+    }, []);
 
     const getTotalUnreadCount = () => {
         return conversations.reduce((total, conv) => total + conv.unreadCount, 0);
