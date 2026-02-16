@@ -9,11 +9,75 @@ app.use(cors());
 app.use(express.json());
 
 const apiKey = process.env.GEMINI_API_KEY;
+const weTravelApiKey = process.env.WETRAVEL_API_KEY;
 
 // Log API Key status (not the key itself)
 if (!apiKey) {
   console.warn('Warning: GEMINI_API_KEY is not set in environment variables.');
 }
+if (!weTravelApiKey) {
+  console.warn('Warning: WETRAVEL_API_KEY is not set in environment variables.');
+}
+
+// Helper for WeTravel API calls
+const fetchWeTravel = async (endpoint, options = {}) => {
+    if (!weTravelApiKey) {
+        throw new Error('WETRAVEL_API_KEY is missing');
+    }
+
+    const url = `https://app.wetravel.com/api/v1${endpoint}`;
+    const response = await fetch(url, {
+        ...options,
+        headers: {
+            ...options.headers,
+            'Authorization': `Bearer ${weTravelApiKey}`,
+            'Content-Type': 'application/json'
+        }
+    });
+
+    if (!response.ok) {
+        const text = await response.text();
+        throw new Error(`WeTravel API Error: ${response.status} - ${text}`);
+    }
+
+    return await response.json();
+};
+
+app.get('/api/wetravel/trips/:tripId', async (req, res) => {
+    try {
+        const data = await fetchWeTravel(`/trips/${req.params.tripId}`);
+        res.json(data);
+    } catch (error) {
+        console.error('WeTravel Fetch Error:', error.message);
+        if (error.message.includes('missing')) return res.status(500).json({ error: 'Server configuration error' });
+        res.status(500).json({ error: 'Failed to fetch trip' });
+    }
+});
+
+app.get('/api/wetravel/trips', async (req, res) => {
+    try {
+        const data = await fetchWeTravel('/trips');
+        res.json(data);
+    } catch (error) {
+        console.error('WeTravel Fetch All Error:', error.message);
+         if (error.message.includes('missing')) return res.status(500).json({ error: 'Server configuration error' });
+        res.status(500).json({ error: 'Failed to fetch trips' });
+    }
+});
+
+app.post('/api/wetravel/bookings', async (req, res) => {
+    try {
+        const data = await fetchWeTravel('/bookings', {
+            method: 'POST',
+            body: JSON.stringify(req.body)
+        });
+        res.json(data);
+    } catch (error) {
+        console.error('WeTravel Booking Error:', error.message);
+         if (error.message.includes('missing')) return res.status(500).json({ error: 'Server configuration error' });
+        res.status(500).json({ error: 'Booking failed' });
+    }
+});
 
 app.post('/api/generate-community-image', async (req, res) => {
   const { title, category } = req.body;
