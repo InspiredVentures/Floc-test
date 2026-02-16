@@ -41,9 +41,9 @@ const API_BASE = '/api/wetravel'; // Use local proxy to avoid CORS
 export const WeTravelService = {
     // Fetch trip details (GET /trips/:id)
     getTrip: async (tripId: string): Promise<Trip | null> => {
-        // Fallback to mock if no API key is present
-        if (!import.meta.env.VITE_WETRAVEL_API_KEY || USE_MOCK) {
-            console.warn('Using Mock Data for WeTravel Service (No API Key or USE_MOCK=true)');
+        // Fallback to mock if USE_MOCK is explicitly true
+        if (USE_MOCK) {
+            console.warn('Using Mock Data for WeTravel Service (USE_MOCK=true)');
             await new Promise(resolve => setTimeout(resolve, 800));
             const trip = MOCK_TRIPS.find(t => t.id === tripId);
             if (!trip) return null;
@@ -52,11 +52,9 @@ export const WeTravelService = {
 
         const apiUrl = `${API_BASE}/trips/${tripId}`;
 
-
         try {
             const response = await fetch(apiUrl, {
                 headers: {
-                    'Authorization': `Bearer ${import.meta.env.VITE_WETRAVEL_API_KEY}`,
                     'Content-Type': 'application/json'
                 }
             });
@@ -65,6 +63,14 @@ export const WeTravelService = {
                 if (response.status === 404) {
                     return null;
                 }
+                // Fallback to mock if API key is missing on server
+                if (response.status === 503) {
+                    console.warn('WeTravel Service Unavailable (Missing API Key on Server). Using Mock Data.');
+                    await new Promise(resolve => setTimeout(resolve, 800));
+                    const trip = MOCK_TRIPS.find(t => t.id === tripId);
+                    return trip || null;
+                }
+
                 const errorText = await response.text();
                 throw new Error(`WeTravel API Error: ${response.statusText} - ${errorText}`);
             }
@@ -91,8 +97,8 @@ export const WeTravelService = {
 
     // Create a booking (POST /bookings)
     createBooking: async (request: BookingRequest): Promise<BookingResponse> => {
-        // Fallback to mock if no API key is present
-        if (!import.meta.env.VITE_WETRAVEL_API_KEY || USE_MOCK) {
+        // Fallback to mock if USE_MOCK is explicitly true
+        if (USE_MOCK) {
             await new Promise(resolve => setTimeout(resolve, 1500));
             // Simulate successful booking
             return {
@@ -106,17 +112,27 @@ export const WeTravelService = {
             const response = await fetch(`${API_BASE}/bookings`, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${import.meta.env.VITE_WETRAVEL_API_KEY}`
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify(request)
             });
 
-            const data = await response.json();
-
             if (!response.ok) {
+                // Fallback to mock if API key is missing on server
+                if (response.status === 503) {
+                     console.warn('WeTravel Service Unavailable (Missing API Key on Server). Using Mock Data for Booking.');
+                     await new Promise(resolve => setTimeout(resolve, 1500));
+                     return {
+                        success: true,
+                        bookingId: `wt-bk-${Date.now()}`,
+                        paymentUrl: 'https://staging.wetravel.com/checkout/demo-session-123'
+                    };
+                }
+                const data = await response.json();
                 return { success: false, error: data.message || 'Booking failed' };
             }
+
+            const data = await response.json();
 
             return {
                 success: true,
@@ -131,9 +147,9 @@ export const WeTravelService = {
 
     // Get all trips (GET /trips)
     getAllTrips: async (): Promise<Trip[]> => {
-        // Fallback to mock if no API key is present
-        if (!import.meta.env.VITE_WETRAVEL_API_KEY || USE_MOCK) {
-            console.warn('Using Mock Data for WeTravel Service (No API Key or USE_MOCK=true)');
+        // Fallback to mock if USE_MOCK is explicitly true
+        if (USE_MOCK) {
+            console.warn('Using Mock Data for WeTravel Service (USE_MOCK=true)');
             await new Promise(resolve => setTimeout(resolve, 800));
             return MOCK_TRIPS;
         }
@@ -144,7 +160,6 @@ export const WeTravelService = {
         try {
             const response = await fetch(apiUrl, {
                 headers: {
-                    'Authorization': `Bearer ${import.meta.env.VITE_WETRAVEL_API_KEY}`,
                     'Content-Type': 'application/json'
                 }
             });
@@ -152,6 +167,13 @@ export const WeTravelService = {
             // console.log('[WeTravel] Response status:', response.status, response.statusText);
 
             if (!response.ok) {
+                // Fallback to mock if API key is missing on server
+                if (response.status === 503) {
+                    console.warn('WeTravel Service Unavailable (Missing API Key on Server). Using Mock Data.');
+                    await new Promise(resolve => setTimeout(resolve, 800));
+                    return MOCK_TRIPS;
+                }
+
                 const errorText = await response.text();
                 console.error('[WeTravel] API Error Response:', errorText);
                 throw new Error(`WeTravel API Error: ${response.statusText}`);
