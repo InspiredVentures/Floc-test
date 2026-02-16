@@ -37,7 +37,10 @@ const Login: React.FC = () => {
 
       if (result.error) throw result.error;
       // Note: Google login will redirect the browser.
-      // Protocol login will currently throw error as unimplemented.
+
+      if (method === 'protocol') {
+        setTimeout(() => navigate('/dashboard'), 500);
+      }
     } catch (err: any) {
       console.error('Login failed:', err);
       setError(err.message || 'Authentication failed. Please try again.');
