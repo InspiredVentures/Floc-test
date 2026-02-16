@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '../contexts/UserContext';
 import { useToast } from '../contexts/ToastContext';
+import { validateTitle } from '../lib/validation';
 import { Community } from '../types';
 
 interface Props {
@@ -32,6 +33,7 @@ const CreateCommunity: React.FC<Props> = ({ onBack, onComplete }) => {
   const toast = useToast();
   const [currentStep, setCurrentStep] = useState(0);
   const [isMinting, setIsMinting] = useState(false);
+  const [titleError, setTitleError] = useState<string | null>(null);
 
   // Type-safe form data
   const [formData, setFormData] = useState<Omit<Community, 'id' | 'memberCount' | 'upcomingTrips' | 'meta' | 'accessType' | 'isManaged' | 'unreadCount'> & { image: string, entryQuestions: string[], enabledFeatures: string[] }>({
@@ -47,6 +49,12 @@ const CreateCommunity: React.FC<Props> = ({ onBack, onComplete }) => {
     if (currentStep < STEPS.length - 1) {
       setCurrentStep(prev => prev + 1);
     }
+  };
+
+  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newTitle = e.target.value;
+    setFormData({ ...formData, title: newTitle });
+    setTitleError(validateTitle(newTitle));
   };
 
   const startLaunch = () => {
@@ -109,12 +117,15 @@ const CreateCommunity: React.FC<Props> = ({ onBack, onComplete }) => {
               <label className="text-slate-400 text-xs font-bold uppercase tracking-widest">Community Name</label>
               <input
                 type="text"
-                className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white font-bold focus:border-primary outline-none transition-all placeholder:text-slate-600"
+                className={`w-full bg-white/5 border rounded-2xl p-4 text-white font-bold outline-none transition-all placeholder:text-slate-600 ${titleError ? 'border-red-500 focus:border-red-500' : 'border-white/10 focus:border-primary'}`}
                 placeholder="e.g. Arctic Explorers"
                 value={formData.title}
-                onChange={e => setFormData({ ...formData, title: e.target.value })}
+                onChange={handleTitleChange}
                 autoFocus
               />
+              {titleError && (
+                <p className="text-red-500 text-xs font-medium animate-in slide-in-from-top-1">{titleError}</p>
+              )}
             </div>
             <div className="space-y-2">
               <label className="text-slate-400 text-xs font-bold uppercase tracking-widest">Category</label>
@@ -318,7 +329,7 @@ const CreateCommunity: React.FC<Props> = ({ onBack, onComplete }) => {
         <div className="max-w-md mx-auto">
           <button
             onClick={currentStep === STEPS.length - 1 ? startLaunch : handleNext}
-            disabled={currentStep === 0 && !formData.title}
+            disabled={currentStep === 0 && (!formData.title || !!titleError || formData.title.trim().length < 3)}
             className="w-full bg-primary text-background-dark py-4 rounded-2xl font-black text-sm uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all shadow-lg shadow-primary/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
           >
             {currentStep === STEPS.length - 1 ? 'Launch Protocol' : 'Continue'}
