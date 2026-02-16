@@ -1,6 +1,8 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useUser } from '../contexts/UserContext';
 import { useToast } from '../contexts/ToastContext';
+import { communityService } from '../services/communityService';
+import { Member } from '../types';
 
 interface Props {
   onBack: () => void;
@@ -22,23 +24,13 @@ const PERMISSIONS: Permission[] = [
   { id: 'delete', icon: 'delete_forever', label: 'Dissolve Community', description: 'Permanently remove the community from the network.' },
 ];
 
-interface Member {
-  id: string;
-  name: string;
-  role: UserRole;
-  avatar: string;
-  location: string;
-  joinedDate: string;
-  customPermissions?: string[];
-}
-
 interface PendingMember {
   id: string;
   name: string;
   avatar: string;
   reason: string;
   timestamp: string;
-  category: 'Eco' | 'Adventure' | 'Social' | 'Creative';
+  category: 'Eco' | 'Adventure' | 'Social' | 'Creative' | string;
 }
 
 interface Invitation {
@@ -92,21 +84,8 @@ const ROLE_DEFAULTS: Record<UserRole, {
 
 };
 
-const CATEGORY_KEYWORDS: Record<string, string[]> = {
-  'Eco': ['eco', 'sustainability', 'green', 'conservation', 'nature', 'planet', 'ocean'],
-  'Adventure': ['hike', 'trek', 'climb', 'expedition', 'adventure', 'mountain', 'wilderness'],
-  'Social': ['community', 'meet', 'people', 'share', 'connect', 'group', 'together'],
-  'Creative': ['photography', 'camera', 'photo', 'guide', 'skill', 'storyteller', 'content'],
-};
-
-const MOCK_PENDING: PendingMember[] = [
-  { id: 'p1', name: "Marcus Aurelius", avatar: "https://picsum.photos/seed/mar/100/100", reason: "Passionate about ocean conservation and eco-travel. I want to help with the beach cleanups!", timestamp: "2h ago", category: 'Eco' },
-  { id: 'p2', name: "Sophie Turner", avatar: "https://picsum.photos/seed/sop/100/100", reason: "Looking to travel with purpose. I'm an avid trekker and mountain lover.", timestamp: "5h ago", category: 'Adventure' },
-  { id: 'p3', name: "David Chen", avatar: "https://picsum.photos/seed/dav/100/100", reason: "Professional photographer looking for a tribe to capture sustainable adventures with.", timestamp: "1d ago", category: 'Creative' },
-];
-
 const ManageMembers: React.FC<Props> = ({ onBack }) => {
-  const { communities, approveMember, declineMember, removeMember, updateMemberRole, user } = useUser();
+  const { communities, user } = useUser();
   const { success, error, info } = useToast();
   const [activeTab, setActiveTab] = useState<'joined' | 'pending' | 'declined' | 'invites' | 'activity'>('joined');
   const [searchQuery, setSearchQuery] = useState('');
@@ -118,16 +97,26 @@ const ManageMembers: React.FC<Props> = ({ onBack }) => {
   const [filterJoinDate, setFilterJoinDate] = useState<'all' | '7days' | '30days'>('all');
   const [sortBy, setSortBy] = useState<'name-asc' | 'name-desc' | 'date-newest' | 'date-oldest' | 'role'>('name-asc');
   const [activityLogs, setActivityLogs] = useState<ActivityLog[]>([]);
-  const [selectedMembers, setSelectedMembers] = useState<Set<string>>(new Set());
-  const [selectedPending, setSelectedPending] = useState<Set<string>>(new Set());
+
+  // Local state for members
+  const [allMembers, setAllMembers] = useState<Member[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
   // For demo, we manage the first managed community found
   const community = communities.find(c => c.isManaged) || communities[0];
 
-  const allMembers = useMemo(() => community?.members || [], [community]);
+  useEffect(() => {
+    if (community?.id) {
+        setIsLoading(true);
+        communityService.getMembers(community.id).then(fetchedMembers => {
+            setAllMembers(fetchedMembers);
+            setIsLoading(false);
+        });
+    }
+  }, [community?.id]);
 
   const members = useMemo(() => allMembers.filter(m => m.status === 'approved' || !m.status), [allMembers]);
-  // Map standard members to PendingMember shape with defaults for missing fields
+
   const pendingMembers = useMemo<PendingMember[]>(() =>
     allMembers.filter(m => m.status === 'pending').map(m => ({
       id: m.id,
@@ -158,7 +147,7 @@ const ManageMembers: React.FC<Props> = ({ onBack }) => {
     if (editingMember) {
       setTempRole(editingMember.role as UserRole);
       // Ensure we have a fallback if role defaults are missing
-      const defaults = ROLE_DEFAULTS[editingMember.role as UserRole];
+      const defaults = ROLE_DEFAULTS[editingMember.role as UserRole] || ROLE_DEFAULTS['Member'];
       setTempPerms(editingMember.customPermissions || (defaults ? defaults.permissions : []));
     }
   }, [editingMember]);
@@ -198,7 +187,9 @@ const ManageMembers: React.FC<Props> = ({ onBack }) => {
           return new Date(a.joinedDate).getTime() - new Date(b.joinedDate).getTime();
         case 'role':
           const roleOrder = { 'Owner': 0, 'Admin': 1, 'Co-Leader': 2, 'Member': 3 };
-          return roleOrder[a.role] - roleOrder[b.role];
+          // Safe access
+          const getRank = (r: string) => roleOrder[r as UserRole] ?? 99;
+          return getRank(a.role) - getRank(b.role);
         default:
           return 0;
       }
@@ -219,18 +210,28 @@ const ManageMembers: React.FC<Props> = ({ onBack }) => {
     );
   }, [searchQuery, declinedMembers]);
 
-  const handleSaveMember = () => {
+  const handleSaveMember = async () => {
     if (editingMember && tempRole && community) {
       const oldRole = editingMember.role;
-      updateMemberRole(community.id, editingMember.id, tempRole, tempPerms);
 
-      // Log activity
-      if (oldRole !== tempRole) {
-        logActivity('roleChanged', editingMember.name, `Changed role from ${oldRole} to ${tempRole}`);
-        success(`Updated ${editingMember.name}'s role to ${tempRole}`);
+      const successResult = await communityService.updateMemberRole(community.id, editingMember.id, tempRole);
+
+      if (successResult) {
+          // Update local state
+          setAllMembers(prev => prev.map(m =>
+              m.id === editingMember.id ? { ...m, role: tempRole, customPermissions: tempPerms } : m
+          ));
+
+          // Log activity
+          if (oldRole !== tempRole) {
+            logActivity('roleChanged', editingMember.name, `Changed role from ${oldRole} to ${tempRole}`);
+            success(`Updated ${editingMember.name}'s role to ${tempRole}`);
+          } else {
+            logActivity('permissionUpdated', editingMember.name, 'Updated permissions');
+            success(`Updated permissions for ${editingMember.name}`);
+          }
       } else {
-        logActivity('permissionUpdated', editingMember.name, 'Updated permissions');
-        success(`Updated permissions for ${editingMember.name}`);
+          error('Failed to update role');
       }
 
       setEditingMember(null);
@@ -248,28 +249,49 @@ const ManageMembers: React.FC<Props> = ({ onBack }) => {
     setTempPerms(ROLE_DEFAULTS[role].permissions);
   };
 
-  const handleActionRequest = (id: string, action: 'approve' | 'decline') => {
+  const handleActionRequest = async (id: string, action: 'approve' | 'decline') => {
     if (!community) return;
     const member = pendingMembers.find(m => m.id === id);
-    if (!member) return;
+    const declinedMember = declinedMembers.find(m => m.id === id);
+    const targetName = member?.name || declinedMember?.name || 'Unknown';
 
     if (action === 'approve') {
-      approveMember(community.id, id);
-      logActivity('approved', member.name, 'Approved to join the tribe');
-      success(`Welcome to the tribe, ${member.name}!`);
+      const successResult = await communityService.approveMember(community.id, id);
+      if (successResult) {
+          // Update local state
+          setAllMembers(prev => prev.map(m =>
+              m.id === id ? { ...m, status: 'approved' } : m
+          ));
+          logActivity('approved', targetName, 'Approved to join the tribe');
+          success(`Welcome to the tribe, ${targetName}!`);
+      }
     } else {
-      declineMember(community.id, id);
-      logActivity('declined', member.name, 'Join request declined');
-      info(`Declined join request for ${member.name}`);
+      const successResult = await communityService.declineMember(community.id, id);
+      if (successResult) {
+          // Update local state
+          setAllMembers(prev => prev.map(m =>
+              m.id === id ? { ...m, status: 'rejected' } : m
+          ));
+          logActivity('declined', targetName, 'Join request declined');
+          info(`Declined join request for ${targetName}`);
+      }
     }
   };
 
-  const handleRemoveMember = (id: string, name: string) => {
+  const handleRemoveMember = async (id: string, name: string) => {
     if (community) {
       if (window.confirm(`Are you sure you want to remove ${name} from the tribe? They will be moved to the declined list.`)) {
-        removeMember(community.id, id);
-        logActivity('removed', name, 'Removed from the tribe');
-        success(`${name} has been removed from the tribe`);
+        const successResult = await communityService.removeMember(community.id, id);
+        if (successResult) {
+            // Update local state
+            setAllMembers(prev => prev.map(m =>
+                m.id === id ? { ...m, status: 'rejected' } : m
+            ));
+            logActivity('removed', name, 'Removed from the tribe');
+            success(`${name} has been removed from the tribe`);
+        } else {
+            error('Failed to remove member');
+        }
       }
     }
   };
@@ -466,79 +488,97 @@ const ManageMembers: React.FC<Props> = ({ onBack }) => {
         )}
 
         <div className="space-y-4 pb-32">
-          {activeTab === 'joined' && (
-            filteredJoinedMembers.map(member => (
-              <div
-                key={member.id}
-                className="p-5 bg-white/5 border border-white/5 rounded-[2rem] flex items-center gap-4 hover:bg-white/10 transition-all group"
-              >
-                <img src={member.avatar} className="size-14 rounded-2xl border-2 border-white/10" alt="" />
-                <div className="flex-1 min-w-0">
-                  <h4 className="text-white font-black text-lg tracking-tight truncate leading-none mb-1">{member.name}</h4>
-                  <div className="flex items-center gap-2">
-                    <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded border ${ROLE_DEFAULTS[member.role]?.color || ROLE_DEFAULTS['Member'].color}`}>
-                      {member.role}
-                    </span>
-                    <span className="text-[9px] text-slate-500 font-bold">{member.location}</span>
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setEditingMember(member)}
-                    className="size-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-slate-500 hover:text-primary transition-all"
-                  >
-                    <span className="material-symbols-outlined text-xl">tune</span>
-                  </button>
-                  {member.role !== 'Admin' && (
-                    <button
-                      onClick={() => handleRemoveMember(member.id, member.name)}
-                      className="size-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-slate-500 hover:text-red-400 transition-all"
-                    >
-                      <span className="material-symbols-outlined text-xl">person_remove</span>
-                    </button>
-                  )}
-                </div>
+          {isLoading && activeTab === 'joined' ? (
+              <div className="py-20 text-center text-slate-500">
+                  <div className="animate-spin size-8 border-2 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
+                  Loading roster...
               </div>
-            ))
-          )}
-
-          {activeTab === 'pending' && (
-            filteredPendingMembers.map(member => (
-              <div key={member.id} className="p-6 bg-surface-dark border border-white/5 rounded-[2.5rem] space-y-4 shadow-xl">
-                <div className="flex items-center gap-4">
-                  <img src={member.avatar} className="size-16 rounded-[1.5rem]" alt="" />
-                  <div>
-                    <h4 className="text-white font-black text-xl leading-none mb-1">{member.name}</h4>
-                    <span className="text-[10px] text-primary font-black uppercase tracking-widest">{member.category} Match</span>
-                  </div>
-                </div>
-                <div className="bg-black/40 p-4 rounded-2xl border border-white/5 italic text-xs text-slate-400">
-                  "{member.reason}"
-                </div>
-                <div className="flex gap-2">
-                  <button onClick={() => handleActionRequest(member.id, 'approve')} className="flex-1 bg-primary text-background-dark font-black py-3 rounded-xl text-[10px] uppercase">Approve</button>
-                  <button onClick={() => handleActionRequest(member.id, 'decline')} className="px-4 bg-white/5 text-slate-500 font-black py-3 rounded-xl text-[10px] uppercase">Decline</button>
-                </div>
-              </div>
-            ))
-          )}
-
-          {activeTab === 'declined' && (
-            filteredDeclinedMembers.map(member => (
-              <div key={member.id} className="p-5 bg-white/5 border border-white/5 rounded-[2rem] flex items-center gap-4 opacity-75 hover:opacity-100 transition-opacity">
-                <img src={member.avatar} className="size-14 rounded-2xl border-2 border-white/10 grayscale" alt="" />
-                <div className="flex-1 min-w-0">
-                  <h4 className="text-slate-400 font-black text-lg tracking-tight truncate leading-none mb-1">{member.name}</h4>
-                  <span className="text-[9px] text-red-400 font-bold uppercase tracking-wider">Declined</span>
-                </div>
-                <button
-                  onClick={() => handleActionRequest(member.id, 'approve')}
-                  className="px-4 py-2 bg-white/5 hover:bg-primary hover:text-background-dark text-slate-500 font-black text-[9px] uppercase rounded-xl transition-all"
+          ) : (
+            <>
+            {activeTab === 'joined' && (
+                filteredJoinedMembers.length === 0 ? (
+                    <div className="text-center py-10 text-slate-500 text-xs">No active members found</div>
+                ) : (
+                filteredJoinedMembers.map(member => (
+                <div
+                    key={member.id}
+                    className="p-5 bg-white/5 border border-white/5 rounded-[2rem] flex items-center gap-4 hover:bg-white/10 transition-all group"
                 >
-                  Reconsider
-                </button>
-              </div>
-            ))
+                    <img src={member.avatar} className="size-14 rounded-2xl border-2 border-white/10" alt="" />
+                    <div className="flex-1 min-w-0">
+                    <h4 className="text-white font-black text-lg tracking-tight truncate leading-none mb-1">{member.name}</h4>
+                    <div className="flex items-center gap-2">
+                        <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded border ${ROLE_DEFAULTS[member.role as UserRole]?.color || ROLE_DEFAULTS['Member'].color}`}>
+                        {member.role}
+                        </span>
+                        <span className="text-[9px] text-slate-500 font-bold">{member.location}</span>
+                    </div>
+                    </div>
+                    <div className="flex gap-2">
+                    <button
+                        onClick={() => setEditingMember(member)}
+                        className="size-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-slate-500 hover:text-primary transition-all"
+                    >
+                        <span className="material-symbols-outlined text-xl">tune</span>
+                    </button>
+                    {member.role !== 'Admin' && (
+                        <button
+                        onClick={() => handleRemoveMember(member.id, member.name)}
+                        className="size-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-slate-500 hover:text-red-400 transition-all"
+                        >
+                        <span className="material-symbols-outlined text-xl">person_remove</span>
+                        </button>
+                    )}
+                    </div>
+                </div>
+                ))
+            ))}
+
+            {activeTab === 'pending' && (
+                filteredPendingMembers.length === 0 ? (
+                    <div className="text-center py-10 text-slate-500 text-xs">No pending requests</div>
+                ) : (
+                filteredPendingMembers.map(member => (
+                <div key={member.id} className="p-6 bg-surface-dark border border-white/5 rounded-[2.5rem] space-y-4 shadow-xl">
+                    <div className="flex items-center gap-4">
+                    <img src={member.avatar} className="size-16 rounded-[1.5rem]" alt="" />
+                    <div>
+                        <h4 className="text-white font-black text-xl leading-none mb-1">{member.name}</h4>
+                        <span className="text-[10px] text-primary font-black uppercase tracking-widest">{member.category} Match</span>
+                    </div>
+                    </div>
+                    <div className="bg-black/40 p-4 rounded-2xl border border-white/5 italic text-xs text-slate-400">
+                    "{member.reason}"
+                    </div>
+                    <div className="flex gap-2">
+                    <button onClick={() => handleActionRequest(member.id, 'approve')} className="flex-1 bg-primary text-background-dark font-black py-3 rounded-xl text-[10px] uppercase">Approve</button>
+                    <button onClick={() => handleActionRequest(member.id, 'decline')} className="px-4 bg-white/5 text-slate-500 font-black py-3 rounded-xl text-[10px] uppercase">Decline</button>
+                    </div>
+                </div>
+                ))
+            ))}
+
+            {activeTab === 'declined' && (
+                filteredDeclinedMembers.length === 0 ? (
+                    <div className="text-center py-10 text-slate-500 text-xs">No declined members</div>
+                ) : (
+                filteredDeclinedMembers.map(member => (
+                <div key={member.id} className="p-5 bg-white/5 border border-white/5 rounded-[2rem] flex items-center gap-4 opacity-75 hover:opacity-100 transition-opacity">
+                    <img src={member.avatar} className="size-14 rounded-2xl border-2 border-white/10 grayscale" alt="" />
+                    <div className="flex-1 min-w-0">
+                    <h4 className="text-slate-400 font-black text-lg tracking-tight truncate leading-none mb-1">{member.name}</h4>
+                    <span className="text-[9px] text-red-400 font-bold uppercase tracking-wider">Declined</span>
+                    </div>
+                    <button
+                    onClick={() => handleActionRequest(member.id, 'approve')}
+                    className="px-4 py-2 bg-white/5 hover:bg-primary hover:text-background-dark text-slate-500 font-black text-[9px] uppercase rounded-xl transition-all"
+                    >
+                    Reconsider
+                    </button>
+                </div>
+                ))
+            ))}
+            </>
           )}
 
           {activeTab === 'invites' && (
