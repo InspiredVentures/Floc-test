@@ -27,7 +27,12 @@
     "noEmit": true
   },
   "include": [
-    "src"
+    "src",
+    "pages",
+    "components",
+    "vitest.setup.ts",
+    "*.tsx",
+    "*.ts"
   ],
   "exclude": [
     "node_modules",

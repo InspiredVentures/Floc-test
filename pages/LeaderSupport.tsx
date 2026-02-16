@@ -1,6 +1,7 @@
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useUser } from '../contexts/UserContext';
+import { supabase } from '../lib/supabase';
 import { CommunityPost, AppView } from '../types';
 
 interface Props {
@@ -48,7 +49,7 @@ const MOCK_LEADER_POSTS: CommunityPost[] = [
 const CONCIERGE_ID = 'inspired-concierge';
 
 const LeaderSupport: React.FC<Props> = ({ onBack, onOpenResource }) => {
-  const { messages: globalMessages, sendMessage, markAsRead, conversations } = useUser();
+  const { messages: globalMessages, sendMessage, addMessage, markAsRead, conversations, setTypingStatus } = useUser();
   const [activeTab, setActiveTab] = useState<'chat' | 'feed'>('chat');
   const [inputText, setInputText] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -88,18 +89,68 @@ const LeaderSupport: React.FC<Props> = ({ onBack, onOpenResource }) => {
     }
   }, [messages, isTyping, activeTab]);
 
-  const handleSendMessage = (e: React.FormEvent) => {
+  const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputText.trim()) return;
+
+    const userMessage = inputText.trim();
+    // Default to existing conversation or create a new one if not found (handled by sendMessage,
+    // but for setTypingStatus/addMessage we prefer a known ID.
+    // Since concierge-1 is seeded, conversation?.id should exist.)
+    const currentConversationId = conversation?.id;
+
+    if (!currentConversationId) {
+      console.warn("Conversation ID not found. Ensuring message sent, but skipping AI response.");
+      sendMessage(
+        CONCIERGE_ID,
+        'Inspired Concierge',
+        'https://img.icons8.com/fluency/96/artificial-intelligence.png',
+        userMessage,
+        undefined
+      );
+      setInputText('');
+      return;
+    }
 
     sendMessage(
       CONCIERGE_ID,
       'Inspired Concierge',
       'https://img.icons8.com/fluency/96/artificial-intelligence.png',
-      inputText.trim(),
-      conversation?.id
+      userMessage,
+      currentConversationId
     );
     setInputText('');
+
+    setTypingStatus(currentConversationId, true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('chat-concierge', {
+        body: { message: userMessage }
+      });
+
+      if (error) throw error;
+
+      if (data && data.reply) {
+        addMessage(
+          currentConversationId,
+          CONCIERGE_ID,
+          'Inspired Concierge',
+          'https://img.icons8.com/fluency/96/artificial-intelligence.png',
+          data.reply
+        );
+      }
+    } catch (err) {
+      console.error('Concierge API Error:', err);
+      addMessage(
+        currentConversationId,
+        CONCIERGE_ID,
+        'Inspired Concierge',
+        'https://img.icons8.com/fluency/96/artificial-intelligence.png',
+        "I'm having trouble connecting right now. Please try again later."
+      );
+    } finally {
+      setTypingStatus(currentConversationId, false);
+    }
   };
 
   return (
