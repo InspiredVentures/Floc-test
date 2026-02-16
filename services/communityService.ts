@@ -490,19 +490,12 @@ export const communityService = {
             .from('community_members')
             .select('community_id')
             .eq('user_id', userId)
-            //.eq('status', 'approved'); // TEMPORARY: Comment out status check to see if that is the issue
-            ;
+            .eq('status', 'approved');
 
         if (error) {
             console.error('[CommunityService] Error fetching user community IDs:', error);
             return [];
         }
-
-
-
-        // Filter in memory for now to be safe
-        const approved = data?.filter((r: any) => r.status === 'approved' || true).map((row: any) => row.community_id) || [];
-        // Note: I restored the 'true' to allow all statuses for debugging purposes
 
         return data.map((row: any) => row.community_id);
     },
