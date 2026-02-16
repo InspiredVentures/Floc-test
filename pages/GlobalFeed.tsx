@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { CommunityPost } from '../types';
 import { useUser } from '../contexts/UserContext';
 import { Feed } from '../components/Feed';
@@ -69,8 +69,11 @@ export const MOCK_GLOBAL_POSTS: CommunityPost[] = [
 
 const GlobalFeed: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [activeTab, setActiveTab] = useState<'pulse' | 'vibes' | 'following'>('pulse');
   const [searchQuery, setSearchQuery] = useState('');
+
+  const { initialContent, communityId } = location.state || {};
 
   // Search/Filter logic for the Feed component could be lifted up here if needed,
   // but for simplicity we'll just pass the initial list.
@@ -129,7 +132,10 @@ const GlobalFeed: React.FC = () => {
 
       <main className="p-6 pb-32 max-w-2xl mx-auto w-full">
         {/* Feed Component */}
-        <Feed context="global" initialPosts={filteredPosts} />
+        <Feed
+          communityId={communityId}
+          initialContent={initialContent}
+        />
       </main>
     </div>
   );
