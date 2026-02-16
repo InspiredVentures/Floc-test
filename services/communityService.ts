@@ -174,6 +174,12 @@ export const communityService = {
             const existing = JSON.parse(localStorage.getItem(`mock_posts_${communityId}`) || '[]');
             localStorage.setItem(`mock_posts_${communityId}`, JSON.stringify([newPost, ...existing]));
 
+            // Update Mock Post Index for performance
+            const indexStr = localStorage.getItem('mock_post_index');
+            const index = indexStr ? JSON.parse(indexStr) : {};
+            index[newPost.id] = communityId;
+            localStorage.setItem('mock_post_index', JSON.stringify(index));
+
             return newPost;
         }
 
@@ -309,16 +315,58 @@ export const communityService = {
             // This is expensive but necessary for persistence across reloads
             // For a prototype, maybe we skip persistence or try a few known keys?
             // Let's try to find it.
-            for (let i = 0; i < localStorage.length; i++) {
-                const key = localStorage.key(i);
-                if (key?.startsWith('mock_posts_')) {
-                    const posts = JSON.parse(localStorage.getItem(key) || '[]');
-                    const postIndex = posts.findIndex((p: any) => p.id === postId);
-                    if (postIndex !== -1) {
-                        if (!posts[postIndex].comments) posts[postIndex].comments = [];
-                        posts[postIndex].comments.push(newComment);
-                        localStorage.setItem(key, JSON.stringify(posts));
-                        break;
+            let found = false;
+
+            // 1. Try Optimized Lookup (Index)
+            const indexStr = localStorage.getItem('mock_post_index');
+            if (indexStr) {
+                try {
+                    const index = JSON.parse(indexStr);
+                    const communityId = index[postId];
+                    if (communityId) {
+                        const key = `mock_posts_${communityId}`;
+                        const postsStr = localStorage.getItem(key);
+                        if (postsStr) {
+                            const posts = JSON.parse(postsStr);
+                            const postIndex = posts.findIndex((p: any) => p.id === postId);
+                            if (postIndex !== -1) {
+                                if (!posts[postIndex].comments) posts[postIndex].comments = [];
+                                posts[postIndex].comments.push(newComment);
+                                localStorage.setItem(key, JSON.stringify(posts));
+                                found = true;
+                            }
+                        }
+                    }
+                } catch (e) {
+                    console.warn('Error parsing mock_post_index', e);
+                }
+            }
+
+            // 2. Fallback: Slow Scan (if not found in index or index missing)
+            if (!found) {
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if (key?.startsWith('mock_posts_')) {
+                        const posts = JSON.parse(localStorage.getItem(key) || '[]');
+                        const postIndex = posts.findIndex((p: any) => p.id === postId);
+                        if (postIndex !== -1) {
+                            if (!posts[postIndex].comments) posts[postIndex].comments = [];
+                            posts[postIndex].comments.push(newComment);
+                            localStorage.setItem(key, JSON.stringify(posts));
+
+                            // Self-Healing: Update Index
+                            try {
+                                const communityId = key.replace('mock_posts_', '');
+                                const index = indexStr ? JSON.parse(indexStr) : {};
+                                index[postId] = communityId;
+                                localStorage.setItem('mock_post_index', JSON.stringify(index));
+                            } catch (e) {
+                                // Ignore index update errors in fallback
+                            }
+
+                            found = true;
+                            break;
+                        }
                     }
                 }
             }
