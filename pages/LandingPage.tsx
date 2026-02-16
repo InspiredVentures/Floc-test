@@ -102,7 +102,7 @@ const LandingPage = () => {
             id: 'nepal',
             title: "Nepal Tiger Tracking",
             tags: "Nepal / 2026",
-            img: "/images/trips/nepal-tiger.jpg",
+            img: "/images/trips/nepal-tiger.avif",
             desc: "Track tigers and leopards in Nepal, helping the Nepal Tiger Trust to support and protect the big cat populations in the Himalayan foothills."
         },
         {
