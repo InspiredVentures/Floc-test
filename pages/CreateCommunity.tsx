@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useUser } from '../contexts/UserContext';
 import { useToast } from '../contexts/ToastContext';
 import { Community } from '../types';
+import { AccessCard } from '../components/AccessCard';
 
 interface Props {
   onBack?: () => void;
@@ -32,6 +33,38 @@ const CreateCommunity: React.FC<Props> = ({ onBack, onComplete }) => {
   const toast = useToast();
   const [currentStep, setCurrentStep] = useState(0);
   const [isMinting, setIsMinting] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  const handleGenerateImage = async () => {
+    setIsGenerating(true);
+    try {
+      const response = await fetch('/api/generate-community-image', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: formData.title,
+          category: formData.category,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate image');
+      }
+
+      const data = await response.json();
+      if (data.image) {
+        setFormData(prev => ({ ...prev, image: data.image }));
+        toast.success('Cover image generated!');
+      }
+    } catch (error) {
+      console.error('Error generating image:', error);
+      toast.error('Failed to generate image.');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
 
   // Type-safe form data
   const [formData, setFormData] = useState<Omit<Community, 'id' | 'memberCount' | 'upcomingTrips' | 'meta' | 'accessType' | 'isManaged' | 'unreadCount'> & { image: string, entryQuestions: string[], enabledFeatures: string[] }>({
@@ -146,13 +179,27 @@ const CreateCommunity: React.FC<Props> = ({ onBack, onComplete }) => {
           <div className="space-y-6 animate-in slide-in-from-right duration-500">
             <div className="space-y-2">
               <label className="text-slate-400 text-xs font-bold uppercase tracking-widest">Cover Image URL</label>
-              <input
-                type="text"
-                className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white font-bold focus:border-primary outline-none transition-all placeholder:text-slate-600"
-                placeholder="https://..."
-                value={formData.image}
-                onChange={e => setFormData({ ...formData, image: e.target.value })}
-              />
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  className="flex-1 bg-white/5 border border-white/10 rounded-2xl p-4 text-white font-bold focus:border-primary outline-none transition-all placeholder:text-slate-600"
+                  placeholder="https://..."
+                  value={formData.image}
+                  onChange={e => setFormData({ ...formData, image: e.target.value })}
+                />
+                <button
+                  onClick={handleGenerateImage}
+                  disabled={isGenerating || !formData.category}
+                  className="bg-primary/10 text-primary border border-primary/20 rounded-2xl px-4 font-black text-xs uppercase tracking-widest hover:bg-primary/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap flex items-center gap-2"
+                >
+                  {isGenerating ? (
+                    <span className="size-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></span>
+                  ) : (
+                    <span className="material-symbols-outlined text-sm">auto_awesome</span>
+                  )}
+                  {isGenerating ? 'Generating' : 'Generate'}
+                </button>
+              </div>
               <p className="text-[10px] text-slate-500">Leave empty for a random Unsplash image.</p>
             </div>
             {formData.image && (
@@ -207,8 +254,12 @@ const CreateCommunity: React.FC<Props> = ({ onBack, onComplete }) => {
               {FEATURE_MODULES.map(feature => {
                 const isEnabled = formData.enabledFeatures.includes(feature.id);
                 return (
-                  <button
+                  <AccessCard
                     key={feature.id}
+                    active={isEnabled}
+                    title={feature.label.toUpperCase()}
+                    desc={feature.desc}
+                    icon={feature.icon}
                     onClick={() => {
                       if (isEnabled) {
                         setFormData({ ...formData, enabledFeatures: formData.enabledFeatures.filter(f => f !== feature.id) });
@@ -216,19 +267,11 @@ const CreateCommunity: React.FC<Props> = ({ onBack, onComplete }) => {
                         setFormData({ ...formData, enabledFeatures: [...formData.enabledFeatures, feature.id] });
                       }
                     }}
-                    className={`flex items-center gap-4 p-4 rounded-2xl border transition-all text-left group ${isEnabled ? 'bg-primary/10 border-primary text-white' : 'bg-white/5 border-white/5 text-slate-500 hover:border-white/20'}`}
                   >
-                    <div className={`size-10 rounded-xl flex items-center justify-center transition-colors ${isEnabled ? 'bg-primary text-background-dark' : 'bg-background-dark text-slate-500 group-hover:text-white'}`}>
-                      <span className="material-symbols-outlined">{feature.icon}</span>
+                    <div className={`size-6 rounded-full border flex items-center justify-center transition-all ${isEnabled ? 'bg-background-dark border-background-dark text-primary' : 'border-slate-600 group-hover:border-slate-400'}`}>
+                      {isEnabled && <span className="material-symbols-outlined text-sm font-black">check</span>}
                     </div>
-                    <div className="flex-1">
-                      <h4 className={`font-black uppercase tracking-widest text-[10px] ${isEnabled ? 'text-primary' : 'text-slate-300 group-hover:text-white'}`}>{feature.label}</h4>
-                      <p className="text-[10px] font-medium opacity-70">{feature.desc}</p>
-                    </div>
-                    <div className={`size-6 rounded-full border flex items-center justify-center transition-all ${isEnabled ? 'bg-primary border-primary' : 'border-slate-600 group-hover:border-slate-400'}`}>
-                      {isEnabled && <span className="material-symbols-outlined text-background-dark text-sm font-black">check</span>}
-                    </div>
-                  </button>
+                  </AccessCard>
                 );
               })}
             </div>

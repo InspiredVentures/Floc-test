@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Trip, TripSuggestion } from '../types';
 import { useToast } from '../contexts/ToastContext';
 import { useUser } from '../contexts/UserContext';
@@ -59,7 +59,7 @@ const TripDetails: React.FC<Props> = ({ trip, onBack, onBook, onOpenChat, isBook
     }
   };
 
-  const handleVote = async (id: string, dir: 'up' | 'down') => {
+  const handleVote = useCallback(async (id: string, dir: 'up' | 'down') => {
     if (!user) return;
     const success = await communityService.voteSuggestion(id, user.id, dir);
     if (success) {
@@ -80,9 +80,9 @@ const TripDetails: React.FC<Props> = ({ trip, onBack, onBook, onOpenChat, isBook
         }
       }));
     }
-  };
+  }, [user]);
 
-  const handleAddComment = async (id: string, text: string) => {
+  const handleAddComment = useCallback(async (id: string, text: string) => {
     if (!user) return;
     const newComment = await communityService.addSuggestionComment(id, user.id, user.displayName, user.avatar, text);
     if (newComment) {
@@ -91,7 +91,7 @@ const TripDetails: React.FC<Props> = ({ trip, onBack, onBook, onOpenChat, isBook
         return { ...s, comments: [...(s.comments || []), newComment] };
       }));
     }
-  };
+  }, [user]);
 
   return (
     <div className="flex flex-col min-h-screen bg-[#FCFBF5] text-[#14532D] font-body selection:bg-accent selection:text-white">
@@ -330,8 +330,8 @@ const TripDetails: React.FC<Props> = ({ trip, onBack, onBook, onOpenChat, isBook
                   <TripSuggestionCard
                     key={sug.id}
                     suggestion={sug}
-                    onVote={(dir) => handleVote(sug.id, dir)}
-                    onAddComment={(text) => handleAddComment(sug.id, text)}
+                    onVote={handleVote}
+                    onAddComment={handleAddComment}
                   />
                 ))}
                 {suggestions.length === 0 && (
