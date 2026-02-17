@@ -104,6 +104,7 @@ export interface Trip {
   membersCount: number;
   communityId?: string;
   wetravelId?: string; // To link back to source
+  description?: string;
 }
 
 export interface TripSuggestion {
@@ -119,6 +120,11 @@ export interface TripSuggestion {
   votes: number;
   myVote: 'up' | 'down' | null;
   timestamp: string;
+  comments?: CommunityComment[];
+  description?: string;
+  currency?: string;
+  budgetMin?: number;
+  budgetMax?: number;
 }
 
 export interface Message {
@@ -184,6 +190,7 @@ export interface User {
   joinedDate: string;
   isOnline?: boolean;
   lastSeen?: string;
+  bookedTrips?: string[];
   stats: {
     trips: number;
     communities: number;

@@ -20,7 +20,7 @@ interface Props {
 
 const TripDetails: React.FC<Props> = ({ trip, onBack, onBook, onOpenChat, isBooking }) => {
   const navigate = useNavigate();
-  const { user } = useUser();
+  const { user, profile, bookedTripIds } = useUser();
   const { success } = useToast();
   /* State */
   const [activeView, setActiveView] = useState<'group' | 'chat' | 'docs' | 'lab'>('group');
@@ -29,7 +29,7 @@ const TripDetails: React.FC<Props> = ({ trip, onBack, onBook, onOpenChat, isBook
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
 
   // Logic to determine if user has access (booked)
-  const isBooked = user?.bookedTrips?.includes(trip.id);
+  const isBooked = bookedTripIds.includes(trip.id);
 
   /* Effects */
   useEffect(() => {
@@ -83,15 +83,21 @@ const TripDetails: React.FC<Props> = ({ trip, onBack, onBook, onOpenChat, isBook
   }, [user]);
 
   const handleAddComment = useCallback(async (id: string, text: string) => {
-    if (!user) return;
-    const newComment = await communityService.addSuggestionComment(id, user.id, user.displayName, user.avatar, text);
+    if (!user || !profile) return;
+    const newComment = await communityService.addSuggestionComment(
+      id,
+      user.id,
+      profile.display_name || user.email || 'User',
+      profile.avatar_url || '',
+      text
+    );
     if (newComment) {
       setSuggestions(prev => prev.map(s => {
         if (s.id !== id) return s;
         return { ...s, comments: [...(s.comments || []), newComment] };
       }));
     }
-  }, [user]);
+  }, [user, profile]);
 
   return (
     <div className="flex flex-col min-h-screen bg-[#FCFBF5] text-[#14532D] font-body selection:bg-accent selection:text-white">

@@ -35,7 +35,13 @@ class AIService {
 
       // Handle the response
       if (response && response.text) {
-          return response.text();
+          // Cast to any to handle SDK type inconsistencies (getter vs method)
+          const textVal = (response.text as any);
+          if (typeof textVal === 'function') {
+              return textVal();
+          } else {
+              return String(textVal);
+          }
       }
 
       return text;

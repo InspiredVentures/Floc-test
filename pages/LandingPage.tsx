@@ -1,26 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, Variants } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import {
     Heart,
-    Users,
-    Palmtree,
-    MapPin,
-    Sparkles,
-    Megaphone,
     ChevronRight,
-    ArrowRight,
-    Globe,
-    Camera,
-    MessageCircle,
-    Menu,
-    X
 } from 'lucide-react';
 import WebsiteNav from '../components/WebsiteNav';
 import { SEO } from '../components/SEO';
 
 // Animation Variants
-const fadeIn = {
+const fadeIn: Variants = {
     hidden: { opacity: 0, y: 20 },
     visible: {
         opacity: 1,
@@ -29,7 +18,7 @@ const fadeIn = {
     }
 };
 
-const staggerContainer = {
+const staggerContainer: Variants = {
     hidden: { opacity: 0 },
     visible: {
         opacity: 1,
@@ -39,7 +28,7 @@ const staggerContainer = {
     }
 };
 
-const floatingVariants: any = {
+const floatingVariants: Variants = {
     initial: { y: 0 },
     animate: (i: number) => ({
         y: [0, -15, 0],
@@ -61,7 +50,6 @@ const heroImages = [
 
 const LandingPage = () => {
     const [isScrolled, setIsScrolled] = useState(false);
-    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
     const navigate = useNavigate();
 

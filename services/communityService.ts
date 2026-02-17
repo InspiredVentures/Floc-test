@@ -124,7 +124,6 @@ export const communityService = {
                 )
             `)
             .eq('community_id', communityId)
-            .eq('community_id', communityId)
             .order('is_pinned', { ascending: false, nullsFirst: false }) // Hypothetical column
             .order('created_at', { ascending: false });
 

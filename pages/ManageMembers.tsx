@@ -2,13 +2,13 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useUser } from '../contexts/UserContext';
 import { useToast } from '../contexts/ToastContext';
 import { communityService } from '../services/communityService';
-import { Member } from '../types';
+import { Member, PendingMember } from '../types';
 
 interface Props {
   onBack: () => void;
 }
 
-type UserRole = 'Owner' | 'Admin' | 'Co-Leader' | 'Member';
+type UserRole = Member['role'];
 
 interface Permission {
   id: string;
@@ -23,15 +23,6 @@ const PERMISSIONS: Permission[] = [
   { id: 'manage', icon: 'group_add', label: 'Manage Roster', description: 'Approve applicants and adjust member roles.' },
   { id: 'delete', icon: 'delete_forever', label: 'Dissolve Community', description: 'Permanently remove the community from the network.' },
 ];
-
-interface PendingMember {
-  id: string;
-  name: string;
-  avatar: string;
-  reason: string;
-  timestamp: string;
-  category: 'Eco' | 'Adventure' | 'Social' | 'Creative';
-}
 
 interface Invitation {
   id: string;
