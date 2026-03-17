@@ -186,7 +186,7 @@ const LandingPage = () => {
                                 {/* E - with Leaf Motif */}
                                 <motion.g custom={0} variants={floatingVariants} initial="initial" animate="animate">
                                     <motion.path
-                                        d="M140 60 H50 V180 H140 M50 120 H120"
+                                        d="M140 60 L50 60 L50 180 L140 180"
                                         stroke="white"
                                         strokeWidth="24"
                                         strokeLinecap="round"
@@ -197,17 +197,18 @@ const LandingPage = () => {
                                         transition={{ duration: 1.5, ease: "easeInOut" }}
                                     />
                                     <motion.path
-                                        d="M130 50 C140 40 160 40 160 60 C160 80 140 85 130 80 L130 50"
-                                        fill="#14532D"
+                                        d="M50 120 Q85 95 120 120 Q85 145 50 120 Z"
+                                        fill="#22c55e"
                                         initial={{ scale: 0, opacity: 0 }}
                                         animate={{ scale: 1, opacity: 1 }}
                                         transition={{ delay: 1, duration: 0.5 }}
                                     />
                                 </motion.g>
 
-                                {/* V - Mountain Peak Motif */}
+                                {/* V - Heart Motif */}
                                 <motion.g custom={1} variants={floatingVariants} initial="initial" animate="animate">
-                                    <motion.path
+                                     <motion.path
+                                        // V shape
                                         d="M200 60 L300 180 L400 60"
                                         stroke="white"
                                         strokeWidth="24"
@@ -219,13 +220,14 @@ const LandingPage = () => {
                                         transition={{ duration: 1.5, ease: "easeInOut", delay: 0.3 }}
                                     />
                                     <motion.path
-                                        d="M260 132 L300 100 L340 132"
-                                        stroke="white"
+                                        // Heart nested in the V
+                                        d="M300 120 C 300 120 270 90 280 75 C 290 60 300 80 300 80 C 300 80 310 60 320 75 C 330 90 300 120 300 120 Z"
+                                        stroke="#bf2761"
                                         strokeWidth="8"
                                         strokeLinecap="round"
-                                        fill="none"
+                                        fill="#bf2761"
                                         initial={{ opacity: 0 }}
-                                        animate={{ opacity: 0.6 }}
+                                        animate={{ opacity: 1 }}
                                         transition={{ delay: 1.5 }}
                                     />
                                 </motion.g>
@@ -244,8 +246,8 @@ const LandingPage = () => {
                                         transition={{ duration: 1.5, ease: "easeInOut", delay: 0.6 }}
                                     />
                                     <motion.path
-                                        d="M485 140 Q525 120 565 140"
-                                        stroke="#007FFF"
+                                        d="M485 140 Q505 120 525 140 T565 140"
+                                        stroke="#63a8d0"
                                         strokeWidth="12"
                                         strokeLinecap="round"
                                         fill="none"
@@ -330,7 +332,7 @@ const LandingPage = () => {
                     <div className="flex flex-col md:flex-row justify-between items-end mb-20 gap-8">
                         <div className="space-y-4">
                             <span className="text-accent text-sm font-bold uppercase tracking-[0.3em]">Upcoming Trips</span>
-                            <h2 className="text-5xl md:text-8xl font-heading font-bold text-primary tracking-tighter uppercase leading-none">Our <span className="text-accent italic inline-block rotate-1">Trips.</span></h2>
+                            <h2 className="text-5xl md:text-8xl font-heading font-bold text-primary tracking-tighter uppercase leading-none">Our <span className="text-accent italic inline-block rotate-1">Trips</span></h2>
                         </div>
                         <p className="max-w-xs text-foreground/50 font-semibold uppercase text-xs tracking-[0.2em] leading-loose">
                             Every trip is led by specialized experts and limited to small, social groups.
@@ -391,7 +393,7 @@ const LandingPage = () => {
                     <div className="space-y-6">
                         <span className="text-accent text-sm font-bold uppercase tracking-[0.4em] italic mb-4 block">Ready for your third act?</span>
                         <h2 className="text-6xl md:text-9xl font-heading font-bold leading-[0.85] tracking-tight uppercase">
-                            Join the <br /> <span className="text-accent italic inline-block -rotate-2">Community.</span>
+                            Join the <br /> <span className="text-accent italic inline-block -rotate-2">Community</span>
                         </h2>
                         <p className="text-white/60 max-w-xl mx-auto text-xl font-light italic leading-loose">
                             Join a community where adventure has no age limit and impact knows no bounds. The world is waiting for your energy.
@@ -416,7 +418,7 @@ const LandingPage = () => {
                 <div className="container mx-auto px-6">
                     <div className="grid md:grid-cols-4 gap-12 text-sm">
                         <div className="col-span-2 space-y-8">
-                            <span className="text-4xl font-heading font-bold text-primary tracking-tighter uppercase italic">EVA.</span>
+                            <span className="text-4xl font-heading font-bold text-primary tracking-tighter uppercase italic">EVA</span>
                             <p className="max-w-xs text-foreground/50 leading-loose">
                                 Ethical Volunteer Adventures is a travel brand dedicated to purposeful exploration for the vibrant over-50s community.
                             </p>

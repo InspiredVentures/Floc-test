@@ -13,18 +13,23 @@ const EvaLogo: React.FC<EvaLogoProps> = ({ className = "h-10 w-auto", color = "c
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
         >
-            {/* E - with Leaf Motif */}
+            {/* E - left and top/bottom bars */}
             <path
-                d="M140 60 H50 V180 H140 M50 120 H120"
+                d="M140 60 L50 60 L50 180 L140 180"
                 stroke={color}
                 strokeWidth="24"
                 strokeLinecap="round"
                 strokeLinejoin="round"
             />
+            {/* E - middle crossbar (Leaf) */}
             <path
-                d="M130 50 C140 40 160 40 160 60 C160 80 140 85 130 80 L130 50"
-                fill={color === "#ffffff" ? "#ffffff" : "#14532D"} // Keep leaf green unless white mode
-                style={{ opacity: 0.8 }}
+                d="M50 120 Q85 95 120 120 Q85 145 50 120 Z"
+                fill={color === "#ffffff" ? "#ffffff" : "#22c55e"} // Leaf green
+            />
+            {/* Heart Motif */}
+            <path
+                d="M130 50 C140 40 160 40 160 60 C160 80 140 85 130 80 L130 50 Z"
+                fill={color === "#ffffff" ? "#ffffff" : "#bf2761"} // Heart pink unless white mode
             />
 
             {/* V - Mountain Peak Motif */}
@@ -51,10 +56,11 @@ const EvaLogo: React.FC<EvaLogoProps> = ({ className = "h-10 w-auto", color = "c
                 strokeLinejoin="round"
             />
             <path
-                d="M485 140 Q525 120 565 140"
-                stroke={color === "#ffffff" ? "#ffffff" : "#007FFF"} // Keep wave blue unless white mode
+                d="M485 140 Q505 120 525 140 T565 140"
+                stroke={color === "#ffffff" ? "#ffffff" : "#63a8d0"} // Keep wave blue unless white mode
                 strokeWidth="12"
                 strokeLinecap="round"
+                fill="none"
             />
         </svg>
     );
