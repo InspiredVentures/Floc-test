@@ -896,7 +896,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 };
             }));
         }
-    };
+    }, []);
 
     const updateMemberRole = useCallback(async (communityId: string, memberId: string, role: Member['role'], permissions?: string[]) => {
         const success = await communityService.updateMemberRole(communityId, memberId, role);
