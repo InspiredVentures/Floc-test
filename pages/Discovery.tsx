@@ -7,6 +7,7 @@ import { useUser } from '../contexts/UserContext';
 import BackToTop from '../components/BackToTop';
 import { Skeleton } from '../components/Skeleton';
 import { motion } from 'framer-motion';
+import { filterCommunities } from '../lib/discovery';
 
 const CATEGORIES = [
   { id: 'all', label: 'All', icon: 'grid_view' },
@@ -38,20 +39,7 @@ const Discovery: React.FC = () => {
   }, []);
 
   const filteredCommunities = useMemo(() => {
-    let result = communities;
-    if (activeFilter === 'my-tribes') {
-      result = result.filter(c => isMember(c.id));
-    } else if (activeFilter !== 'all') {
-      result = result.filter(c => c.category === activeFilter);
-    }
-    if (searchQuery) {
-      const q = searchQuery.toLowerCase();
-      result = result.filter(comm =>
-        comm.title.toLowerCase().includes(q) ||
-        comm.description.toLowerCase().includes(q)
-      );
-    }
-    return result;
+    return filterCommunities(communities, activeFilter, searchQuery, isMember);
   }, [activeFilter, searchQuery, communities, isMember]);
 
   return (
