@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useUser } from '../contexts/UserContext';
 import { communityService } from '../services/communityService';
+import { aiService } from '../services/aiService';
 import { CommunityPost } from '../types';
 import { Virtuoso } from 'react-virtuoso';
 import { PostCard } from './PostCard';
