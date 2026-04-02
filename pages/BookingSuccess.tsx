@@ -5,9 +5,44 @@ interface Props {
   onDone: () => void;
 }
 
+const playSuccessSound = () => {
+  try {
+    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioContextClass) return;
+
+    const audioCtx = new AudioContextClass();
+    const oscillator = audioCtx.createOscillator();
+    const gainNode = audioCtx.createGain();
+
+    oscillator.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+
+    oscillator.type = 'sine';
+    // Success sound: C5 to E5
+    oscillator.frequency.setValueAtTime(523.25, audioCtx.currentTime);
+    oscillator.frequency.exponentialRampToValueAtTime(659.25, audioCtx.currentTime + 0.1);
+
+    gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+
+    oscillator.start();
+    oscillator.stop(audioCtx.currentTime + 0.3);
+  } catch (e) {
+    console.warn('Failed to play success sound:', e);
+  }
+};
+
+const triggerSuccessHaptics = () => {
+  if ('vibrate' in navigator) {
+    // Double pulse for success
+    navigator.vibrate([100, 30, 100]);
+  }
+};
+
 const BookingSuccess: React.FC<Props> = ({ onDone }) => {
   useEffect(() => {
-    // Optional: Play a sound or trigger haptics here
+    playSuccessSound();
+    triggerSuccessHaptics();
   }, []);
 
   return (
